@@ -2,9 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import { setupRoutes } from './api/routes';
+import playerRoutes from './api/routes/player.routes';
 import { errorHandler } from './utils/errorHandler';
-import { logger } from './utils/logger';
+import logger from './utils/Logger';
 import fs from 'fs';
 
 // Load environment variables
@@ -33,8 +33,8 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Setup routes
-setupRoutes(app);
+// Routes
+app.use('/api/player', playerRoutes);
 
 // Error handling
 app.use(errorHandler);

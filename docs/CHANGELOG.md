@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created data models for Player, Match, and Champion
 - Implemented SmurfDetectorService with detection algorithms
 - Added debug logging for API requests
+- Created data models for player analysis, match history, and champion statistics
+- Implemented RiotApi class with rate limiting and caching
+- Added SmurfDetectionService for analyzing player data
+- Created API endpoints for player analysis
 
 ### Changed
 - Updated project structure to follow best practices
@@ -40,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored Riot API service to always read API key at request time
 - Improved summoner name handling by removing region tags
 - Added graceful handling for API key permission limitations
+- Updated error handler to use consistent casing
+- Improved logging configuration
+- Enhanced API response structure
 
 ### Fixed
 - Added missing type definitions for Express, CORS, Helmet, and Winston
@@ -50,6 +57,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced API requests to avoid rate limiting during testing
 - Implemented fallback logic for handling 403 errors from Riot API
 - Added support for displaying available data with limited API key permissions
+- Fixed file casing issues in imports
+- Resolved error handler middleware implementation
+- Corrected API endpoint paths
 
 ### Planned
 - Set up frontend application
@@ -65,3 +75,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Need to implement frontend application 
 - Current Riot API key has limited permissions (403 Forbidden for some endpoints)
 - Need to apply for a more permissive Riot API key for full access 
+
+## [0.1.0] - 2024-03-19
+### Added
+- Initial project setup
+- Basic project structure
+- Documentation files
+- GitHub Pages configuration 
