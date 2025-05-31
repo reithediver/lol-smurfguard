@@ -1,14 +1,14 @@
-import { SmurfDetectorService } from '../services/smurf-detector.service';
+import { SmurfDetectionService } from '../services/smurf-detector.service';
 import { Player } from '../models/player.model';
 import { Match } from '../models/match.model';
 import { ChampionStats } from '../models/champion.model';
 
 describe('SmurfDetectorService', () => {
-  let service: SmurfDetectorService;
+  let service: SmurfDetectionService;
   let mockPlayer: Player;
 
   beforeEach(() => {
-    service = new SmurfDetectorService();
+    service = new SmurfDetectionService();
     
     // Create a mock player with suspicious patterns
     mockPlayer = {

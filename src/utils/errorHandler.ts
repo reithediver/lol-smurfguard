@@ -1,45 +1,35 @@
 import { Request, Response, NextFunction } from 'express';
-import logger from './Logger';
+import { logger } from './loggerService';
 
 export class AppError extends Error {
-    constructor(
-        public statusCode: number,
-        public message: string,
-        public isOperational = true
-    ) {
+    constructor(public message: string, public statusCode: number) {
         super(message);
-        Object.setPrototypeOf(this, AppError.prototype);
+        this.name = 'AppError';
+        Error.captureStackTrace(this, this.constructor);
     }
 }
 
+export const createError = (statusCode: number, message: string): AppError => {
+    return new AppError(message, statusCode);
+};
+
 export const errorHandler = (
-    err: Error | AppError,
+    err: Error,
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
-    if (err instanceof AppError && err.isOperational) {
-        logger.warn('Operational error:', {
-            statusCode: err.statusCode,
-            message: err.message
-        });
+    logger.error('Error:', err);
+
+    if (err instanceof AppError) {
         return res.status(err.statusCode).json({
-            status: 'fail',
+            status: 'error',
             message: err.message
         });
     }
-
-    logger.error('Unexpected error:', {
-        error: err.message,
-        stack: err.stack
-    });
 
     return res.status(500).json({
         status: 'error',
         message: 'Internal server error'
     });
-};
-
-export const createError = (statusCode: number, message: string): AppError => {
-    return new AppError(statusCode, message);
 }; 

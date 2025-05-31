@@ -5,7 +5,7 @@ describe('SmurfDetectorService', () => {
     let service;
     let mockPlayer;
     beforeEach(() => {
-        service = new smurf_detector_service_1.SmurfDetectorService();
+        service = new smurf_detector_service_1.SmurfDetectionService();
         // Create a mock player with suspicious patterns
         mockPlayer = {
             summonerId: 'test123',

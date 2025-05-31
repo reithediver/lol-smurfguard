@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import playerRoutes from './api/routes/player.routes';
 import { errorHandler } from './utils/errorHandler';
-import logger from './utils/Logger';
+import { logger } from './utils/loggerService';
 import fs from 'fs';
 
 // Load environment variables

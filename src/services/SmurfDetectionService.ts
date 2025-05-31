@@ -2,8 +2,8 @@ import { RiotApi } from '../api/RiotApi';
 import { PlayerAnalysis, PlaytimeGapAnalysis, ChampionPerformanceAnalysis } from '../models/PlayerAnalysis';
 import { MatchHistory } from '../models/MatchHistory';
 import { ChampionStats } from '../models/ChampionStats';
-import logger from '../utils/Logger';
-import { createError } from '../utils/ErrorHandler';
+import { logger } from '../utils/loggerService';
+import { createError } from '../utils/errorHandler';
 
 export class SmurfDetectionService {
     private readonly SUSPICIOUS_WIN_RATE = 0.7;

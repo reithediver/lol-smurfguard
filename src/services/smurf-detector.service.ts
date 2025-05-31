@@ -1,110 +1,182 @@
-import { Player } from '../models/player.model';
-import { Match } from '../models/match.model';
-import { ChampionStats } from '../models/champion.model';
-import { logger } from '../utils/logger';
+import { RiotApi } from '../api/RiotApi';
+import { PlayerAnalysis, PlaytimeGapAnalysis, ChampionPerformanceAnalysis } from '../models/PlayerAnalysis';
+import { MatchHistory } from '../models/MatchHistory';
+import { ChampionStats } from '../models/ChampionStats';
+import { logger } from '../utils/loggerService';
+import { createError } from '../utils/errorHandler';
 
-export class SmurfDetectorService {
-  private readonly WIN_RATE_THRESHOLD = 0.7;
-  private readonly KDA_THRESHOLD = 3.0;
-  private readonly CS_PER_MIN_THRESHOLD = 8.0;
-  private readonly SUSPICIOUS_GAP_DAYS = 30;
+export class SmurfDetectionService {
+    private readonly SUSPICIOUS_WIN_RATE = 0.7;
+    private readonly SUSPICIOUS_KDA = 3.0;
+    private readonly SUSPICIOUS_CS_PER_MIN = 8.0;
+    private readonly SUSPICIOUS_GAP_HOURS = 24 * 7; // 1 week
 
-  calculateSmurfProbability(player: Player): number {
-    try {
-      const factors = [
-        this.analyzePlaytimeGaps(player),
-        this.analyzeChampionPerformance(player),
-        this.analyzeSummonerSpells(player),
-        this.analyzePlayerAssociations(player),
-      ];
+    constructor(private riotApi: RiotApi) {}
 
-      // Weight each factor (can be adjusted based on importance)
-      const weights = [0.3, 0.3, 0.2, 0.2];
-      const probability = factors.reduce((sum, factor, index) => sum + factor * weights[index], 0);
+    async analyzePlayer(summonerName: string): Promise<PlayerAnalysis> {
+        try {
+            const summoner = await this.riotApi.getSummonerByName(summonerName);
+            const matchHistory = await this.riotApi.getMatchHistory(summoner.puuid);
+            const matchDetails = await Promise.all(
+                matchHistory.map(matchId => this.riotApi.getMatchDetails(matchId))
+            );
 
-      return Math.min(Math.max(probability, 0), 1); // Ensure result is between 0 and 1
-    } catch (error) {
-      logger.error('Error calculating smurf probability:', error);
-      throw error;
-    }
-  }
+            const analysis: PlayerAnalysis = {
+                summonerId: summoner.id,
+                accountId: summoner.accountId,
+                puuid: summoner.puuid,
+                name: summoner.name,
+                level: summoner.summonerLevel,
+                smurfProbability: 0,
+                analysisFactors: {
+                    playtimeGaps: await this.analyzePlaytimeGaps(matchDetails),
+                    championPerformance: await this.analyzeChampionPerformance(matchDetails),
+                    summonerSpellUsage: await this.analyzeSummonerSpells(matchDetails),
+                    playerAssociations: await this.analyzePlayerAssociations(matchDetails)
+                },
+                lastUpdated: new Date()
+            };
 
-  private analyzePlaytimeGaps(player: Player): number {
-    const matches = player.matchHistory.sort((a, b) => b.gameCreation - a.gameCreation);
-    if (matches.length < 2) return 0;
-
-    const gaps = [];
-    for (let i = 0; i < matches.length - 1; i++) {
-      const gap = (matches[i].gameCreation - matches[i + 1].gameCreation) / (1000 * 60 * 60 * 24); // Convert to days
-      gaps.push(gap);
-    }
-
-    if (gaps.length === 0) return 0;
-    const suspiciousGaps = gaps.filter(gap => gap > this.SUSPICIOUS_GAP_DAYS);
-    return Math.min(suspiciousGaps.length / gaps.length, 1);
-  }
-
-  private analyzeChampionPerformance(player: Player): number {
-    if (!player.championStats || player.championStats.length === 0) return 0;
-    // Suspicious if firstTimePerformance exists and is strong
-    const suspiciousPerformances = player.championStats.filter(champion => {
-      if (!champion.firstTimePerformance) return false;
-      const performance = champion.firstTimePerformance;
-      return (
-        performance.kda >= this.KDA_THRESHOLD &&
-        performance.csPerMinute >= this.CS_PER_MIN_THRESHOLD &&
-        performance.win
-      );
-    });
-    return Math.min(suspiciousPerformances.length / player.championStats.length, 1);
-  }
-
-  private analyzeSummonerSpells(player: Player): number {
-    const matches = player.matchHistory;
-    if (matches.length < 2) return 0;
-    let patternChanges = 0;
-    for (let i = 0; i < matches.length - 1; i++) {
-      const playerInCurrent = this.findPlayerInMatch(matches[i], player.puuid);
-      const playerInNext = this.findPlayerInMatch(matches[i + 1], player.puuid);
-      if (!playerInCurrent || !playerInNext) continue;
-      const currentPattern = `${playerInCurrent.spell1Id}-${playerInCurrent.spell2Id}`;
-      const nextPattern = `${playerInNext.spell1Id}-${playerInNext.spell2Id}`;
-      if (currentPattern !== nextPattern) {
-        patternChanges++;
-      }
-    }
-    if (matches.length <= 1) return 0;
-    return Math.min(patternChanges / (matches.length - 1), 1);
-  }
-
-  private analyzePlayerAssociations(player: Player): number {
-    const matches = player.matchHistory;
-    if (matches.length === 0) return 0;
-
-    let suspiciousAssociations = 0;
-    const processedPlayers = new Set<string>();
-
-    for (const match of matches) {
-      for (const participant of match.participants) {
-        if (participant.puuid === player.puuid || processedPlayers.has(participant.puuid)) continue;
-
-        processedPlayers.add(participant.puuid);
-        const stats = participant.stats;
-        const kda = (stats.kills + stats.assists) / Math.max(stats.deaths, 1);
-        const csPerMin = stats.totalMinionsKilled / (match.gameDuration / 60);
-
-        if (kda >= this.KDA_THRESHOLD && csPerMin >= this.CS_PER_MIN_THRESHOLD) {
-          suspiciousAssociations++;
+            analysis.smurfProbability = this.calculateSmurfProbability(analysis.analysisFactors);
+            return analysis;
+        } catch (error) {
+            logger.error('Error analyzing player:', error);
+            throw createError(500, 'Failed to analyze player');
         }
-      }
     }
-    if (processedPlayers.size === 0) return 0;
-    return Math.min(suspiciousAssociations / processedPlayers.size, 1);
-  }
 
-  private findPlayerInMatch(match: Match, puuid: string) {
-    return match.participants.find(p => p.puuid === puuid);
-  }
-}
+    private async analyzePlaytimeGaps(matches: MatchHistory[]): Promise<PlaytimeGapAnalysis> {
+        const sortedMatches = matches.sort((a, b) => 
+            new Date(a.gameCreation).getTime() - new Date(b.gameCreation).getTime()
+        );
 
-export const smurfDetectorService = new SmurfDetectorService(); 
+        const gaps = [];
+        for (let i = 1; i < sortedMatches.length; i++) {
+            const gap = new Date(sortedMatches[i].gameCreation).getTime() - 
+                       new Date(sortedMatches[i-1].gameCreation).getTime();
+            const gapHours = gap / (1000 * 60 * 60);
+            
+            if (gapHours > this.SUSPICIOUS_GAP_HOURS) {
+                gaps.push({
+                    startDate: new Date(sortedMatches[i-1].gameCreation),
+                    endDate: new Date(sortedMatches[i].gameCreation),
+                    durationHours: gapHours,
+                    suspicionLevel: this.calculateGapSuspicionLevel(gapHours)
+                });
+            }
+        }
+
+        return {
+            averageGapHours: gaps.reduce((sum, gap) => sum + gap.durationHours, 0) / gaps.length,
+            suspiciousGaps: gaps,
+            totalGapScore: gaps.reduce((sum, gap) => sum + gap.suspicionLevel, 0)
+        };
+    }
+
+    private async analyzeChampionPerformance(matches: MatchHistory[]): Promise<ChampionPerformanceAnalysis> {
+        const championStats = new Map<number, {
+            games: number;
+            wins: number;
+            totalKda: number;
+            totalCsPerMin: number;
+        }>();
+
+        matches.forEach(match => {
+            const player = match.participants.find(p => p.puuid === match.participants[0].puuid);
+            if (!player) return;
+
+            const stats = championStats.get(player.championId) || {
+                games: 0,
+                wins: 0,
+                totalKda: 0,
+                totalCsPerMin: 0
+            };
+
+            stats.games++;
+            if (player.stats.win) stats.wins++;
+            stats.totalKda += (player.stats.kills + player.stats.assists) / Math.max(1, player.stats.deaths);
+            stats.totalCsPerMin += player.stats.csPerMinute;
+
+            championStats.set(player.championId, stats);
+        });
+
+        const firstTimeChampions = Array.from(championStats.entries())
+            .filter(([_, stats]) => stats.games === 1)
+            .map(([championId, stats]) => ({
+                championId,
+                championName: '', // TODO: Get champion name from Data Dragon
+                winRate: stats.wins / stats.games,
+                kda: stats.totalKda,
+                csPerMinute: stats.totalCsPerMin,
+                suspicionLevel: this.calculateChampionSuspicionLevel(stats)
+            }));
+
+        return {
+            firstTimeChampions,
+            overallPerformanceScore: this.calculateOverallPerformanceScore(firstTimeChampions)
+        };
+    }
+
+    private calculateGapSuspicionLevel(gapHours: number): number {
+        return Math.min(1, gapHours / (this.SUSPICIOUS_GAP_HOURS * 2));
+    }
+
+    private calculateChampionSuspicionLevel(stats: {
+        games: number;
+        wins: number;
+        totalKda: number;
+        totalCsPerMin: number;
+    }): number {
+        const winRate = stats.wins / stats.games;
+        const kda = stats.totalKda;
+        const csPerMin = stats.totalCsPerMin;
+
+        let suspicionLevel = 0;
+        if (winRate >= this.SUSPICIOUS_WIN_RATE) suspicionLevel += 0.4;
+        if (kda >= this.SUSPICIOUS_KDA) suspicionLevel += 0.3;
+        if (csPerMin >= this.SUSPICIOUS_CS_PER_MIN) suspicionLevel += 0.3;
+
+        return suspicionLevel;
+    }
+
+    private calculateOverallPerformanceScore(champions: Array<{
+        winRate: number;
+        kda: number;
+        csPerMinute: number;
+        suspicionLevel: number;
+    }>): number {
+        if (champions.length === 0) return 0;
+        return champions.reduce((sum, champ) => sum + champ.suspicionLevel, 0) / champions.length;
+    }
+
+    private calculateSmurfProbability(factors: PlayerAnalysis['analysisFactors']): number {
+        const weights = {
+            playtimeGaps: 0.3,
+            championPerformance: 0.4,
+            summonerSpellUsage: 0.2,
+            playerAssociations: 0.1
+        };
+
+        return (
+            factors.playtimeGaps.totalGapScore * weights.playtimeGaps +
+            factors.championPerformance.overallPerformanceScore * weights.championPerformance +
+            factors.summonerSpellUsage.patternChangeScore * weights.summonerSpellUsage +
+            factors.playerAssociations.associationScore * weights.playerAssociations
+        );
+    }
+
+    // TODO: Implement these methods
+    private async analyzeSummonerSpells(matches: MatchHistory[]) {
+        return {
+            spellPlacementChanges: [],
+            patternChangeScore: 0
+        };
+    }
+
+    private async analyzePlayerAssociations(matches: MatchHistory[]) {
+        return {
+            highEloAssociations: [],
+            associationScore: 0
+        };
+    }
+} 
