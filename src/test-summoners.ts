@@ -22,7 +22,7 @@ if (summonerNames.length === 0) {
 
 async function analyzeSummoners() {
   try {
-    const riotApi = new RiotApi(apiKey as string);
+    const riotApi = new RiotApi(apiKey as string, 'na1');
     const smurfDetectionService = new SmurfDetectionService(riotApi);
 
     logger.info(`Analyzing ${summonerNames.length} summoners...`);

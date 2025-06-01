@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented RiotApi class with rate limiting and caching
 - Added SmurfDetectionService for analyzing player data
 - Created API endpoints for player analysis
+- Created test-api-access.ts script to verify API key permissions
+- Implemented LimitedAccessService to work with restricted API keys
+- Added fallback functionality for limited API keys (champion rotation, challenger data)
+- Created test-limited-service.ts to demonstrate available features with current key
+- Updated API_KEY_LIMITATIONS.md with detailed information about API key types
+- Added clear messaging about Development vs Personal API keys
 
 ### Changed
 - Updated project structure to follow best practices
@@ -47,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated error handler to use consistent casing
 - Improved logging configuration
 - Enhanced API response structure
+- Updated error handling to provide clear messages for API permission issues
+- Added detailed documentation of API key limitations in API_KEY_LIMITATIONS.md
+- Modified services to gracefully handle limited API access
+- Improved API key type detection and status reporting
 
 ### Fixed
 - Added missing type definitions for Express, CORS, Helmet, and Winston
@@ -60,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed file casing issues in imports
 - Resolved error handler middleware implementation
 - Corrected API endpoint paths
+- Fixed 403 Forbidden errors by creating alternative functionality for limited API keys
+- Implemented API permission detection to provide appropriate features
 
 ### Planned
 - Set up frontend application
