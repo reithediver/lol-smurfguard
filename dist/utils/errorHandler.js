@@ -1,30 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.errorHandler = exports.AppError = void 0;
-const logger_1 = require("./logger");
+exports.errorHandler = exports.createError = exports.AppError = void 0;
+const loggerService_1 = require("./loggerService");
 class AppError extends Error {
     constructor(message, statusCode) {
         super(message);
+        this.message = message;
         this.statusCode = statusCode;
-        this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
-        this.isOperational = true;
+        this.name = 'AppError';
         Error.captureStackTrace(this, this.constructor);
     }
 }
 exports.AppError = AppError;
+const createError = (statusCode, message) => {
+    return new AppError(message, statusCode);
+};
+exports.createError = createError;
 const errorHandler = (err, req, res, next) => {
+    loggerService_1.logger.error('Error:', err);
     if (err instanceof AppError) {
-        logger_1.logger.error(`Operational Error: ${err.message}`);
         return res.status(err.statusCode).json({
-            status: err.status,
-            message: err.message,
+            status: 'error',
+            message: err.message
         });
     }
-    // Programming or other unknown error
-    logger_1.logger.error(`Error: ${err.message}`);
     return res.status(500).json({
         status: 'error',
-        message: 'Something went wrong',
+        message: 'Internal server error'
     });
 };
 exports.errorHandler = errorHandler;
