@@ -8,6 +8,7 @@ export class RiotApi {
     private cache: Map<string, { data: any; timestamp: number }>;
     private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
     private readonly RATE_LIMIT = 20; // requests per second
+    private readonly MAX_QUEUE_SIZE = 1000; // Maximum number of requests in the queue
     private requestQueue: Array<() => Promise<any>> = [];
     private processingQueue = false;
 
@@ -47,6 +48,11 @@ export class RiotApi {
         }
 
         return new Promise((resolve, reject) => {
+            if (this.requestQueue.length >= this.MAX_QUEUE_SIZE) {
+                reject(new Error('Request queue is full. Try again later.'));
+                return;
+            }
+            
             this.requestQueue.push(async () => {
                 try {
                     const response = await this.api.get<T>(endpoint);
