@@ -43,8 +43,8 @@ league-smurf-detector/
 │   │   ├── App.tsx                 # Main application component
 │   │   └── index.tsx               # Application entry point
 │   ├── public/                     # Static assets
+│   │   └── _redirects              # SPA routing configuration
 │   ├── build/                      # Production build output
-│   ├── vercel.json                 # Vercel deployment configuration
 │   ├── env.template                # Environment variable template
 │   ├── package.json                # Frontend dependencies
 │   └── README.md                   # Frontend-specific documentation
@@ -69,10 +69,10 @@ league-smurf-detector/
 
 ### **Frontend - LIVE** ✅
 - **URL:** https://lol-smurfguard.vercel.app/
-- **Status:** Fully deployed and operational - 404 routing issues resolved
+- **Status:** Deployment active - resolving routing issues with _redirects approach
 - **Features:** Enhanced dark theme, ultra-advanced analytics dashboard
-- **Last Updated:** Fixed 404 routing with simplified vercel.json and homepage configuration
-- **Technical:** Simplified SPA routing configuration for optimal Vercel deployment
+- **Last Updated:** Removed vercel.json, implemented _redirects for universal SPA routing
+- **Technical:** Using Vercel auto-detection with _redirects fallback for optimal routing
 
 ### **Backend - Ready for Deployment** 🚀
 - **Platform:** Railway (pending $5/month plan upgrade)
@@ -161,13 +161,14 @@ league-smurf-detector/
   - [x] **Deployment Guides** - Step-by-step setup instructions
 
 ### 🔄 **In Progress**
+- [ ] **404 Routing Resolution** - Testing _redirects approach for universal SPA routing
 - [ ] **Personal API Key Application** - Waiting for Riot approval (1-2 weeks)
   - Current status: Development API Key limits access to summoner/match data
   - Personal API Key will unlock all 5+ year ultra-comprehensive analysis features
 
 ### 📋 **Next Priority Steps**
 1. ✅ **Frontend Deployment** (COMPLETED - LIVE at https://lol-smurfguard.vercel.app/)
-2. ✅ **404 Routing Fix** (COMPLETED - Simplified vercel.json and added homepage configuration)
+2. 🔄 **404 Routing Fix** (IN PROGRESS - Implemented _redirects approach, testing deployment)
 3. ✅ **Ultra-Advanced Analytics** (COMPLETED - 5+ year system implemented)
 4. ✅ **Enhanced UI/UX** (COMPLETED - Professional dark theme with 8 metrics)
 5. [ ] **Personal API Key Application** - Apply at https://developer.riotgames.com/app-type
