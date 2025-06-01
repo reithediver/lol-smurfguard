@@ -12,6 +12,7 @@ import { RiotApi } from './api/RiotApi';
 import { SmurfDetectionService } from './services/SmurfDetectionService';
 import { ChampionService } from './services/ChampionService';
 import { ChallengerService } from './services/ChallengerService';
+import { AdvancedDataService } from './services/AdvancedDataService';
 
 // Load environment variables
 dotenv.config();
@@ -94,6 +95,276 @@ app.get('/api/metrics', (req, res) => {
 app.get('/metrics', (req, res) => {
   res.set('Content-Type', 'text/plain');
   res.send(performanceMonitor.getPrometheusMetrics());
+});
+
+// Advanced Smurf Analysis Endpoints
+app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
+  const { summonerName } = req.params;
+  const startTime = Date.now();
+
+  try {
+    logger.info(`🔍 Comprehensive analysis requested for: ${summonerName}`);
+    
+    const advancedService = new AdvancedDataService(riotApi);
+    const analysis = await advancedService.analyzePlayerComprehensively(summonerName);
+    
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, false);
+    
+    res.json({
+      success: true,
+      data: analysis,
+      metadata: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        dataQuality: analysis.dataQuality,
+        analysisDepth: 'comprehensive'
+      }
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, true);
+    
+    logger.error(`Error in comprehensive analysis for ${summonerName}:`, error);
+    
+    if (error instanceof Error && error.message.includes('API key')) {
+      res.status(403).json({
+        success: false,
+        error: 'API_KEY_LIMITATION',
+        message: 'Comprehensive analysis requires Personal/Production API key. Currently using Development key.',
+        recommendation: 'Apply for Personal API key at https://developer.riotgames.com/app-type',
+        limitedAlternative: `/api/analyze/basic/${summonerName}`
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'ANALYSIS_FAILED',
+        message: 'Failed to perform comprehensive analysis',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+});
+
+// Quick Analysis Endpoint (for current development API key)
+app.get('/api/analyze/basic/:summonerName', async (req, res) => {
+  const { summonerName } = req.params;
+  const startTime = Date.now();
+
+  try {
+    logger.info(`🔍 Basic analysis requested for: ${summonerName}`);
+    
+    // Use existing SmurfDetectionService for basic analysis
+    const basicAnalysis = await smurfDetectionService.analyzePlayer(summonerName);
+    
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, false);
+    
+    res.json({
+      success: true,
+      data: basicAnalysis,
+      metadata: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        analysisType: 'basic',
+        note: 'Upgrade to Personal API key for comprehensive analysis'
+      }
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, true);
+    
+    logger.error(`Error in basic analysis for ${summonerName}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'BASIC_ANALYSIS_FAILED',
+      message: 'Failed to perform basic analysis',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Historical Data Analysis Endpoint
+app.get('/api/analyze/historical/:summonerName', async (req, res) => {
+  const { summonerName } = req.params;
+  const { timespan = '12' } = req.query; // months
+  const startTime = Date.now();
+
+  try {
+    logger.info(`📚 Historical analysis requested for: ${summonerName} (${timespan} months)`);
+    
+    const advancedService = new AdvancedDataService(riotApi);
+    const analysis = await advancedService.analyzePlayerComprehensively(summonerName);
+    
+    // Focus on historical aspects
+    const historicalReport = {
+      summonerName,
+      timespan: `${timespan} months`,
+      accountAge: analysis.historicalAnalysis.accountAge,
+      playHistory: analysis.historicalAnalysis.playHistory,
+      playtimeAnalysis: analysis.historicalAnalysis.playtimeAnalysis,
+      skillProgression: analysis.historicalAnalysis.skillProgression,
+      suspiciousGaps: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(gap => gap.suspicionLevel !== 'low'),
+      keyInsights: [
+        `Account is ${analysis.historicalAnalysis.accountAge} days old`,
+        `${analysis.dataQuality.gamesCovered} games analyzed across ${analysis.dataQuality.timeSpanDays} days`,
+        `${analysis.historicalAnalysis.playtimeAnalysis.gaps.length} playtime gaps detected`,
+        `Skill improvement rate: ${analysis.historicalAnalysis.skillProgression.improvementRate.toFixed(3)}`
+      ]
+    };
+    
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, false);
+    
+    res.json({
+      success: true,
+      data: historicalReport,
+      metadata: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        analysisDepth: 'historical'
+      }
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, true);
+    
+    logger.error(`Error in historical analysis for ${summonerName}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'HISTORICAL_ANALYSIS_FAILED',
+      message: 'Failed to perform historical analysis'
+    });
+  }
+});
+
+// Champion Performance Deep Dive
+app.get('/api/analyze/champions/:summonerName', async (req, res) => {
+  const { summonerName } = req.params;
+  const { champion } = req.query; // Optional: specific champion
+  const startTime = Date.now();
+
+  try {
+    logger.info(`🏆 Champion analysis requested for: ${summonerName}`);
+    
+    const advancedService = new AdvancedDataService(riotApi);
+    const analysis = await advancedService.analyzePlayerComprehensively(summonerName);
+    
+    let championData = analysis.performanceMetrics;
+    
+    if (champion) {
+      championData = championData.filter(data => 
+        data.championMastery.championName.toLowerCase() === (champion as string).toLowerCase()
+      );
+    }
+
+    // Sort by suspicion level (most suspicious first)
+    championData.sort((a, b) => {
+      const aSuspicious = a.championMastery.suspiciousIndicators;
+      const bSuspicious = b.championMastery.suspiciousIndicators;
+      const aScore = (aSuspicious.highInitialPerformance ? 1 : 0) + 
+                    (aSuspicious.inconsistentProgression ? 1 : 0) + 
+                    (aSuspicious.expertLevelPlay ? 1 : 0);
+      const bScore = (bSuspicious.highInitialPerformance ? 1 : 0) + 
+                    (bSuspicious.inconsistentProgression ? 1 : 0) + 
+                    (bSuspicious.expertLevelPlay ? 1 : 0);
+      return bScore - aScore;
+    });
+
+    const championReport = {
+      summonerName,
+      totalChampions: analysis.performanceMetrics.length,
+      analyzedChampions: championData.length,
+      mostSuspiciousChampions: championData.slice(0, 5),
+      performanceOverview: {
+        averageWinRate: championData.reduce((sum, data) => sum + data.championMastery.winRate, 0) / championData.length,
+        averageCSPerMinute: championData.reduce((sum, data) => sum + data.championMastery.csPerMinute, 0) / championData.length,
+        averageKDA: championData.reduce((sum, data) => sum + data.championMastery.averageKDA, 0) / championData.length
+      }
+    };
+    
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, false);
+    
+    res.json({
+      success: true,
+      data: championReport,
+      metadata: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        analysisType: 'champion-focused'
+      }
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, true);
+    
+    logger.error(`Error in champion analysis for ${summonerName}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'CHAMPION_ANALYSIS_FAILED',
+      message: 'Failed to perform champion analysis'
+    });
+  }
+});
+
+// API Capability Overview
+app.get('/api/analysis/capabilities', (req, res) => {
+  const apiKeyType = process.env.RIOT_API_KEY ? 'development' : 'none';
+  
+  res.json({
+    success: true,
+    capabilities: {
+      apiKeyType,
+      availableAnalysis: {
+        basic: {
+          available: true,
+          description: 'Basic smurf detection with limited data',
+          endpoint: '/api/analyze/basic/:summonerName'
+        },
+        comprehensive: {
+          available: apiKeyType !== 'development',
+          description: '2+ years of historical data, advanced metrics, lane dominance',
+          endpoint: '/api/analyze/comprehensive/:summonerName',
+          requiredApiKey: 'Personal or Production'
+        },
+        historical: {
+          available: apiKeyType !== 'development',
+          description: 'Deep historical pattern analysis and playtime gaps',
+          endpoint: '/api/analyze/historical/:summonerName',
+          requiredApiKey: 'Personal or Production'
+        },
+        championFocused: {
+          available: apiKeyType !== 'development',
+          description: 'Champion mastery progression and expertise analysis',
+          endpoint: '/api/analyze/champions/:summonerName',
+          requiredApiKey: 'Personal or Production'
+        }
+      },
+      metrics: {
+        csPerMinute: apiKeyType !== 'development',
+        laneDominance: apiKeyType !== 'development',
+        visionMetrics: apiKeyType !== 'development',
+        skillProgression: apiKeyType !== 'development',
+        playtimeGaps: apiKeyType !== 'development',
+        championMastery: apiKeyType !== 'development'
+      },
+      upgradeInstructions: {
+        personalApiKey: 'https://developer.riotgames.com/app-type',
+        benefits: [
+          'Access to summoner and match data',
+          '2+ years of historical analysis',
+          'Advanced performance metrics',
+          'Lane dominance analysis',
+          'Champion mastery progression tracking'
+        ]
+      }
+    }
+  });
 });
 
 // Main initialization function
