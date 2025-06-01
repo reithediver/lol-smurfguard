@@ -12,6 +12,7 @@ class RiotApi {
         this.MAX_QUEUE_SIZE = 1000; // Maximum number of requests in the queue
         this.requestQueue = [];
         this.processingQueue = false;
+        this.apiKey = apiKey;
         this.api = axios_1.default.create({
             baseURL: `https://${region}.api.riotgames.com`,
             headers: {
@@ -120,6 +121,29 @@ class RiotApi {
     }
     clearCache() {
         this.cache.clear();
+    }
+    // Generic request method for API validation
+    async request(endpoint, useCache = true) {
+        return this.makeRequest(endpoint, useCache);
+    }
+    // Request method that returns full response with headers
+    async requestWithHeaders(endpoint) {
+        return new Promise((resolve, reject) => {
+            if (this.requestQueue.length >= this.MAX_QUEUE_SIZE) {
+                reject(new Error('Request queue is full. Try again later.'));
+                return;
+            }
+            this.requestQueue.push(async () => {
+                try {
+                    const response = await this.api.get(endpoint);
+                    resolve(response);
+                }
+                catch (error) {
+                    reject(error);
+                }
+            });
+            this.processQueue();
+        });
     }
 }
 exports.RiotApi = RiotApi;

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { MatchHistory, MatchParticipant } from '../models/MatchHistory';
 import { ChampionStats } from '../models/ChampionStats';
 import { PlayerAnalysis } from '../models/PlayerAnalysis';
@@ -11,8 +11,10 @@ export class RiotApi {
     private readonly MAX_QUEUE_SIZE = 1000; // Maximum number of requests in the queue
     private requestQueue: Array<() => Promise<any>> = [];
     private processingQueue = false;
+    public readonly apiKey: string;
 
     constructor(apiKey: string, region: string = 'na1') {
+        this.apiKey = apiKey;
         this.api = axios.create({
             baseURL: `https://${region}.api.riotgames.com`,
             headers: {
@@ -134,5 +136,30 @@ export class RiotApi {
 
     clearCache() {
         this.cache.clear();
+    }
+
+    // Generic request method for API validation
+    async request<T = any>(endpoint: string, useCache: boolean = true): Promise<T> {
+        return this.makeRequest<T>(endpoint, useCache);
+    }
+
+    // Request method that returns full response with headers
+    async requestWithHeaders(endpoint: string): Promise<AxiosResponse> {
+        return new Promise((resolve, reject) => {
+            if (this.requestQueue.length >= this.MAX_QUEUE_SIZE) {
+                reject(new Error('Request queue is full. Try again later.'));
+                return;
+            }
+            
+            this.requestQueue.push(async () => {
+                try {
+                    const response = await this.api.get(endpoint);
+                    resolve(response);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+            this.processQueue();
+        });
     }
 } 

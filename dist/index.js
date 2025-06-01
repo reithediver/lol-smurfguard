@@ -11,6 +11,7 @@ const loggerService_1 = require("./utils/loggerService");
 const errorHandler_1 = require("./utils/errorHandler");
 const health_check_1 = require("./utils/health-check");
 const performance_monitor_1 = require("./utils/performance-monitor");
+const api_key_validator_1 = require("./utils/api-key-validator");
 const LimitedAccessService_1 = require("./services/LimitedAccessService");
 const RiotApi_1 = require("./api/RiotApi");
 const SmurfDetectionService_1 = require("./services/SmurfDetectionService");
@@ -38,6 +39,7 @@ const smurfDetectionService = new SmurfDetectionService_1.SmurfDetectionService(
 const limitedAccessService = new LimitedAccessService_1.LimitedAccessService(apiKey, 'na1');
 const championService = new ChampionService_1.ChampionService(apiKey, 'na1');
 const challengerService = new ChallengerService_1.ChallengerService(apiKey, 'na1');
+const apiKeyValidator = new api_key_validator_1.ApiKeyValidator(apiKey);
 // Setup API routes
 app.get('/api/health', async (req, res, next) => {
     try {
@@ -52,6 +54,27 @@ app.get('/api/health', async (req, res, next) => {
 // Basic health endpoint for load balancers
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+// API Key validation endpoints
+app.get('/api/validate-key', async (req, res, next) => {
+    try {
+        loggerService_1.logger.info('🔍 API key validation requested');
+        const validation = await apiKeyValidator.validateApiKey();
+        res.json(validation);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+// Quick API key validation for monitoring
+app.get('/api/validate-key/quick', async (req, res, next) => {
+    try {
+        const validation = await apiKeyValidator.quickValidation();
+        res.json(validation);
+    }
+    catch (error) {
+        next(error);
+    }
 });
 // Performance metrics endpoints
 app.get('/api/metrics', (req, res) => {
