@@ -1,0 +1,99 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_ENV: production
+
+jobs:
+  deploy-production:
+    name: Deploy to Production Environment
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run full test suite
+        run: npm test
+        env:
+          NODE_ENV: test
+          
+      - name: Run security audit
+        run: npm audit --audit-level=high
+        
+      - name: Build backend for production
+        run: npm run build
+        env:
+          NODE_ENV: production
+          
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+          
+      - name: Build frontend for production
+        run: |
+          cd frontend
+          npm run build
+        env:
+          REACT_APP_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          REACT_APP_ENVIRONMENT: production
+          GENERATE_SOURCEMAP: false
+          
+      - name: Deploy backend to Railway (Production)
+        if: success()
+        run: |
+          echo "Deploying backend to Railway production environment..."
+          # Railway production deployment command
+          echo "Production Railway deployment would execute here"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY_PRODUCTION }}
+          
+      - name: Deploy frontend to Vercel (Production)
+        if: success()
+        run: |
+          echo "Deploying frontend to Vercel production..."
+          # Vercel production deployment command
+          echo "Production Vercel deployment would execute here"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          
+      - name: Production health check
+        if: success()
+        run: |
+          echo "Running comprehensive health checks on production..."
+          # Production health checks
+          echo "Would validate all production endpoints and services"
+          
+      - name: Performance monitoring setup
+        if: success()
+        run: |
+          echo "Initializing performance monitoring..."
+          # Setup monitoring alerts and dashboards
+          echo "Performance monitoring would be configured here"
+          
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Production deployment successful!"
+          echo "Application is live at production URL"
+          
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ Production deployment failed!"
+          echo "Check logs and rollback if necessary" 

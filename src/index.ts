@@ -4,9 +4,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { logger } from './utils/loggerService';
 import { errorHandler } from './utils/errorHandler';
+import { healthChecker } from './utils/health-check';
+import { performanceMiddleware, performanceMonitor } from './utils/performance-monitor';
 import { LimitedAccessService } from './services/LimitedAccessService';
 import { RiotApi } from './api/RiotApi';
 import { SmurfDetectionService } from './services/SmurfDetectionService';
+import { ChampionService } from './services/ChampionService';
+import { ChallengerService } from './services/ChallengerService';
 
 // Load environment variables
 dotenv.config();
@@ -26,15 +30,47 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(performanceMiddleware);
 
 // Initialize services
 const riotApi = new RiotApi(apiKey, 'na1');
 const smurfDetectionService = new SmurfDetectionService(riotApi);
 const limitedAccessService = new LimitedAccessService(apiKey, 'na1');
+const championService = new ChampionService(apiKey, 'na1');
+const challengerService = new ChallengerService(apiKey, 'na1');
 
 // Setup API routes
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+app.get('/api/health', async (req, res, next) => {
+  try {
+    const healthResult = await healthChecker.performHealthCheck();
+    const statusCode = healthResult.status === 'healthy' ? 200 : 503;
+    res.status(statusCode).json(healthResult);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Basic health endpoint for load balancers
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Performance metrics endpoints
+app.get('/api/metrics', (req, res) => {
+  const metrics = performanceMonitor.getMetrics();
+  const detailedStats = performanceMonitor.getDetailedStats();
+  
+  res.json({
+    ...metrics,
+    detailedStats,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Prometheus-compatible metrics endpoint
+app.get('/metrics', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send(performanceMonitor.getPrometheusMetrics());
 });
 
 // Main initialization function
@@ -83,32 +119,73 @@ async function initializeApp() {
         });
       });
       
-      // Add available endpoints based on permissions
-      if (permissions.canAccessChallengerData) {
-        app.get('/api/challengers', async (req, res, next) => {
-          try {
-            const challengers = await limitedAccessService.getChallengerPlayers();
-            res.json({
-              count: challengers.length,
-              players: challengers.sort((a, b) => b.leaguePoints - a.leaguePoints).slice(0, 20)
-            });
-          } catch (error) {
-            next(error);
-          }
-        });
-      }
-      
+      // Champion rotation endpoints
       if (permissions.canAccessChampionRotation) {
-        app.get('/api/rotation', async (req, res, next) => {
+        // Get current champion rotation
+        app.get('/api/champions/rotation', async (req, res, next) => {
           try {
-            const rotation = await limitedAccessService.getChampionRotation();
+            const rotation = await championService.getChampionRotation();
             res.json(rotation);
           } catch (error) {
             next(error);
           }
         });
+        
+        // Track champion rotation changes
+        app.get('/api/champions/rotation/changes', async (req, res, next) => {
+          try {
+            const changes = await championService.trackRotationChanges();
+            res.json(changes);
+          } catch (error) {
+            next(error);
+          }
+        });
       }
       
+      // Challenger league endpoints
+      if (permissions.canAccessChallengerData) {
+        // Get top challenger players
+        app.get('/api/challengers/top', async (req, res, next) => {
+          try {
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+            const challengers = await challengerService.getTopChallengers(limit);
+            res.json(challengers);
+          } catch (error) {
+            next(error);
+          }
+        });
+        
+        // Track challenger movement
+        app.get('/api/challengers/movement', async (req, res, next) => {
+          try {
+            const movement = await challengerService.trackChallengerMovement();
+            res.json(movement);
+          } catch (error) {
+            next(error);
+          }
+        });
+        
+        // Analyze a specific challenger player
+        app.get('/api/challengers/player/:playerId', async (req, res, next) => {
+          try {
+            const { playerId } = req.params;
+            const analysis = await challengerService.analyzePlayer(playerId);
+            
+            if (!analysis) {
+              return res.status(404).json({ 
+                error: 'Player not found',
+                message: 'The player ID provided was not found in the challenger league'
+              });
+            }
+            
+            res.json(analysis);
+          } catch (error) {
+            next(error);
+          }
+        });
+      }
+      
+      // Platform status endpoint
       if (permissions.canAccessPlatformData) {
         app.get('/api/platform', async (req, res, next) => {
           try {
@@ -127,8 +204,10 @@ async function initializeApp() {
           message: 'Your current API key does not have permission to analyze summoners',
           summonerName: req.params.summonerName,
           alternatives: [
-            { endpoint: '/api/challengers', description: 'View top challenger players' },
-            { endpoint: '/api/rotation', description: 'View free champion rotation' },
+            { endpoint: '/api/challengers/top', description: 'View top challenger players' },
+            { endpoint: '/api/challengers/movement', description: 'Track movement in challenger league' },
+            { endpoint: '/api/champions/rotation', description: 'View free champion rotation' },
+            { endpoint: '/api/champions/rotation/changes', description: 'Track champion rotation changes' },
             { endpoint: '/api/platform', description: 'View platform status' },
             { endpoint: '/api/limitations', description: 'View current API key limitations' }
           ]
@@ -152,7 +231,13 @@ async function initializeApp() {
       if (permissions.canAccessSummonerData && permissions.canAccessMatchData) {
         logger.info(`Full smurf detection is available at: http://localhost:${PORT}/api/analyze/{summonerName}`);
       } else {
-        logger.info(`Limited functionality available. Access available endpoints at: http://localhost:${PORT}/api/limitations`);
+        logger.info(`Limited functionality available at: http://localhost:${PORT}/api/limitations`);
+        if (permissions.canAccessChampionRotation) {
+          logger.info(`Champion rotation data available at: http://localhost:${PORT}/api/champions/rotation`);
+        }
+        if (permissions.canAccessChallengerData) {
+          logger.info(`Challenger league data available at: http://localhost:${PORT}/api/challengers/top`);
+        }
       }
     });
     

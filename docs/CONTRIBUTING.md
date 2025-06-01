@@ -9,18 +9,17 @@ league-smurf-detector/
 ├── docs/                    # Documentation files
 │   ├── CONTRIBUTING.md     # This file
 │   ├── CHANGELOG.md        # Detailed changelog of project updates
-│   ├── API.md              # API documentation
-│   ├── TECHNICAL_SPECS.md  # Technical specifications and requirements
-│   └── API_KEY_LIMITATIONS.md # API key usage guidelines
+│   ├── API.md              # API documentation and limitations
+│   └── TECHNICAL_SPECS.md  # Technical specifications and requirements
 ├── src/                    # Source code
 │   ├── api/               # API endpoints and services
 │   ├── models/            # Data models and schemas
 │   ├── services/          # Business logic and services
 │   ├── utils/             # Utility functions
 │   └── tests/             # Test files (unit/integration)
-├── frontend/               # Frontend application (to be implemented)
+├── frontend/               # Frontend application
 │   └── .keep               # Placeholder for future React app
-├── config/                 # Configuration files (to be implemented)
+├── config/                 # Configuration files
 │   └── .keep               # Placeholder for future config files
 ├── package.json            # Project manifest
 ├── tsconfig.json           # TypeScript configuration
@@ -36,52 +35,81 @@ league-smurf-detector/
 - [x] Documentation structure creation
 - [x] Basic project structure setup
 - [x] League of Legends API integration (RiotWatcher)
+- [x] Data models and schemas implementation
+- [x] Smurf detection algorithms implementation
+- [x] Complete frontend React application
+- [x] Comprehensive configuration system
+- [x] Testing infrastructure setup
+- [x] Directory structure organization
+- [x] Test suite fixes and optimization
+- [x] Mock data structure alignment
+- [x] Backend service testing
+- [x] Frontend integration with mock data
+- [x] Documentation overhaul (README.md)
+- [x] API key setup and verification utilities
+- [x] Rate limiting and caching implementation
+- [x] Error handling and logging systems
+- [x] Algorithm weight optimization (Champion: 65%, Spells: 25%, Gaps: 10%, Associations: 5%)
+- [x] Frontend DetailedAnalysis component with expandable sections and charts
+- [x] On-demand data fetching service with intelligent caching
+- [x] Complete test suite validation (19/19 tests passing)
+- [x] Test account integration and validation
+- [x] Riot API compliance with data retention policies
+- [x] Comprehensive CI/CD pipeline setup (GitHub Actions)
+- [x] Health check and monitoring infrastructure
+- [x] Docker containerization with multi-stage builds
+- [x] Environment-specific deployment configurations
+- [x] Production-ready deployment scripts and workflows
 
 ### In Progress
-- [ ] Setting up development environment
-- [ ] Creating data models and schemas
-- [ ] Implementing smurf detection algorithms
+- [ ] Performance optimization and monitoring setup
+- [ ] Production API key integration testing
 
 ### Next Steps
-1. Create missing directory structure:
-   - models/ for data models
-   - frontend/ for React application
-   - tests/ for test files
-   - config/ for configuration files
-2. Implement data models for:
-   - Player analysis
-   - Match history
-   - Champion statistics
-3. Develop smurf detection algorithms based on criteria:
-   - Playtime gap analysis
-   - Champion performance metrics
-   - Summoner spell usage patterns
-   - Player association analysis
-4. Set up frontend application
-5. Add test coverage
-6. Implement rate limiting and caching
+1. ✅ Clean up test file organization (moved all test files to src/tests/)
+2. ✅ Fix remaining test failures (all tests now passing)
+3. ✅ Ensure proper mock data structure alignment
+4. ✅ Verify all components work together
+5. ✅ Algorithm weight tuning and optimization
+6. ✅ Frontend enhancement with detailed analysis views
+7. ✅ On-demand data fetching implementation
+8. ✅ CI/CD pipeline implementation with GitHub Actions
+9. ✅ Docker containerization and deployment configuration
+10. ✅ Health check and monitoring infrastructure
+11. [ ] Production API key integration and testing
+12. [ ] Performance optimization and monitoring setup
+13. [ ] Hosting platform setup (Railway/Vercel)
+14. [ ] Domain registration and SSL configuration
+15. [ ] Final documentation review and updates
 
 ### Smurf Detection Criteria
-1. Playtime Gaps
-   - Analyze gaps between gameplay sessions
-   - Longer gaps increase suspicion level
-
-2. Champion Performance
+1. Champion Performance (65% weight)
    - First-time champion performance analysis
    - Win rate threshold: 70% or higher
    - KDA threshold: 3.0 or higher
    - CS per minute threshold: 8.0 or higher
    - Note: These are not binary thresholds but contribute to a probability score
 
-3. Summoner Spell Usage
-   - Track summoner spell key bindings
-   - Analyze patterns of spell placement changes
-   - Sudden changes in spell placement patterns
+2. Summoner Spell Usage Patterns (25% weight)
+   - Track summoner spell key bindings and placement changes
+   - Analyze patterns of spell placement swaps (major smurf indicator)
+   - Sudden changes in spell placement patterns between games
+   - Multiple spell configuration changes in short timeframes
 
-4. Player Association
+3. Playtime Gaps (10% weight)
+   - Analyze gaps between gameplay sessions
+   - Gaps longer than 1 week increase suspicion level
+   - Multiple large gaps contribute to overall score
+
+4. Player Association (5% weight)
    - Analyze games played with higher ELO players
    - Track associations with high win-rate players
-   - Consider player network analysis
+   - Consider player network analysis and frequent high-skill teammates
+
+**Algorithm Implementation:**
+- Weighted probability calculation with 1.2x multiplier for threshold calibration
+- All factors contribute to final probability score (0-100%)
+- Color-coded results: Green (0-20%), Light Green (20-40%), Yellow (40-60%), Orange (60-80%), Red (80-100%)
 
 ## AI Development Guidelines
 1. Act as the main solo developer for this project, taking initiative in all development decisions

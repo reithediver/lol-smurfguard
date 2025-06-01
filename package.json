@@ -8,9 +8,18 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
     "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "type-check": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "postinstall": "npm run build",
-    "test-summoners": "ts-node src/test-summoners.ts"
+    "test-summoners": "ts-node src/test-summoners.ts",
+    "verify-key": "ts-node src/verify-api-key.ts",
+    "test-api": "ts-node src/test-api-access.ts",
+    "health-check": "ts-node src/utils/health-check.ts",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean"
   },
   "dependencies": {
     "axios": "^1.6.2",
@@ -32,6 +41,7 @@
     "eslint": "^8.55.0",
     "jest": "^29.7.0",
     "nodemon": "^3.0.1",
+    "rimraf": "^6.0.1",
     "ts-jest": "^29.3.4",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2"

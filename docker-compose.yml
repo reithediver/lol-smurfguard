@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/frontend/node_modules
+    command: npm run dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001
+      - REACT_APP_ENVIRONMENT=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm start
+    restart: unless-stopped
+    depends_on:
+      - app 
