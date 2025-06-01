@@ -4,9 +4,26 @@ import { logger } from '../utils/loggerService';
 
 export class AdvancedDataService {
   private riotApi: RiotApi;
-  private readonly ANALYSIS_TIMESPAN_MONTHS = 24; // 2 years of data
-  private readonly MIN_GAMES_FOR_ANALYSIS = 50;
+  private readonly ANALYSIS_TIMESPAN_MONTHS = 60; // 5 years of data
+  private readonly MIN_GAMES_FOR_ANALYSIS = 100; // Higher threshold for 5-year analysis
   private readonly CHAMPION_EXPERTISE_THRESHOLD = 3; // Games to determine expertise
+  
+  // Enhanced gap detection thresholds
+  private readonly GAP_THRESHOLDS = {
+    MINOR: 7,      // 1 week
+    MODERATE: 21,  // 3 weeks  
+    MAJOR: 60,     // 2 months
+    EXTREME: 180,  // 6 months
+    ACCOUNT_SWITCH: 365 // 1 year (likely account switching)
+  };
+
+  // Account switching indicators
+  private readonly ACCOUNT_SWITCH_INDICATORS = {
+    PERFORMANCE_JUMP: 0.4,        // 40% performance increase
+    NEW_CHAMPION_EXPERTISE: 0.8,  // 80%+ win rate on new champions
+    ROLE_MASTERY_CHANGE: 0.6,     // Sudden mastery of different roles
+    PLAYSTYLE_SHIFT: 0.5          // Dramatic playstyle changes
+  };
 
   constructor(riotApi: RiotApi) {
     this.riotApi = riotApi;
@@ -63,18 +80,18 @@ export class AdvancedDataService {
   }
 
   private async getExtensiveMatchHistory(puuid: string): Promise<any[]> {
-    logger.info('📚 Collecting extensive match history (up to 2 years)...');
+    logger.info('📚 Collecting ultra-extensive match history (up to 5 years)...');
     
     const allMatches: any[] = [];
     const startTime = Date.now() - (this.ANALYSIS_TIMESPAN_MONTHS * 30 * 24 * 60 * 60 * 1000);
     
     try {
-      // Get match IDs in batches
+      // Get match IDs in larger batches for 5-year analysis
       let start = 0;
       const count = 100;
       let hasMoreMatches = true;
 
-      while (hasMoreMatches && allMatches.length < 2000) { // Cap at 2000 games
+      while (hasMoreMatches && allMatches.length < 5000) { // Cap at 5000 games for 5 years
         const matchIds = await this.riotApi.getMatchHistory(puuid, startTime, undefined);
         
         if (matchIds.length === 0) {
@@ -82,14 +99,14 @@ export class AdvancedDataService {
           break;
         }
 
-        // Get detailed match data
+        // Get detailed match data with optimized rate limiting
         for (const matchId of matchIds) {
           try {
             const matchDetails = await this.riotApi.getMatchDetails(matchId);
             allMatches.push(matchDetails);
             
-            // Rate limiting
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Reduced rate limiting for large datasets
+            await new Promise(resolve => setTimeout(resolve, 25));
           } catch (error) {
             logger.warn(`Failed to get match details for ${matchId}:`, error);
           }
@@ -102,13 +119,18 @@ export class AdvancedDataService {
         if (oldestMatch && oldestMatch.info.gameCreation < startTime) {
           hasMoreMatches = false;
         }
+
+        // Progress logging for large datasets
+        if (allMatches.length % 500 === 0) {
+          logger.info(`📊 Collected ${allMatches.length} matches so far...`);
+        }
       }
 
-      logger.info(`📊 Collected ${allMatches.length} matches for analysis`);
+      logger.info(`📊 Collected ${allMatches.length} matches for ultra-comprehensive analysis`);
       return allMatches;
 
     } catch (error) {
-      logger.error('Error collecting extensive match history:', error);
+      logger.error('Error collecting ultra-extensive match history:', error);
       return [];
     }
   }
@@ -210,8 +232,9 @@ export class AdvancedDataService {
   }
 
   private detectPlaytimeGaps(sortedMatches: any[]): any[] {
+    logger.info('🕳️ Detecting comprehensive playtime gaps (weeks to years)...');
+    
     const gaps: any[] = [];
-    const GAP_THRESHOLD_DAYS = 7; // Consider gaps of 7+ days
 
     for (let i = 1; i < sortedMatches.length; i++) {
       const currentGame = new Date(sortedMatches[i].info.gameCreation);
@@ -219,34 +242,249 @@ export class AdvancedDataService {
       
       const gapDays = Math.floor((currentGame.getTime() - previousGame.getTime()) / (24 * 60 * 60 * 1000));
       
-      if (gapDays >= GAP_THRESHOLD_DAYS) {
-        // Analyze performance before and after gap
-        const performanceBefore = this.calculatePerformanceAroundIndex(sortedMatches, i - 1, -5, 0);
-        const performanceAfter = this.calculatePerformanceAroundIndex(sortedMatches, i, 0, 5);
+      // Only analyze significant gaps (7+ days)
+      if (gapDays >= this.GAP_THRESHOLDS.MINOR) {
+        // Analyze performance and champion usage before/after gap
+        const performanceBefore = this.calculatePerformanceAroundIndex(sortedMatches, i - 1, -10, 0);
+        const performanceAfter = this.calculatePerformanceAroundIndex(sortedMatches, i, 0, 10);
         
-        // Determine suspicion level based on performance change and context
+        // Analyze champion usage patterns around the gap
+        const championsBefore = this.getChampionUsageAroundIndex(sortedMatches, i - 1, -10, 0);
+        const championsAfter = this.getChampionUsageAroundIndex(sortedMatches, i, 0, 10);
+        
+        // Calculate suspicion metrics
         const performanceImprovement = performanceAfter - performanceBefore;
-        let suspicionLevel: 'low' | 'medium' | 'high' = 'low';
+        const newChampionExpertise = this.calculateNewChampionExpertise(championsBefore, championsAfter);
+        const roleShift = this.calculateRoleShift(sortedMatches, i - 1, i);
         
-        if (gapDays > 30 && performanceImprovement > 0.3) {
-          suspicionLevel = 'high';
-        } else if (gapDays > 14 && performanceImprovement > 0.2) {
-          suspicionLevel = 'medium';
-        }
+        // Determine gap category and suspicion level
+        const gapCategory = this.categorizeGap(gapDays);
+        const suspicionLevel = this.calculateGapSuspicionLevel(
+          gapDays, 
+          performanceImprovement, 
+          newChampionExpertise, 
+          roleShift
+        );
+
+        // Account switching probability
+        const accountSwitchProbability = this.calculateAccountSwitchProbability(
+          gapDays,
+          performanceImprovement,
+          newChampionExpertise,
+          roleShift
+        );
 
         gaps.push({
           gapStart: previousGame,
           gapEnd: currentGame,
           durationDays: gapDays,
+          gapCategory,
           contextualSuspicion: this.calculateContextualSuspicion(previousGame, currentGame),
           performanceBeforeGap: performanceBefore,
           performanceAfterGap: performanceAfter,
-          suspicionLevel
+          performanceImprovement,
+          championsBefore,
+          championsAfter,
+          newChampionExpertise,
+          roleShift,
+          suspicionLevel,
+          accountSwitchProbability,
+          redFlags: this.identifyGapRedFlags(gapDays, performanceImprovement, newChampionExpertise, roleShift)
         });
       }
     }
 
+    // Sort gaps by suspicion level (most suspicious first)
+    gaps.sort((a, b) => {
+      const aSuspicion = a.accountSwitchProbability + (a.suspicionLevel === 'extreme' ? 1 : 0);
+      const bSuspicion = b.accountSwitchProbability + (b.suspicionLevel === 'extreme' ? 1 : 0);
+      return bSuspicion - aSuspicion;
+    });
+
+    logger.info(`🕳️ Detected ${gaps.length} significant gaps, ${gaps.filter(g => g.suspicionLevel === 'extreme' || g.accountSwitchProbability > 0.7).length} highly suspicious`);
+    
     return gaps;
+  }
+
+  private categorizeGap(gapDays: number): string {
+    if (gapDays >= this.GAP_THRESHOLDS.ACCOUNT_SWITCH) return 'Account Switch Likely';
+    if (gapDays >= this.GAP_THRESHOLDS.EXTREME) return 'Extreme Gap';
+    if (gapDays >= this.GAP_THRESHOLDS.MAJOR) return 'Major Gap';
+    if (gapDays >= this.GAP_THRESHOLDS.MODERATE) return 'Moderate Gap';
+    return 'Minor Gap';
+  }
+
+  private calculateGapSuspicionLevel(
+    gapDays: number, 
+    performanceImprovement: number, 
+    newChampionExpertise: number,
+    roleShift: number
+  ): 'low' | 'medium' | 'high' | 'extreme' {
+    
+    let suspicionScore = 0;
+    
+    // Gap duration scoring
+    if (gapDays >= this.GAP_THRESHOLDS.ACCOUNT_SWITCH) suspicionScore += 4;
+    else if (gapDays >= this.GAP_THRESHOLDS.EXTREME) suspicionScore += 3;
+    else if (gapDays >= this.GAP_THRESHOLDS.MAJOR) suspicionScore += 2;
+    else if (gapDays >= this.GAP_THRESHOLDS.MODERATE) suspicionScore += 1;
+    
+    // Performance improvement scoring
+    if (performanceImprovement >= this.ACCOUNT_SWITCH_INDICATORS.PERFORMANCE_JUMP) suspicionScore += 3;
+    else if (performanceImprovement >= 0.3) suspicionScore += 2;
+    else if (performanceImprovement >= 0.2) suspicionScore += 1;
+    
+    // New champion expertise scoring
+    if (newChampionExpertise >= this.ACCOUNT_SWITCH_INDICATORS.NEW_CHAMPION_EXPERTISE) suspicionScore += 3;
+    else if (newChampionExpertise >= 0.6) suspicionScore += 2;
+    else if (newChampionExpertise >= 0.4) suspicionScore += 1;
+    
+    // Role shift scoring
+    if (roleShift >= this.ACCOUNT_SWITCH_INDICATORS.ROLE_MASTERY_CHANGE) suspicionScore += 2;
+    else if (roleShift >= 0.4) suspicionScore += 1;
+    
+    // Determine final suspicion level
+    if (suspicionScore >= 8) return 'extreme';
+    if (suspicionScore >= 6) return 'high';
+    if (suspicionScore >= 3) return 'medium';
+    return 'low';
+  }
+
+  private calculateAccountSwitchProbability(
+    gapDays: number,
+    performanceImprovement: number,
+    newChampionExpertise: number,
+    roleShift: number
+  ): number {
+    let probability = 0;
+    
+    // Base probability from gap duration
+    if (gapDays >= this.GAP_THRESHOLDS.ACCOUNT_SWITCH) probability += 0.4;
+    else if (gapDays >= this.GAP_THRESHOLDS.EXTREME) probability += 0.3;
+    else if (gapDays >= this.GAP_THRESHOLDS.MAJOR) probability += 0.2;
+    else if (gapDays >= this.GAP_THRESHOLDS.MODERATE) probability += 0.1;
+    
+    // Performance improvement factor
+    probability += Math.min(0.3, performanceImprovement * 0.75);
+    
+    // New champion expertise factor
+    probability += Math.min(0.2, newChampionExpertise * 0.25);
+    
+    // Role shift factor
+    probability += Math.min(0.1, roleShift * 0.17);
+    
+    return Math.min(1.0, probability);
+  }
+
+  private getChampionUsageAroundIndex(matches: any[], index: number, before: number, after: number): any[] {
+    const startIndex = Math.max(0, index + before);
+    const endIndex = Math.min(matches.length - 1, index + after);
+    
+    const champions: any[] = [];
+    
+    for (let i = startIndex; i <= endIndex; i++) {
+      const participant = this.findPlayerInMatch(matches[i]);
+      if (participant) {
+        champions.push({
+          championId: participant.championId,
+          championName: participant.championName || `Champion${participant.championId}`,
+          performance: this.calculateMatchPerformance(participant),
+          win: participant.win,
+          role: participant.teamPosition || participant.role
+        });
+      }
+    }
+    
+    return champions;
+  }
+
+  private calculateNewChampionExpertise(championsBefore: any[], championsAfter: any[]): number {
+    if (championsAfter.length === 0) return 0;
+    
+    const beforeChampions = new Set(championsBefore.map(c => c.championId));
+    const newChampions = championsAfter.filter(c => !beforeChampions.has(c.championId));
+    
+    if (newChampions.length === 0) return 0;
+    
+    // Calculate win rate and performance on new champions
+    const newChampionWinRate = newChampions.reduce((sum, c) => sum + (c.win ? 1 : 0), 0) / newChampions.length;
+    const newChampionPerformance = newChampions.reduce((sum, c) => sum + c.performance, 0) / newChampions.length;
+    
+    // High win rate and performance on new champions is suspicious
+    return (newChampionWinRate * 0.6) + (Math.min(newChampionPerformance / 10, 1) * 0.4);
+  }
+
+  private calculateRoleShift(matches: any[], beforeIndex: number, afterIndex: number): number {
+    const beforeRoles = this.getRoleDistribution(matches, Math.max(0, beforeIndex - 10), beforeIndex);
+    const afterRoles = this.getRoleDistribution(matches, afterIndex, Math.min(matches.length - 1, afterIndex + 10));
+    
+    // Calculate role distribution difference
+    const allRoles = new Set([...Object.keys(beforeRoles), ...Object.keys(afterRoles)]);
+    let totalDifference = 0;
+    
+    allRoles.forEach(role => {
+      const beforePercentage = beforeRoles[role] || 0;
+      const afterPercentage = afterRoles[role] || 0;
+      totalDifference += Math.abs(afterPercentage - beforePercentage);
+    });
+    
+    return totalDifference / 2; // Normalize to 0-1 range
+  }
+
+  private getRoleDistribution(matches: any[], startIndex: number, endIndex: number): Record<string, number> {
+    const roles: Record<string, number> = {};
+    let totalGames = 0;
+    
+    for (let i = startIndex; i <= endIndex; i++) {
+      const participant = this.findPlayerInMatch(matches[i]);
+      if (participant) {
+        const role = participant.teamPosition || participant.role || 'UNKNOWN';
+        roles[role] = (roles[role] || 0) + 1;
+        totalGames++;
+      }
+    }
+    
+    // Convert to percentages
+    Object.keys(roles).forEach(role => {
+      roles[role] = roles[role] / totalGames;
+    });
+    
+    return roles;
+  }
+
+  private identifyGapRedFlags(
+    gapDays: number, 
+    performanceImprovement: number, 
+    newChampionExpertise: number,
+    roleShift: number
+  ): string[] {
+    const redFlags: string[] = [];
+    
+    if (gapDays >= this.GAP_THRESHOLDS.ACCOUNT_SWITCH) {
+      redFlags.push('Year+ gap suggests account switching');
+    }
+    
+    if (performanceImprovement >= this.ACCOUNT_SWITCH_INDICATORS.PERFORMANCE_JUMP) {
+      redFlags.push('Massive performance improvement after gap');
+    }
+    
+    if (newChampionExpertise >= this.ACCOUNT_SWITCH_INDICATORS.NEW_CHAMPION_EXPERTISE) {
+      redFlags.push('Immediate expertise on new champions');
+    }
+    
+    if (roleShift >= this.ACCOUNT_SWITCH_INDICATORS.ROLE_MASTERY_CHANGE) {
+      redFlags.push('Sudden mastery of different roles');
+    }
+    
+    if (gapDays >= this.GAP_THRESHOLDS.MAJOR && performanceImprovement >= 0.3) {
+      redFlags.push('Suspicious skill retention after long break');
+    }
+    
+    if (gapDays >= this.GAP_THRESHOLDS.EXTREME && newChampionExpertise >= 0.6) {
+      redFlags.push('Expert play on new champions after extreme gap');
+    }
+    
+    return redFlags;
   }
 
   private async calculateAdvancedMetrics(matches: any[]): Promise<AdvancedPerformanceMetrics[]> {

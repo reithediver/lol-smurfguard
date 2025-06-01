@@ -104,6 +104,7 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
 
   try {
     logger.info(`🔍 Comprehensive analysis requested for: ${summonerName}`);
+    logger.info('🚀 Initiating 5+ year ultra-comprehensive analysis...');
     
     const advancedService = new AdvancedDataService(riotApi);
     const analysis = await advancedService.analyzePlayerComprehensively(summonerName);
@@ -118,7 +119,17 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
         responseTime: `${responseTime}ms`,
         timestamp: new Date().toISOString(),
         dataQuality: analysis.dataQuality,
-        analysisDepth: 'comprehensive'
+        analysisDepth: '5-year ultra-comprehensive',
+        accountSwitchingAnalysis: true,
+        gapAnalysis: 'enhanced',
+        features: [
+          '5+ years historical data',
+          'Account switching detection',
+          'Enhanced gap analysis (weeks to years)',
+          'Champion expertise after gaps',
+          'Role mastery changes',
+          'Performance anomaly detection'
+        ]
       }
     });
 
@@ -132,15 +143,25 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
       res.status(403).json({
         success: false,
         error: 'API_KEY_LIMITATION',
-        message: 'Comprehensive analysis requires Personal/Production API key. Currently using Development key.',
+        message: '5+ year ultra-comprehensive analysis requires Personal/Production API key. Currently using Development key.',
+        features: {
+          missing: [
+            '5+ years of historical data access',
+            'Account switching detection',
+            'Enhanced gap analysis (months/years)',
+            'Champion expertise tracking after gaps',
+            'Cross-account performance patterns'
+          ],
+          available: ['Basic analysis with limited recent data']
+        },
         recommendation: 'Apply for Personal API key at https://developer.riotgames.com/app-type',
         limitedAlternative: `/api/analyze/basic/${summonerName}`
       });
     } else {
       res.status(500).json({
         success: false,
-        error: 'ANALYSIS_FAILED',
-        message: 'Failed to perform comprehensive analysis',
+        error: 'ULTRA_ANALYSIS_FAILED',
+        message: 'Failed to perform 5+ year ultra-comprehensive analysis',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -194,23 +215,39 @@ app.get('/api/analyze/historical/:summonerName', async (req, res) => {
 
   try {
     logger.info(`📚 Historical analysis requested for: ${summonerName} (${timespan} months)`);
+    logger.info('🕳️ Focusing on enhanced gap analysis and account switching detection...');
     
     const advancedService = new AdvancedDataService(riotApi);
     const analysis = await advancedService.analyzePlayerComprehensively(summonerName);
     
-    // Focus on historical aspects
+    // Focus on historical aspects with enhanced gap analysis
     const historicalReport = {
       summonerName,
       timespan: `${timespan} months`,
       accountAge: analysis.historicalAnalysis.accountAge,
       playHistory: analysis.historicalAnalysis.playHistory,
-      playtimeAnalysis: analysis.historicalAnalysis.playtimeAnalysis,
+      enhancedGapAnalysis: {
+        totalGaps: analysis.historicalAnalysis.playtimeAnalysis.gaps.length,
+        suspiciousGaps: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(gap => 
+          gap.suspicionLevel === 'high' || gap.suspicionLevel === 'extreme'
+        ),
+        accountSwitchingProbability: analysis.historicalAnalysis.playtimeAnalysis.gaps.reduce((max, gap) => 
+          Math.max(max, gap.accountSwitchProbability || 0), 0
+        ),
+        gapCategories: {
+          minor: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(g => g.gapCategory === 'Minor Gap').length,
+          moderate: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(g => g.gapCategory === 'Moderate Gap').length,
+          major: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(g => g.gapCategory === 'Major Gap').length,
+          extreme: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(g => g.gapCategory === 'Extreme Gap').length,
+          accountSwitch: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(g => g.gapCategory === 'Account Switch Likely').length
+        }
+      },
       skillProgression: analysis.historicalAnalysis.skillProgression,
-      suspiciousGaps: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(gap => gap.suspicionLevel !== 'low'),
       keyInsights: [
         `Account is ${analysis.historicalAnalysis.accountAge} days old`,
         `${analysis.dataQuality.gamesCovered} games analyzed across ${analysis.dataQuality.timeSpanDays} days`,
-        `${analysis.historicalAnalysis.playtimeAnalysis.gaps.length} playtime gaps detected`,
+        `${analysis.historicalAnalysis.playtimeAnalysis.gaps.length} total gaps detected`,
+        `${analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(g => g.suspicionLevel === 'extreme').length} extreme gaps with account switching indicators`,
         `Skill improvement rate: ${analysis.historicalAnalysis.skillProgression.improvementRate.toFixed(3)}`
       ]
     };
@@ -224,7 +261,7 @@ app.get('/api/analyze/historical/:summonerName', async (req, res) => {
       metadata: {
         responseTime: `${responseTime}ms`,
         timestamp: new Date().toISOString(),
-        analysisDepth: 'historical'
+        analysisDepth: '5-year historical with account switching detection'
       }
     });
 
@@ -279,6 +316,15 @@ app.get('/api/analyze/champions/:summonerName', async (req, res) => {
       totalChampions: analysis.performanceMetrics.length,
       analyzedChampions: championData.length,
       mostSuspiciousChampions: championData.slice(0, 5),
+      postGapExpertise: {
+        championsWithPostGapExpertise: championData.filter(c => 
+          c.championMastery.suspiciousIndicators.highInitialPerformance && 
+          c.championMastery.firstTimePerformance
+        ).length,
+        accountSwitchingIndicators: championData.filter(c => 
+          c.championMastery.suspiciousIndicators.expertLevelPlay
+        ).length
+      },
       performanceOverview: {
         averageWinRate: championData.reduce((sum, data) => sum + data.championMastery.winRate, 0) / championData.length,
         averageCSPerMinute: championData.reduce((sum, data) => sum + data.championMastery.csPerMinute, 0) / championData.length,
@@ -323,44 +369,57 @@ app.get('/api/analysis/capabilities', (req, res) => {
       availableAnalysis: {
         basic: {
           available: true,
-          description: 'Basic smurf detection with limited data',
+          description: 'Basic smurf detection with limited recent data',
           endpoint: '/api/analyze/basic/:summonerName'
         },
-        comprehensive: {
+        ultraComprehensive: {
           available: apiKeyType !== 'development',
-          description: '2+ years of historical data, advanced metrics, lane dominance',
+          description: '5+ years of historical data, account switching detection, enhanced gap analysis',
           endpoint: '/api/analyze/comprehensive/:summonerName',
-          requiredApiKey: 'Personal or Production'
+          requiredApiKey: 'Personal or Production',
+          features: [
+            '5+ years historical analysis',
+            'Account switching detection',
+            'Enhanced gap analysis (weeks to years)',
+            'Champion expertise after gaps',
+            'Role mastery changes',
+            'Performance anomaly detection'
+          ]
         },
-        historical: {
+        enhancedHistorical: {
           available: apiKeyType !== 'development',
-          description: 'Deep historical pattern analysis and playtime gaps',
+          description: 'Deep historical pattern analysis with account switching detection',
           endpoint: '/api/analyze/historical/:summonerName',
           requiredApiKey: 'Personal or Production'
         },
         championFocused: {
           available: apiKeyType !== 'development',
-          description: 'Champion mastery progression and expertise analysis',
+          description: 'Champion mastery progression with post-gap expertise analysis',
           endpoint: '/api/analyze/champions/:summonerName',
           requiredApiKey: 'Personal or Production'
         }
       },
-      metrics: {
+      enhancedMetrics: {
+        fiveYearAnalysis: apiKeyType !== 'development',
+        accountSwitchingDetection: apiKeyType !== 'development',
+        enhancedGapAnalysis: apiKeyType !== 'development',
+        championPostGapExpertise: apiKeyType !== 'development',
         csPerMinute: apiKeyType !== 'development',
         laneDominance: apiKeyType !== 'development',
         visionMetrics: apiKeyType !== 'development',
         skillProgression: apiKeyType !== 'development',
-        playtimeGaps: apiKeyType !== 'development',
-        championMastery: apiKeyType !== 'development'
+        roleShiftDetection: apiKeyType !== 'development'
       },
       upgradeInstructions: {
         personalApiKey: 'https://developer.riotgames.com/app-type',
         benefits: [
           'Access to summoner and match data',
-          '2+ years of historical analysis',
-          'Advanced performance metrics',
-          'Lane dominance analysis',
-          'Champion mastery progression tracking'
+          '5+ years of historical analysis',
+          'Account switching detection',
+          'Enhanced gap analysis (months to years)',
+          'Champion expertise tracking after gaps',
+          'Performance anomaly detection',
+          'Role mastery change detection'
         ]
       }
     }

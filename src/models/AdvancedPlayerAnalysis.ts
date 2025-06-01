@@ -81,10 +81,18 @@ export interface HistoricalAnalysis {
       gapStart: Date;
       gapEnd: Date;
       durationDays: number;
+      gapCategory: string; // 'Minor Gap', 'Major Gap', 'Account Switch Likely', etc.
       contextualSuspicion: number; // Higher if gap coincides with rank resets, etc.
       performanceBeforeGap: number;
       performanceAfterGap: number;
-      suspicionLevel: 'low' | 'medium' | 'high';
+      performanceImprovement: number;
+      championsBefore: any[];
+      championsAfter: any[];
+      newChampionExpertise: number;
+      roleShift: number;
+      suspicionLevel: 'low' | 'medium' | 'high' | 'extreme';
+      accountSwitchProbability: number; // 0-1 probability of account switching
+      redFlags: string[]; // Array of red flag descriptions
     }[];
   };
 
