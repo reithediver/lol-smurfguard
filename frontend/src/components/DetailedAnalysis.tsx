@@ -489,13 +489,6 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
     ]
   };
 
-  const getSuspicionColor = (level: number) => {
-    if (level >= 0.8) return '#fc8181';
-    if (level >= 0.6) return '#f6ad55';
-    if (level >= 0.4) return '#68d391';
-    return '#63b3ed';
-  };
-
   const getGapSeverity = (hours: number): 'low' | 'medium' | 'high' => {
     const days = hours / 24;
     if (days >= 60) return 'high';
