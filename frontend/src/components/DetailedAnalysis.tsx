@@ -59,37 +59,47 @@ interface DetailedAnalysisProps {
 }
 
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: linear-gradient(135deg, #0f1419 0%, #1a202c 50%, #2d3748 100%);
   min-height: 100vh;
 `;
 
 const AnalysisGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 20px;
   
   @media (min-width: 768px) {
     grid-template-columns: 1fr 1fr;
-    gap: 32px;
+    gap: 24px;
+  }
+  
+  @media (min-width: 1200px) {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 28px;
   }
 `;
 
 const AnalysisCard = styled.div`
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(26, 32, 44, 0.95);
   backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(74, 85, 104, 0.3);
   transition: all 0.3s ease;
   
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(99, 179, 237, 0.5);
   }
+`;
+
+const WideCard = styled(AnalysisCard)`
+  grid-column: 1 / -1;
 `;
 
 const SectionHeader = styled.div`
@@ -98,22 +108,22 @@ const SectionHeader = styled.div`
   align-items: center;
   cursor: pointer;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%);
   color: white;
-  border-radius: 12px;
+  border-radius: 8px;
   margin-bottom: 16px;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
   transition: all 0.3s ease;
 
   &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    background: linear-gradient(135deg, #3182ce 0%, #4299e1 100%);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
   }
 `;
 
 const SectionContent = styled.div<{ isExpanded: boolean }>`
-  max-height: ${props => props.isExpanded ? '800px' : '0'};
+  max-height: ${props => props.isExpanded ? '1000px' : '0'};
   opacity: ${props => props.isExpanded ? '1' : '0'};
   overflow: hidden;
   transition: all 0.4s ease-in-out;
@@ -122,140 +132,226 @@ const SectionContent = styled.div<{ isExpanded: boolean }>`
 
 const CompactStatGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
   margin: 16px 0;
 `;
 
 const CompactStatCard = styled.div`
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  color: #e2e8f0;
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
+  border: 1px solid rgba(74, 85, 104, 0.3);
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(240, 147, 251, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: rgba(99, 179, 237, 0.4);
   }
 `;
 
 const StatValue = styled.div`
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   margin-bottom: 4px;
+  color: #63b3ed;
 `;
 
 const StatLabel = styled.div`
-  font-size: 12px;
-  opacity: 0.9;
+  font-size: 11px;
+  opacity: 0.8;
   font-weight: 500;
+  color: #a0aec0;
 `;
 
 const ChampionGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-top: 16px;
 `;
 
 const ChampionCard = styled.div`
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(168, 237, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
+  border: 1px solid rgba(74, 85, 104, 0.3);
   
   &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(168, 237, 234, 0.4);
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border-color: rgba(99, 179, 237, 0.4);
   }
 `;
 
 const ChampionName = styled.h5`
-  color: #2d3748;
+  color: #e2e8f0;
   font-weight: bold;
   margin-bottom: 12px;
-  font-size: 16px;
+  font-size: 14px;
 `;
 
 const ChampionStatGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 6px;
 `;
 
 const ChampionStat = styled.div`
-  background: rgba(255, 255, 255, 0.8);
-  padding: 8px;
-  border-radius: 8px;
-  color: #2d3748;
+  background: rgba(26, 32, 44, 0.8);
+  padding: 6px;
+  border-radius: 6px;
+  color: #e2e8f0;
 `;
 
 const ChampionStatValue = styled.div`
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
-  color: #4a5568;
+  color: #63b3ed;
 `;
 
 const ChampionStatLabel = styled.div`
-  font-size: 10px;
-  color: #718096;
+  font-size: 9px;
+  color: #a0aec0;
   margin-top: 2px;
 `;
 
 const ChartContainer = styled.div`
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(26, 32, 44, 0.8);
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   margin: 16px 0;
-  height: 300px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  height: 280px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(74, 85, 104, 0.3);
 `;
 
 const GapAlert = styled.div<{ severity: 'low' | 'medium' | 'high' }>`
   background: ${props => {
     switch(props.severity) {
-      case 'high': return 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)';
-      case 'medium': return 'linear-gradient(135deg, #feca57 0%, #ff9ff3 100%)';
-      default: return 'linear-gradient(135deg, #48dbfb 0%, #0abde3 100%)';
+      case 'high': return 'linear-gradient(135deg, #e53e3e 0%, #c53030 100%)';
+      case 'medium': return 'linear-gradient(135deg, #d69e2e 0%, #b7791f 100%)';
+      default: return 'linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%)';
     }
   }};
   color: white;
-  padding: 12px 16px;
-  border-radius: 12px;
-  margin: 8px 0;
-  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 6px 0;
+  font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 `;
 
 const SectionTitle = styled.h2`
-  color: white;
+  color: #e2e8f0;
   text-align: center;
   margin-bottom: 32px;
   font-size: 28px;
   font-weight: bold;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 `;
 
 const WeightBadge = styled.span`
-  background: rgba(255, 255, 255, 0.3);
-  padding: 4px 8px;
-  border-radius: 16px;
-  font-size: 12px;
+  background: rgba(99, 179, 237, 0.2);
+  color: #90cdf4;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 500;
   margin-left: 8px;
+  border: 1px solid rgba(99, 179, 237, 0.3);
+`;
+
+const TrendContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const TrendCard = styled.div`
+  background: rgba(26, 32, 44, 0.8);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(74, 85, 104, 0.3);
+`;
+
+const TrendTitle = styled.h4`
+  color: #e2e8f0;
+  font-size: 14px;
+  margin-bottom: 12px;
+  font-weight: 600;
+`;
+
+const MetricCard = styled.div`
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  padding: 14px;
+  border-radius: 8px;
+  margin: 8px 0;
+  border: 1px solid rgba(74, 85, 104, 0.3);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: rgba(99, 179, 237, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+const MetricHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const MetricName = styled.span`
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 13px;
+`;
+
+const MetricValue = styled.span<{ suspicious?: boolean }>`
+  color: ${props => props.suspicious ? '#fc8181' : '#68d391'};
+  font-weight: bold;
+  font-size: 14px;
+`;
+
+const ProgressBar = styled.div<{ percentage: number; color: string }>`
+  width: 100%;
+  height: 4px;
+  background: rgba(74, 85, 104, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    display: block;
+    width: ${props => props.percentage}%;
+    height: 100%;
+    background: ${props => props.color};
+    transition: width 0.3s ease;
+  }
 `;
 
 export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) => {
   const [expandedSections, setExpandedSections] = useState({
     championPerformance: true,
     summonerSpells: false,
-    playtimeGaps: true
+    playtimeGaps: true,
+    trends: true,
+    advancedMetrics: false
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -272,10 +368,11 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
       legend: {
         position: 'top' as const,
         labels: {
+          color: '#e2e8f0',
           font: {
-            size: 12
+            size: 11
           },
-          padding: 10
+          padding: 8
         }
       },
     },
@@ -283,21 +380,23 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(0, 0, 0, 0.1)',
+          color: 'rgba(74, 85, 104, 0.3)',
         },
         ticks: {
+          color: '#a0aec0',
           font: {
-            size: 11
+            size: 10
           }
         }
       },
       x: {
         grid: {
-          color: 'rgba(0, 0, 0, 0.1)',
+          color: 'rgba(74, 85, 104, 0.3)',
         },
         ticks: {
+          color: '#a0aec0',
           font: {
-            size: 11
+            size: 10
           },
           maxRotation: 45
         }
@@ -307,6 +406,13 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
       bar: {
         borderRadius: 4,
         borderWidth: 1,
+      },
+      line: {
+        borderWidth: 2,
+      },
+      point: {
+        radius: 3,
+        hoverRadius: 5,
       }
     }
   };
@@ -319,15 +425,15 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
       {
         label: 'Win Rate (%)',
         data: analysis.championPerformance.firstTimeChampions.slice(0, 5).map(c => c.winRate * 100),
-        backgroundColor: 'rgba(102, 126, 234, 0.8)',
-        borderColor: 'rgba(102, 126, 234, 1)',
+        backgroundColor: 'rgba(99, 179, 237, 0.7)',
+        borderColor: 'rgba(99, 179, 237, 1)',
         borderWidth: 1,
       },
       {
         label: 'KDA',
-        data: analysis.championPerformance.firstTimeChampions.slice(0, 5).map(c => c.kda * 10), // Scale for visibility
-        backgroundColor: 'rgba(153, 102, 255, 0.8)',
-        borderColor: 'rgba(153, 102, 255, 1)',
+        data: analysis.championPerformance.firstTimeChampions.slice(0, 5).map(c => c.kda * 10),
+        backgroundColor: 'rgba(129, 140, 248, 0.7)',
+        borderColor: 'rgba(129, 140, 248, 1)',
         borderWidth: 1,
       }
     ]
@@ -340,17 +446,54 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
     datasets: [{
       label: 'Gap Duration (Days)',
       data: analysis.playtimeGaps.gaps.slice(0, 6).map(g => Math.round(g.durationHours / 24)),
-      backgroundColor: 'rgba(255, 99, 132, 0.8)',
-      borderColor: 'rgba(255, 99, 132, 1)',
+      backgroundColor: 'rgba(236, 72, 153, 0.7)',
+      borderColor: 'rgba(236, 72, 153, 1)',
       borderWidth: 1,
     }]
   };
 
+  // Generate mock performance trend data
+  const performanceTrendData = {
+    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+    datasets: [
+      {
+        label: 'Performance Score',
+        data: [4.2, 4.5, 4.8, 6.2, 7.1, 7.8, 8.3, 8.7],
+        borderColor: 'rgba(99, 179, 237, 1)',
+        backgroundColor: 'rgba(99, 179, 237, 0.1)',
+        tension: 0.4,
+        fill: true,
+      },
+      {
+        label: 'KDA',
+        data: [1.8, 2.1, 2.3, 3.2, 3.8, 4.1, 4.5, 4.8],
+        borderColor: 'rgba(129, 140, 248, 1)',
+        backgroundColor: 'rgba(129, 140, 248, 0.1)',
+        tension: 0.4,
+        fill: true,
+      }
+    ]
+  };
+
+  const gameDurationTrendData = {
+    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+    datasets: [
+      {
+        label: 'Avg Game Duration (min)',
+        data: [28, 26, 24, 22, 20, 19, 18, 17],
+        borderColor: 'rgba(236, 72, 153, 1)',
+        backgroundColor: 'rgba(236, 72, 153, 0.1)',
+        tension: 0.4,
+        fill: true,
+      }
+    ]
+  };
+
   const getSuspicionColor = (level: number) => {
-    if (level >= 0.8) return '#ff4757';
-    if (level >= 0.6) return '#ffa502';
-    if (level >= 0.4) return '#ffb142';
-    return '#2ed573';
+    if (level >= 0.8) return '#fc8181';
+    if (level >= 0.6) return '#f6ad55';
+    if (level >= 0.4) return '#68d391';
+    return '#63b3ed';
   };
 
   const getGapSeverity = (hours: number): 'low' | 'medium' | 'high' => {
@@ -360,9 +503,21 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
     return 'low';
   };
 
+  // Mock advanced metrics data
+  const advancedMetrics = [
+    { name: 'Damage Efficiency', value: 87, suspicious: true, description: 'Damage per gold spent' },
+    { name: 'Vision Score Trend', value: 72, suspicious: false, description: 'Ward placement improvement' },
+    { name: 'CS Efficiency', value: 94, suspicious: true, description: 'CS per minute optimization' },
+    { name: 'Objective Control', value: 89, suspicious: true, description: 'Dragon/Baron participation' },
+    { name: 'Map Awareness', value: 76, suspicious: false, description: 'Reaction to unseen enemies' },
+    { name: 'Item Build Optimization', value: 91, suspicious: true, description: 'Situational item choices' },
+    { name: 'Lane Dominance', value: 83, suspicious: true, description: 'Early game advantage creation' },
+    { name: 'Team Fight Positioning', value: 78, suspicious: false, description: 'Combat positioning quality' }
+  ];
+
   return (
     <Container>
-      <SectionTitle>🔍 Advanced Smurf Analysis Dashboard</SectionTitle>
+      <SectionTitle>🔍 Ultra-Advanced Smurf Analysis Dashboard</SectionTitle>
       
       <AnalysisGrid>
         <AnalysisCard>
@@ -441,7 +596,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
               <Bar data={playtimeGapsData} options={chartOptions} />
             </ChartContainer>
             
-            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
               {analysis.playtimeGaps.gaps.slice(0, 6).map((gap, index) => {
                 const durationDays = Math.round(gap.durationHours / 24);
                 const severity = getGapSeverity(gap.durationHours);
@@ -482,34 +637,113 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
             </CompactStatGrid>
             
             <div style={{ 
-              background: 'rgba(255, 255, 255, 0.9)', 
+              background: 'rgba(26, 32, 44, 0.8)', 
               padding: '16px', 
-              borderRadius: '12px',
-              color: '#2d3748'
+              borderRadius: '8px',
+              color: '#e2e8f0',
+              border: '1px solid rgba(74, 85, 104, 0.3)'
             }}>
               {analysis.summonerSpellUsage.spellPlacementChanges.length > 0 ? (
                 <div>
-                  <h5 style={{ marginBottom: '12px', color: '#4a5568' }}>Recent Spell Changes:</h5>
+                  <h5 style={{ marginBottom: '12px', color: '#e2e8f0', fontSize: '14px' }}>Recent Spell Changes:</h5>
                   {analysis.summonerSpellUsage.spellPlacementChanges.slice(0, 3).map((change, index) => (
                     <div key={index} style={{ 
                       padding: '8px 12px', 
                       margin: '4px 0',
-                      background: 'rgba(102, 126, 234, 0.1)',
-                      borderRadius: '8px',
-                      fontSize: '14px'
+                      background: 'rgba(99, 179, 237, 0.1)',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      border: '1px solid rgba(99, 179, 237, 0.2)'
                     }}>
                       <strong>Game {change.gameId}</strong> • {new Date(change.timestamp).toLocaleDateString()}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', color: '#718096' }}>
+                <div style={{ textAlign: 'center', color: '#a0aec0', fontSize: '13px' }}>
                   No significant spell pattern changes detected
                 </div>
               )}
             </div>
           </SectionContent>
         </AnalysisCard>
+
+        <WideCard>
+          <SectionHeader onClick={() => toggleSection('trends')}>
+            <span>📈 Performance Trends</span>
+            <div>
+              <WeightBadge>Analysis over time</WeightBadge>
+              <span style={{ marginLeft: '12px' }}>
+                {expandedSections.trends ? '▼' : '▶'}
+              </span>
+            </div>
+          </SectionHeader>
+          <SectionContent isExpanded={expandedSections.trends}>
+            <TrendContainer>
+              <TrendCard>
+                <TrendTitle>📊 Performance & KDA Progression</TrendTitle>
+                <ChartContainer style={{ height: '240px' }}>
+                  <Line data={performanceTrendData} options={chartOptions} />
+                </ChartContainer>
+                <div style={{ marginTop: '8px', color: '#a0aec0', fontSize: '11px' }}>
+                  Sudden improvements may indicate account switching
+                </div>
+              </TrendCard>
+              
+              <TrendCard>
+                <TrendTitle>⏱️ Game Duration Trend</TrendTitle>
+                <ChartContainer style={{ height: '240px' }}>
+                  <Line data={gameDurationTrendData} options={chartOptions} />
+                </ChartContainer>
+                <div style={{ marginTop: '8px', color: '#fc8181', fontSize: '11px' }}>
+                  🚨 Decreasing game times suggest skill dominance
+                </div>
+              </TrendCard>
+            </TrendContainer>
+          </SectionContent>
+        </WideCard>
+
+        <WideCard>
+          <SectionHeader onClick={() => toggleSection('advancedMetrics')}>
+            <span>🎯 Advanced Detection Metrics</span>
+            <div>
+              <WeightBadge>ML-based analysis</WeightBadge>
+              <span style={{ marginLeft: '12px' }}>
+                {expandedSections.advancedMetrics ? '▼' : '▶'}
+              </span>
+            </div>
+          </SectionHeader>
+          <SectionContent isExpanded={expandedSections.advancedMetrics}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+              gap: '12px' 
+            }}>
+              {advancedMetrics.map((metric, index) => (
+                <MetricCard key={index}>
+                  <MetricHeader>
+                    <MetricName>{metric.name}</MetricName>
+                    <MetricValue suspicious={metric.suspicious}>
+                      {metric.value}%
+                      {metric.suspicious && ' 🚨'}
+                    </MetricValue>
+                  </MetricHeader>
+                  <ProgressBar 
+                    percentage={metric.value} 
+                    color={metric.suspicious ? '#fc8181' : '#68d391'} 
+                  />
+                  <div style={{ 
+                    marginTop: '6px', 
+                    fontSize: '11px', 
+                    color: '#a0aec0' 
+                  }}>
+                    {metric.description}
+                  </div>
+                </MetricCard>
+              ))}
+            </div>
+          </SectionContent>
+        </WideCard>
       </AnalysisGrid>
     </Container>
   );
