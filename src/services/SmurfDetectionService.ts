@@ -150,16 +150,16 @@ export class SmurfDetectionService {
     }
 
     private calculateSmurfProbability(factors: PlayerAnalysis['analysisFactors']): number {
-        // Champion performance (60-70% weight)
-        const championScore = factors.championPerformance.overallPerformanceScore * 0.65;
+        // Champion performance (75% weight - increased as main indicator)
+        const championScore = factors.championPerformance.overallPerformanceScore * 0.75;
         
-        // Summoner spell usage (25% weight)
-        const spellScore = factors.summonerSpellUsage.patternChangeScore * 0.25;
+        // Summoner spell usage (5% weight - reduced as it's rare but indicative)
+        const spellScore = factors.summonerSpellUsage.patternChangeScore * 0.05;
         
-        // Playtime gaps (10% weight)
-        const gapScore = factors.playtimeGaps.totalGapScore * 0.10;
+        // Playtime gaps (15% weight - increased slightly)
+        const gapScore = factors.playtimeGaps.totalGapScore * 0.15;
         
-        // Player associations (5% weight)
+        // Player associations (5% weight - kept same)
         const associationScore = factors.playerAssociations.associationScore * 0.05;
 
         // Calculate total probability

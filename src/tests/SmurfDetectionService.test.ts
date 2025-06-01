@@ -410,7 +410,7 @@ describe('SmurfDetectionService', () => {
       };
 
       const probability = (service as any).calculateSmurfProbability(mockFactors);
-      expect(probability).toBeGreaterThan(0.2); // Should be significant due to spell changes
+      expect(probability).toBeGreaterThan(0.04); // Updated for 5% weight (0.8 * 0.05 * 1.2 = 0.048)
     });
 
     it('should detect suspicious playtime gaps', () => {
@@ -442,7 +442,7 @@ describe('SmurfDetectionService', () => {
       };
 
       const probability = (service as any).calculateSmurfProbability(mockFactors);
-      expect(probability).toBeGreaterThan(0.095); // Should contribute to probability
+      expect(probability).toBeGreaterThan(0.14); // Updated for 15% weight (0.8 * 0.15 * 1.2 = 0.144)
     });
 
     it('should detect high-elo associations', () => {
