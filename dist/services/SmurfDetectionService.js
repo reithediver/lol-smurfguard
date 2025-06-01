@@ -25,9 +25,9 @@ class SmurfDetectionService {
                 smurfProbability: 0,
                 analysisFactors: {
                     playtimeGaps: await this.analyzePlaytimeGaps(matchDetails),
-                    championPerformance: await this.analyzeChampionPerformance(matchDetails),
-                    summonerSpellUsage: await this.analyzeSummonerSpells(matchDetails),
-                    playerAssociations: await this.analyzePlayerAssociations(matchDetails)
+                    championPerformance: await this.analyzeChampionPerformance(matchDetails, summoner.puuid),
+                    summonerSpellUsage: await this.analyzeSummonerSpells(matchDetails, summoner.puuid),
+                    playerAssociations: await this.analyzePlayerAssociations(matchDetails, summoner.puuid)
                 },
                 lastUpdated: new Date()
             };
@@ -56,15 +56,15 @@ class SmurfDetectionService {
             }
         }
         return {
-            averageGapHours: gaps.reduce((sum, gap) => sum + gap.durationHours, 0) / gaps.length,
+            averageGapHours: gaps.length > 0 ? gaps.reduce((sum, gap) => sum + gap.durationHours, 0) / gaps.length : 0,
             suspiciousGaps: gaps,
-            totalGapScore: gaps.reduce((sum, gap) => sum + gap.suspicionLevel, 0)
+            totalGapScore: gaps.length > 0 ? gaps.reduce((sum, gap) => sum + gap.suspicionLevel, 0) : 0
         };
     }
-    async analyzeChampionPerformance(matches) {
+    async analyzeChampionPerformance(matches, targetPuuid) {
         const championStats = new Map();
         matches.forEach(match => {
-            const player = match.participants.find(p => p.puuid === match.participants[0].puuid);
+            const player = match.participants.find(p => p.puuid === targetPuuid);
             if (!player)
                 return;
             const stats = championStats.get(player.championId) || {
@@ -123,23 +123,122 @@ class SmurfDetectionService {
             summonerSpellUsage: 0.2,
             playerAssociations: 0.1
         };
-        return (factors.playtimeGaps.totalGapScore * weights.playtimeGaps +
+        const rawProbability = factors.playtimeGaps.totalGapScore * weights.playtimeGaps +
             factors.championPerformance.overallPerformanceScore * weights.championPerformance +
             factors.summonerSpellUsage.patternChangeScore * weights.summonerSpellUsage +
-            factors.playerAssociations.associationScore * weights.playerAssociations);
+            factors.playerAssociations.associationScore * weights.playerAssociations;
+        // Clamp to [0, 1] range
+        return Math.min(Math.max(rawProbability, 0), 1);
     }
-    // TODO: Implement these methods
-    async analyzeSummonerSpells(matches) {
+    async analyzeSummonerSpells(matches, targetPuuid) {
+        if (matches.length < 2) {
+            return {
+                spellPlacementChanges: [],
+                patternChangeScore: 0
+            };
+        }
+        const sortedMatches = matches.sort((a, b) => new Date(a.gameCreation).getTime() - new Date(b.gameCreation).getTime());
+        const spellChanges = [];
+        let patternChangeCount = 0;
+        for (let i = 1; i < sortedMatches.length; i++) {
+            const currentMatch = sortedMatches[i];
+            const previousMatch = sortedMatches[i - 1];
+            const currentPlayer = currentMatch.participants.find(p => p.puuid === targetPuuid);
+            const previousPlayer = previousMatch.participants.find(p => p.puuid === targetPuuid);
+            if (!currentPlayer || !previousPlayer)
+                continue;
+            // Check if spells are in the same order
+            const currentSpellOrder = `${currentPlayer.summonerSpells.spell1Id}-${currentPlayer.summonerSpells.spell2Id}`;
+            const previousSpellOrder = `${previousPlayer.summonerSpells.spell1Id}-${previousPlayer.summonerSpells.spell2Id}`;
+            // Check if either spell changed
+            if (currentSpellOrder !== previousSpellOrder) {
+                spellChanges.push({
+                    date: new Date(currentMatch.gameCreation),
+                    oldPlacement: previousSpellOrder,
+                    newPlacement: currentSpellOrder
+                });
+                patternChangeCount++;
+            }
+        }
+        // Calculate a score based on the number of changes relative to total matches
+        const maxChangesExpected = Math.ceil(matches.length / 3); // Assume changing every 3 games is normal
+        const patternChangeScore = Math.min(patternChangeCount / maxChangesExpected, 1);
         return {
-            spellPlacementChanges: [],
-            patternChangeScore: 0
+            spellPlacementChanges: spellChanges,
+            patternChangeScore: patternChangeScore
         };
     }
-    async analyzePlayerAssociations(matches) {
+    async analyzePlayerAssociations(matches, targetPuuid) {
+        const highEloAssociations = [];
+        const playerEncounters = new Map();
+        for (const match of matches) {
+            const targetPlayer = match.participants.find(p => p.puuid === targetPuuid);
+            if (!targetPlayer)
+                continue;
+            // Filter to players on the same team
+            const teammates = match.participants.filter(p => p.teamId === targetPlayer.teamId && p.puuid !== targetPuuid);
+            for (const teammate of teammates) {
+                // We would normally fetch the teammate's rank/elo from the API
+                // For now, we'll estimate based on their performance
+                const estimatedElo = this.estimatePlayerElo(teammate);
+                // Only track players with above-average estimated skill
+                if (estimatedElo !== 'HIGH')
+                    continue;
+                const existingRecord = playerEncounters.get(teammate.puuid);
+                if (existingRecord) {
+                    existingRecord.gamesPlayedTogether += 1;
+                    playerEncounters.set(teammate.puuid, existingRecord);
+                }
+                else {
+                    playerEncounters.set(teammate.puuid, {
+                        playerName: teammate.summonerName,
+                        elo: estimatedElo,
+                        gamesPlayedTogether: 1
+                    });
+                }
+            }
+        }
+        // Only consider repeated high-elo teammates
+        for (const [playerId, data] of playerEncounters.entries()) {
+            if (data.gamesPlayedTogether > 1) {
+                highEloAssociations.push({
+                    playerId,
+                    playerName: data.playerName,
+                    elo: data.elo,
+                    gamesPlayedTogether: data.gamesPlayedTogether
+                });
+            }
+        }
+        // Calculate association score based on number of high-elo associations
+        // and frequency of play together
+        const totalGames = matches.length;
+        let totalAssociationWeight = 0;
+        for (const association of highEloAssociations) {
+            const frequency = association.gamesPlayedTogether / totalGames;
+            totalAssociationWeight += frequency;
+        }
+        // Cap the score at 1.0
+        const associationScore = Math.min(totalAssociationWeight, 1);
         return {
-            highEloAssociations: [],
-            associationScore: 0
+            highEloAssociations,
+            associationScore
         };
+    }
+    // Helper method to estimate player skill level
+    estimatePlayerElo(player) {
+        const { kills, deaths, assists } = player.stats;
+        const kda = (kills + assists) / Math.max(deaths, 1);
+        const csPerMin = player.stats.csPerMinute;
+        // Simple heuristic - could be improved with more detailed analysis
+        if (kda >= 4.0 && csPerMin >= 8.0) {
+            return 'HIGH';
+        }
+        else if (kda >= 3.0 && csPerMin >= 6.5) {
+            return 'MEDIUM';
+        }
+        else {
+            return 'LOW';
+        }
     }
 }
 exports.SmurfDetectionService = SmurfDetectionService;

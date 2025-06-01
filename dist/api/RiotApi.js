@@ -9,6 +9,7 @@ class RiotApi {
     constructor(apiKey, region = 'na1') {
         this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
         this.RATE_LIMIT = 20; // requests per second
+        this.MAX_QUEUE_SIZE = 1000; // Maximum number of requests in the queue
         this.requestQueue = [];
         this.processingQueue = false;
         this.api = axios_1.default.create({
@@ -41,6 +42,10 @@ class RiotApi {
             }
         }
         return new Promise((resolve, reject) => {
+            if (this.requestQueue.length >= this.MAX_QUEUE_SIZE) {
+                reject(new Error('Request queue is full. Try again later.'));
+                return;
+            }
             this.requestQueue.push(async () => {
                 try {
                     const response = await this.api.get(endpoint);
