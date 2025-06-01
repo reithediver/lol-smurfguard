@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Vercel 404 Routing Resolution (Latest)
+- **Resolved 404 errors on Vercel deployment** that affected all routes
+- **Simplified vercel.json configuration** to use essential SPA routing only
+- **Added homepage field to package.json** for proper relative path handling
+- **Removed conflicting framework-specific settings** that interfered with Create React App auto-detection
+- **Ensured all routes redirect to index.html** for React Router handling
+- **Verified successful build and deployment** with updated configuration
+- **Status:** Frontend deployment now fully operational at https://lol-smurfguard.vercel.app/
+
 ### Added - Latest Updates (Algorithm Optimization & Frontend Enhancement)
 - Enhanced smurf detection algorithm with optimized weights:
   - Champion performance: 65% weight (increased from 40%)
