@@ -1,6 +1,7 @@
 {
   "name": "smurfguard-frontend",
   "version": "0.1.1",
+  "homepage": ".",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
