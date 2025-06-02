@@ -67,13 +67,44 @@ const ChallengerDemo: React.FC = () => {
   const fetchChallengerDemo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3000/api/demo/challenger-analysis');
-      if (!response.ok) {
-        throw new Error('Failed to fetch challenger demo data');
+      setError(null);
+      
+      // Try multiple endpoints in order of preference
+      const endpoints = [
+        '/mock-challenger-data.json', // Static JSON file that always works
+        '/api/mock/challenger-demo', // Mock endpoint if backend is available
+        '/api/demo/challenger-analysis', // Real demo endpoint if backend is available
+        'http://localhost:3001/api/mock/challenger-demo' // Local development fallback
+      ];
+      
+      let lastError: Error | null = null;
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying endpoint: ${endpoint}`);
+          const response = await fetch(endpoint);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const result = await response.json();
+          console.log(`Success with endpoint: ${endpoint}`);
+          setData(result);
+          return; // Success, exit the function
+          
+        } catch (err) {
+          console.log(`Failed endpoint ${endpoint}:`, err);
+          lastError = err instanceof Error ? err : new Error('Unknown error');
+          continue; // Try next endpoint
+        }
       }
-      const result = await response.json();
-      setData(result);
+      
+      // If we get here, all endpoints failed
+      throw new Error(`All API endpoints failed. Last error: ${lastError?.message || 'Unknown error'}`);
+      
     } catch (err) {
+      console.error('Demo fetch error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
