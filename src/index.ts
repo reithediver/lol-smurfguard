@@ -922,33 +922,54 @@ app.get('/api/mock/challenger-demo', async (req, res) => {
     res.json({
       success: true,
       mockData: true,
-      message: "Mock challenger data for frontend/backend testing (no API permissions required)",
+      message: "Mock challenger data for frontend/backend testing (Railway backend)",
       data: {
-        analysis: analysisData,
+        analysis: analysisData.slice(0, 5), // Top 5 for demo like static file
         summary: {
           totalPlayers: analysisData.length,
           highRiskPlayers: analysisData.filter(p => p.smurfAnalysis.riskLevel === 'Very High' || p.smurfAnalysis.riskLevel === 'High').length,
           averageWinRate: (analysisData.reduce((sum, p) => sum + parseFloat(p.winRate), 0) / analysisData.length).toFixed(1),
           veteranCount: analysisData.filter(p => p.veteran).length,
           freshBloodCount: analysisData.filter(p => p.freshBlood).length
+        },
+        platformStatus: {
+          region: "NA1",
+          incidents: 0,
+          maintenances: 0
+        },
+        championRotation: {
+          freeChampions: 14,
+          newPlayerChampions: 10
         }
       },
       systemInfo: {
-        apiKeyStatus: "Development Key - Mock Data Mode",
-        description: "This endpoint provides realistic mock data for testing your frontend and backend integration without requiring API permissions.",
-        availableForTesting: [
-          "Frontend component rendering",
-          "Backend response handling", 
-          "Data visualization",
-          "Risk assessment display",
-          "User interface interactions"
+        currentApiAccess: {
+          challengerData: true,
+          championRotation: true,
+          platformData: true,
+          summonerData: false,
+          matchData: false
+        },
+        fullCapabilities: {
+          "Real Smurf Detection": "Requires summoner + match data access",
+          "5+ Year Historical Analysis": "Deep account history analysis",
+          "Champion Performance Tracking": "First-time champion mastery detection", 
+          "Account Switching Detection": "Gap analysis with skill spikes",
+          "Tournament-Grade Accuracy": "Professional esports integrity"
+        },
+        demoFeatures: [
+          "🏆 Challenger leaderboard integration",
+          "📊 Performance monitoring system", 
+          "🎯 Risk assessment algorithms",
+          "📈 Data visualization capabilities",
+          "🔧 Production-ready infrastructure"
         ]
       },
       metadata: {
         responseTime: `${responseTime}ms`,
         timestamp: new Date().toISOString(),
-        endpoint: "/api/mock/challenger-demo",
-        dataSource: "Static mock data"
+        endpoint: "/api/mock/challenger-demo (Railway backend)",
+        dataSource: "Railway backend mock data"
       }
     });
 
