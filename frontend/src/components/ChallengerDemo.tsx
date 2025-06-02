@@ -52,6 +52,7 @@ interface ChallengerDemoData {
     timestamp: string;
     totalChallengers: number;
     apiKeyStatus: string;
+    dataSource?: string;
   };
 }
 
@@ -69,11 +70,12 @@ const ChallengerDemo: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Try multiple endpoints in order of preference
+      // Try multiple endpoints in order of preference - Railway backend FIRST
       const endpoints = [
-        '/mock-challenger-data.json', // Static JSON file that always works
-        '/api/mock/challenger-demo', // Mock endpoint if backend is available
-        '/api/demo/challenger-analysis', // Real demo endpoint if backend is available
+        'https://smurfgaurd-production.up.railway.app/api/mock/challenger-demo', // 🚂 Railway production backend
+        'https://smurfgaurd-production.up.railway.app/api/demo/challenger-analysis', // 🚂 Railway demo endpoint
+        '/mock-challenger-data.json', // Static JSON file fallback
+        '/api/mock/challenger-demo', // Local mock endpoint if backend is available
         'http://localhost:3001/api/mock/challenger-demo' // Local development fallback
       ];
       
@@ -89,7 +91,7 @@ const ChallengerDemo: React.FC = () => {
           }
           
           const result = await response.json();
-          console.log(`Success with endpoint: ${endpoint}`);
+          console.log(`Success with endpoint: ${endpoint}`, { dataSource: result.metadata?.dataSource || 'unknown' });
           setData(result);
           return; // Success, exit the function
           
