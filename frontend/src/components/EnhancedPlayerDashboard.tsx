@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Line, Bar, Radar, Doughnut } from 'react-chartjs-2';
+import { Line, Radar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   RadialLinearScale,
   ArcElement,
   Title,
@@ -22,7 +21,6 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   RadialLinearScale,
   ArcElement,
   Title,
