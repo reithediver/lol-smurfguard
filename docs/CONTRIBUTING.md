@@ -83,6 +83,27 @@ league-smurf-detector/
 - **Status:** Ultra-enhanced production-ready, 19/19 tests passing
 - **Features:** Op.gg + lolrewind style endpoints with 5+ year analysis capability
 
+## 🚨 **Git Workflow & Safety Protocol**
+
+**CRITICAL FOR AI ASSISTANTS**: Always follow the Git workflow guide at `docs/GIT_WORKFLOW_GUIDE.md`
+
+### **Key Safety Rules:**
+1. ❌ **NEVER push directly to `main` branch without user confirmation**
+2. ✅ **Always work on feature branches** (`feature/feature-name`)
+3. ✅ **Test everything in `development` branch first**
+4. ✅ **User must explicitly confirm** before production deployment
+5. ✅ **Keep `stable-backup` branch updated** with working states
+
+### **Required Workflow:**
+```bash
+main (PROTECTED) ← Only after user confirms everything tested
+├── stable-backup ← Safety net
+├── development ← Integration & testing
+└── feature/* ← Individual features
+```
+
+**See `docs/GIT_WORKFLOW_GUIDE.md` for complete workflow details.**
+
 ## Current Task List
 
 ### ✅ **Completed - Ultra-Enhanced Platform (v2.1.0)**
