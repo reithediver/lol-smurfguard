@@ -1,6 +1,6 @@
 {
   "name": "smurfguard-frontend",
-  "version": "0.1.2",
+  "version": "2.1.1",
   "homepage": "/",
   "private": true,
   "dependencies": {
