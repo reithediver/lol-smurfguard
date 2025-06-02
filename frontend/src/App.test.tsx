@@ -4,18 +4,24 @@ import App from './App';
 
 test('renders smurf detector title', () => {
   render(<App />);
-  const titleElement = screen.getByText(/League of Legends Smurf Detector/i);
+  const titleElement = screen.getByText(/LoL SmurfGuard/i);
   expect(titleElement).toBeInTheDocument();
 });
 
-test('renders analyze button', () => {
+test('renders enhanced dashboard button', () => {
   render(<App />);
-  const buttonElement = screen.getByRole('button', { name: /Analyze Player/i });
+  const buttonElement = screen.getByRole('button', { name: /Enhanced Dashboard/i });
   expect(buttonElement).toBeInTheDocument();
 });
 
-test('renders player input field', () => {
+test('renders demo button', () => {
   render(<App />);
-  const inputElement = screen.getByPlaceholderText(/Enter player name/i);
-  expect(inputElement).toBeInTheDocument();
+  const buttonElement = screen.getByRole('button', { name: /Demo/i });
+  expect(buttonElement).toBeInTheDocument();
+});
+
+test('renders analysis button', () => {
+  render(<App />);
+  const buttonElement = screen.getByRole('button', { name: /Analysis/i });
+  expect(buttonElement).toBeInTheDocument();
 });

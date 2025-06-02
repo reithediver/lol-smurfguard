@@ -16,6 +16,7 @@ league-smurf-detector/
 │   ├── DEPLOYMENT.md               # Comprehensive deployment documentation
 │   ├── CHANGELOG.md                # Detailed changelog of project updates
 │   ├── API.md                      # API documentation and limitations
+│   ├── API_TRANSITION_PLAN.md      # Transition plan from mock to real API data
 │   └── TECHNICAL_SPECS.md          # Technical specifications and requirements
 ├── src/                            # Backend source code
 │   ├── api/                        # API clients and Riot API integration

@@ -10,6 +10,7 @@ export interface ChallengerPlayer {
   summonerId: string;
   summonerName: string;
   rank: string;
+  winRate: string;
   hotStreak: boolean;
   veteran: boolean;
   freshBlood: boolean;

@@ -598,13 +598,15 @@ app.get('/api/demo/challenger-analysis', async (req, res) => {
       
       return {
         summonerId: challenger.summonerId,
-        rank: index + 1,
+        summonerName: challenger.summonerName,
+        rank: challenger.rank,
         leaguePoints: challenger.leaguePoints,
         wins: challenger.wins,
         losses: challenger.losses,
-        winRate: ((challenger.wins / (challenger.wins + challenger.losses)) * 100).toFixed(1),
-        
-        // Mock smurf analysis (what would be real with full API access)
+        winRate: challenger.winRate,
+        veteran: challenger.veteran,
+        hotStreak: challenger.hotStreak,
+        freshBlood: challenger.freshBlood,
         smurfAnalysis: {
           probability: parseFloat(mockSmurfProbability.toFixed(1)),
           riskLevel,
@@ -893,7 +895,16 @@ app.get('/api/mock/challenger-demo', async (req, res) => {
                        smurfProbability > 20 ? 'Low' : 'Very Low';
       
       return {
-        ...challenger,
+        summonerId: challenger.summonerId,
+        summonerName: challenger.summonerName,
+        rank: challenger.rank,
+        leaguePoints: challenger.leaguePoints,
+        wins: challenger.wins,
+        losses: challenger.losses,
+        winRate: challenger.winRate,
+        veteran: challenger.veteran,
+        hotStreak: challenger.hotStreak,
+        freshBlood: challenger.freshBlood,
         smurfAnalysis: {
           probability: parseFloat(smurfProbability.toFixed(1)),
           riskLevel,
@@ -925,6 +936,15 @@ app.get('/api/mock/challenger-demo', async (req, res) => {
               ...(totalGames < 100 ? ['Low Game Count'] : [])
             ]
           }
+        },
+        // Add the realData structure that the frontend expects
+        realData: {
+          currentLP: challenger.leaguePoints,
+          seasonWins: challenger.wins,
+          seasonLosses: challenger.losses,
+          veteran: challenger.veteran,
+          hotStreak: challenger.hotStreak,
+          freshBlood: challenger.freshBlood
         }
       };
     });

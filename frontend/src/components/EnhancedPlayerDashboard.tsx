@@ -163,26 +163,19 @@ const TabContainer = styled.div`
   border: 1px solid rgba(71, 85, 105, 0.3);
 `;
 
-const Tab = styled.button<{ active: boolean }>`
-  flex: 1;
-  padding: 12px 24px;
-  border: none;
-  background: ${props => props.active 
-    ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' 
-    : 'transparent'};
-  color: ${props => props.active ? '#fff' : '#94a3b8'};
-  border-radius: 8px;
+const Tab = styled.button<{ $active: boolean }>`
+  padding: 0.75rem 1.5rem;
+  background: ${props => props.$active ? '#3b82f6' : 'transparent'};
+  color: ${props => props.$active ? 'white' : '#94a3b8'};
+  border: 1px solid ${props => props.$active ? '#3b82f6' : '#475569'};
+  border-radius: 0.5rem;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  transition: all 0.3s;
+  font-weight: ${props => props.$active ? '600' : '400'};
 
   &:hover {
-    background: ${props => props.active 
-      ? 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)' 
-      : 'rgba(59, 130, 246, 0.1)'};
-    color: ${props => props.active ? '#fff' : '#f1f5f9'};
+    background: ${props => props.$active ? '#2563eb' : '#374151'};
+    color: ${props => props.$active ? 'white' : '#f1f5f9'};
   }
 `;
 
@@ -825,16 +818,16 @@ export const EnhancedPlayerDashboard: React.FC<EnhancedPlayerDashboardProps> = (
 
       {/* Navigation Tabs */}
       <TabContainer>
-        <Tab active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>
+        <Tab $active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>
           📊 Overview
         </Tab>
-        <Tab active={activeTab === 'timeline'} onClick={() => setActiveTab('timeline')}>
+        <Tab $active={activeTab === 'timeline'} onClick={() => setActiveTab('timeline')}>
           📈 Timeline
         </Tab>
-        <Tab active={activeTab === 'champions'} onClick={() => setActiveTab('champions')}>
+        <Tab $active={activeTab === 'champions'} onClick={() => setActiveTab('champions')}>
           🏆 Champions
         </Tab>
-        <Tab active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
+        <Tab $active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
           🔍 Analysis
         </Tab>
       </TabContainer>

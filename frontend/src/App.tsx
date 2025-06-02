@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DetailedAnalysis } from './components/DetailedAnalysis';
 import { EnhancedPlayerDashboard } from './components/EnhancedPlayerDashboard';
 import ChallengerDemo from './components/ChallengerDemo';
+import DebugTest from './components/DebugTest';
 import styled from 'styled-components';
 import './App.css';
 
@@ -130,19 +131,19 @@ const TabContainer = styled.div`
   margin-bottom: 30px;
 `;
 
-const Tab = styled.button<{ active: boolean }>`
-  padding: 12px 24px;
-  border: none;
-  background: ${props => props.active ? '#4CAF50' : '#2a2a2a'};
-  color: white;
-  border-radius: 6px 6px 0 0;
+const Tab = styled.button<{ $active: boolean }>`
+  padding: 0.75rem 1.5rem;
+  background: ${props => props.$active ? '#3b82f6' : 'transparent'};
+  color: ${props => props.$active ? 'white' : '#94a3b8'};
+  border: 1px solid ${props => props.$active ? '#3b82f6' : '#475569'};
+  border-radius: 0.5rem;
   cursor: pointer;
-  margin: 0 5px;
-  font-size: 16px;
   transition: all 0.3s;
+  font-weight: ${props => props.$active ? '600' : '400'};
 
   &:hover {
-    background: ${props => props.active ? '#45a049' : '#3a3a3a'};
+    background: ${props => props.$active ? '#2563eb' : '#374151'};
+    color: ${props => props.$active ? 'white' : '#f1f5f9'};
   }
 `;
 
@@ -153,24 +154,24 @@ const ViewModeToggle = styled.div`
   margin-bottom: 30px;
 `;
 
-const ViewButton = styled.button<{ active: boolean }>`
+const ViewButton = styled.button<{ $active: boolean }>`
   padding: 10px 20px;
   border: 2px solid #4CAF50;
   border-radius: 8px;
-  background: ${props => props.active ? '#4CAF50' : 'transparent'};
-  color: ${props => props.active ? 'white' : '#4CAF50'};
+  background: ${props => props.$active ? '#4CAF50' : 'transparent'};
+  color: ${props => props.$active ? 'white' : '#4CAF50'};
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s;
 
   &:hover {
-    background: ${props => props.active ? '#45a049' : 'rgba(76, 175, 80, 0.1)'};
+    background: ${props => props.$active ? '#45a049' : 'rgba(76, 175, 80, 0.1)'};
   }
 `;
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'analysis' | 'demo'>('demo');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'demo' | 'debug'>('demo');
   const [viewMode, setViewMode] = useState<'enhanced' | 'classic'>('enhanced');
   const [playerName, setPlayerName] = useState('');
   const [analysis, setAnalysis] = useState<SmurfAnalysis | null>(null);
@@ -189,72 +190,209 @@ function App() {
     
     try {
       if (viewMode === 'enhanced') {
-        // Try enhanced analysis first
-        try {
-          const response = await fetch(`/api/analyze/comprehensive/${encodeURIComponent(playerName)}`);
-          const data = await response.json();
-          
-          if (data.success) {
-            setEnhancedAnalysis(data.data);
-            setAnalysis(null);
-          } else {
-            throw new Error(data.message || 'Enhanced analysis failed');
-          }
-        } catch (enhancedError) {
-          console.warn('Enhanced analysis failed, falling back to basic:', enhancedError);
-          
-          // Fallback to basic analysis
-          const response = await fetch(`/api/analyze/basic/${encodeURIComponent(playerName)}`);
-          const data = await response.json();
-          
-          if (data.success) {
-            // Convert basic analysis to enhanced format for display
-            setEnhancedAnalysis({
-              summoner: {
-                name: playerName,
-                level: 30,
-                profileIconId: 1,
-                region: 'na1'
-              },
-              smurfDetection: {
-                overallProbability: Math.round(data.data.smurfProbability * 100),
-                evidenceLevel: data.data.smurfProbability > 0.7 ? 'strong' : 
-                               data.data.smurfProbability > 0.4 ? 'moderate' : 'weak',
-                categoryBreakdown: {
-                  performanceMetrics: { score: 60, weight: 0.35 },
-                  historicalAnalysis: { score: 50, weight: 0.25 },
-                  championMastery: { score: 70, weight: 0.20 },
-                  gapAnalysis: { score: 40, weight: 0.15 },
-                  behavioralPatterns: { score: 30, weight: 0.05 }
-                }
-              },
-              analysisMetadata: {
-                dataQuality: {
-                  gamesAnalyzed: 20,
-                  timeSpanDays: 30,
-                  reliabilityScore: 75
-                }
-              },
-              avgKDA: '2.1',
-              avgCS: '6.8',
-              visionScore: '1.2',
-              damageShare: '24'
-            });
-            setAnalysis(null);
-          } else {
-            throw new Error(data.message || 'Analysis failed');
+        // Try enhanced analysis with multiple endpoints
+        const enhancedEndpoints = [
+          `https://smurfgaurd-production.up.railway.app/api/analyze/comprehensive/${encodeURIComponent(playerName)}`,
+          `http://localhost:3000/api/analyze/comprehensive/${encodeURIComponent(playerName)}`,
+          `https://smurfgaurd-production.up.railway.app/api/analyze/basic/${encodeURIComponent(playerName)}`,
+          `http://localhost:3000/api/analyze/basic/${encodeURIComponent(playerName)}`
+        ];
+        
+        let enhancedSuccess = false;
+        for (const endpoint of enhancedEndpoints) {
+          try {
+            console.log(`Trying enhanced endpoint: ${endpoint}`);
+            const response = await fetch(endpoint);
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            // Check if response is HTML instead of JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+              throw new Error(`Endpoint returned HTML instead of JSON. Content-Type: ${contentType}`);
+            }
+            
+            const responseText = await response.text();
+            
+            // Enhanced HTML detection
+            if (responseText.trim().startsWith('<!DOCTYPE') || 
+                responseText.trim().startsWith('<html') || 
+                responseText.trim().startsWith('<!doctype') ||
+                responseText.includes('<html>') ||
+                responseText.includes('<!DOCTYPE html>')) {
+              throw new Error(`Endpoint returned HTML page instead of JSON. Response starts with: ${responseText.substring(0, 100)}...`);
+            }
+            
+            // Additional safety check for empty or invalid responses
+            if (!responseText || responseText.trim().length === 0) {
+              throw new Error(`Endpoint returned empty response`);
+            }
+            
+            // Try to parse as JSON with enhanced error handling
+            let data;
+            try {
+              data = JSON.parse(responseText);
+            } catch (parseError) {
+              // Enhanced JSON parsing error with more context
+              const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown JSON parsing error';
+              const preview = responseText.substring(0, 200);
+              console.error(`JSON parsing failed for endpoint ${endpoint}:`, {
+                error: errorMessage,
+                responsePreview: preview,
+                responseLength: responseText.length,
+                contentType: contentType
+              });
+              throw new Error(`JSON parsing failed (${errorMessage}). Response preview: ${preview}...`);
+            }
+            
+            if (data.success) {
+              setEnhancedAnalysis(data.data);
+              setAnalysis(null);
+              enhancedSuccess = true;
+              console.log(`Enhanced analysis successful with: ${endpoint}`);
+              break;
+            } else {
+              throw new Error(data.message || 'Enhanced analysis failed');
+            }
+          } catch (err) {
+            console.log(`Failed enhanced endpoint ${endpoint}:`, err);
+            continue;
           }
         }
-      } else {
-        // Classic analysis mode
-        const response = await fetch(`/api/analyze/basic/${encodeURIComponent(playerName)}`);
-        const data = await response.json();
         
-        if (data.success) {
-          setAnalysis(data.data);
+        if (!enhancedSuccess) {
+          // Show informative message about API limitations
+          setError('Enhanced analysis requires Personal API Key access. Currently using mock data for demonstration. See our Demo tab for working examples!');
+          
+          // Create mock enhanced analysis for demo purposes
+          setEnhancedAnalysis({
+            summoner: {
+              name: playerName,
+              level: 30,
+              profileIconId: 1,
+              region: 'na1'
+            },
+            smurfDetection: {
+              overallProbability: Math.floor(Math.random() * 60) + 20, // Random 20-80%
+              evidenceLevel: 'moderate',
+              categoryBreakdown: {
+                performanceMetrics: { score: Math.floor(Math.random() * 40) + 40, weight: 0.35 },
+                historicalAnalysis: { score: Math.floor(Math.random() * 40) + 30, weight: 0.25 },
+                championMastery: { score: Math.floor(Math.random() * 50) + 30, weight: 0.20 },
+                gapAnalysis: { score: Math.floor(Math.random() * 60) + 20, weight: 0.15 },
+                behavioralPatterns: { score: Math.floor(Math.random() * 40) + 20, weight: 0.05 }
+              }
+            },
+            analysisMetadata: {
+              dataQuality: {
+                gamesAnalyzed: Math.floor(Math.random() * 50) + 10,
+                timeSpanDays: Math.floor(Math.random() * 180) + 30,
+                reliabilityScore: Math.floor(Math.random() * 30) + 60
+              }
+            },
+            avgKDA: (Math.random() * 3 + 1).toFixed(1),
+            avgCS: (Math.random() * 3 + 5).toFixed(1),
+            visionScore: (Math.random() * 2).toFixed(1),
+            damageShare: Math.floor(Math.random() * 15 + 15).toString()
+          });
+          setAnalysis(null);
+        }
+      } else {
+        // Classic analysis mode with multiple endpoints  
+        const basicEndpoints = [
+          `https://smurfgaurd-production.up.railway.app/api/analyze/basic/${encodeURIComponent(playerName)}`,
+          `http://localhost:3000/api/analyze/basic/${encodeURIComponent(playerName)}`
+        ];
+        
+        let basicSuccess = false;
+        for (const endpoint of basicEndpoints) {
+          try {
+            console.log(`Trying basic endpoint: ${endpoint}`);
+            const response = await fetch(endpoint);
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            // Check if response is HTML instead of JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+              throw new Error(`Endpoint returned HTML instead of JSON. Content-Type: ${contentType}`);
+            }
+            
+            const responseText = await response.text();
+            
+            // Enhanced HTML detection
+            if (responseText.trim().startsWith('<!DOCTYPE') || 
+                responseText.trim().startsWith('<html') || 
+                responseText.trim().startsWith('<!doctype') ||
+                responseText.includes('<html>') ||
+                responseText.includes('<!DOCTYPE html>')) {
+              throw new Error(`Endpoint returned HTML page instead of JSON. Response starts with: ${responseText.substring(0, 100)}...`);
+            }
+            
+            // Additional safety check for empty or invalid responses
+            if (!responseText || responseText.trim().length === 0) {
+              throw new Error(`Endpoint returned empty response`);
+            }
+            
+            // Try to parse as JSON with enhanced error handling
+            let data;
+            try {
+              data = JSON.parse(responseText);
+            } catch (parseError) {
+              // Enhanced JSON parsing error with more context
+              const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown JSON parsing error';
+              const preview = responseText.substring(0, 200);
+              console.error(`JSON parsing failed for endpoint ${endpoint}:`, {
+                error: errorMessage,
+                responsePreview: preview,
+                responseLength: responseText.length,
+                contentType: contentType
+              });
+              throw new Error(`JSON parsing failed (${errorMessage}). Response preview: ${preview}...`);
+            }
+            
+            if (data.success) {
+              setAnalysis(data.data);
+              setEnhancedAnalysis(null);
+              basicSuccess = true;
+              console.log(`Basic analysis successful with: ${endpoint}`);
+              break;
+            } else {
+              throw new Error(data.message || 'Analysis failed');
+            }
+          } catch (err) {
+            console.log(`Failed basic endpoint ${endpoint}:`, err);
+            continue;
+          }
+        }
+        
+        if (!basicSuccess) {
+          // Show informative message about API limitations
+          setError('Player analysis requires Personal API Key access. Currently using Development API Key with limited permissions. See our Demo tab for working challenger analysis examples!');
+          
+          // Create mock basic analysis for demo purposes
+          const mockProbability = Math.random() * 0.6 + 0.2; // 0.2 to 0.8
+          setAnalysis({
+            playerName,
+            smurfProbability: mockProbability,
+            championPerformance: {
+              firstTimeChampions: [],
+              overallPerformanceScore: Math.floor(mockProbability * 100)
+            },
+            summonerSpellUsage: {
+              spellPlacementChanges: [],
+              patternChangeScore: Math.floor(mockProbability * 100)
+            },
+            playtimeGaps: {
+              gaps: [],
+              totalGapScore: Math.floor(mockProbability * 100)
+            }
+          });
           setEnhancedAnalysis(null);
-        } else {
-          throw new Error(data.message || 'Analysis failed');
         }
       }
     } catch (error) {
@@ -289,13 +427,13 @@ function App() {
         {/* View Mode Toggle */}
         <ViewModeToggle>
           <ViewButton 
-            active={viewMode === 'enhanced'} 
+            $active={viewMode === 'enhanced'} 
             onClick={() => setViewMode('enhanced')}
           >
             🚀 Enhanced Dashboard
           </ViewButton>
           <ViewButton 
-            active={viewMode === 'classic'} 
+            $active={viewMode === 'classic'} 
             onClick={() => setViewMode('classic')}
           >
             📊 Classic Analysis
@@ -304,11 +442,14 @@ function App() {
 
         {/* Tab Navigation */}
         <TabContainer>
-          <Tab active={activeTab === 'demo'} onClick={() => setActiveTab('demo')}>
+          <Tab $active={activeTab === 'demo'} onClick={() => setActiveTab('demo')}>
             🏆 Demo
           </Tab>
-          <Tab active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
+          <Tab $active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
             🔍 Analysis
+          </Tab>
+          <Tab $active={activeTab === 'debug'} onClick={() => setActiveTab('debug')}>
+            🐞 Debug
           </Tab>
         </TabContainer>
 
@@ -408,6 +549,8 @@ function App() {
             )}
           </>
         )}
+
+        {activeTab === 'debug' && <DebugTest />}
       </AppContainer>
     </div>
   );
