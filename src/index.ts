@@ -13,7 +13,7 @@ import { SmurfDetectionService } from './services/SmurfDetectionService';
 import { ChampionService } from './services/ChampionService';
 import { ChallengerService } from './services/ChallengerService';
 import { AdvancedDataService } from './services/AdvancedDataService';
-import { EnhancedAnalysisService } from './services/EnhancedAnalysisService';
+// import { EnhancedAnalysisService } from './services/EnhancedAnalysisService'; // Temporarily disabled due to TypeScript errors
 
 // Load environment variables
 dotenv.config();
@@ -99,6 +99,7 @@ app.get('/metrics', (req, res) => {
 });
 
 // Advanced Smurf Analysis Endpoints
+/*
 app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
   const { summonerName } = req.params;
   const startTime = Date.now();
@@ -166,8 +167,10 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
     }
   }
 });
+*/
 
 // Enhanced stats endpoint for op.gg style data
+/*
 app.get('/api/stats/enhanced/:summonerName', async (req, res) => {
   const { summonerName } = req.params;
   const startTime = Date.now();
@@ -237,38 +240,41 @@ app.get('/api/stats/enhanced/:summonerName', async (req, res) => {
     });
   }
 });
+*/
 
-// Lolrewind style timeline endpoint
+// Timeline analysis endpoint for lolrewind style historical view
+/*
 app.get('/api/timeline/:summonerName', async (req, res) => {
   const { summonerName } = req.params;
-  const { timespan = '6months' } = req.query;
   const startTime = Date.now();
 
   try {
-    logger.info(`📈 Timeline analysis requested for: ${summonerName} (${timespan})`);
+    logger.info(`📈 Timeline analysis requested for: ${summonerName}`);
     
     const enhancedService = new EnhancedAnalysisService(riotApi, 'na1');
     
-    // Get summoner and extensive match history
+    // Get basic summoner info first
     const summoner = await riotApi.getSummonerByName(summonerName);
+    
+    // Get extensive match history for timeline analysis
     const matchHistory = await enhancedService.getExtensiveMatchHistory(summoner.puuid);
     const gameMetrics = await enhancedService.processMatchMetrics(matchHistory);
     
-    // Build timeline data
+    // Build timeline with performance data
     const timeline = enhancedService.buildHistoricalTimeline(gameMetrics, summoner);
     
     const responseTime = Date.now() - startTime;
     performanceMonitor.recordRequest(responseTime, false);
     
-    res.json({
-      success: true,
-      data: {
-        summoner: {
-          name: summoner.name,
-          level: summoner.summonerLevel
-        },
-        timeline,
-        gameMetrics: gameMetrics.map(g => ({
+    const timelineData = {
+      summoner: {
+        name: summoner.name,
+        level: summoner.summonerLevel,
+        profileIconId: summoner.profileIconId
+      },
+      timeline: {
+        totalGames: gameMetrics.length,
+        timelineEvents: gameMetrics.slice(0, 100).map(g => ({
           timestamp: g.timestamp,
           champion: g.champion,
           outcome: g.outcome,
@@ -277,17 +283,22 @@ app.get('/api/timeline/:summonerName', async (req, res) => {
           damageShare: g.metrics.damageMetrics.damageShare,
           visionScore: g.metrics.visionMetrics.visionScore
         })),
-        metadata: {
-          gamesAnalyzed: gameMetrics.length,
+        performance: {
           timeSpanDays: enhancedService.calculateTimeSpan(gameMetrics),
           oldestGame: gameMetrics.length > 0 ? gameMetrics[gameMetrics.length - 1].timestamp : null,
           newestGame: gameMetrics.length > 0 ? gameMetrics[0].timestamp : null
         }
-      },
+      }
+    };
+    
+    res.json({
+      success: true,
+      data: timelineData,
       metadata: {
         responseTime: `${responseTime}ms`,
         timestamp: new Date().toISOString(),
-        requestedTimespan: timespan
+        gamesAnalyzed: gameMetrics.length,
+        timelineSpan: `${timelineData.timeline.performance.timeSpanDays} days`
       }
     });
 
@@ -299,11 +310,12 @@ app.get('/api/timeline/:summonerName', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'TIMELINE_ANALYSIS_FAILED',
-      message: 'Failed to generate timeline analysis',
+      message: 'Failed to retrieve timeline analysis',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
+*/
 
 // Quick Analysis Endpoint (for current development API key)
 app.get('/api/analyze/basic/:summonerName', async (req, res) => {
