@@ -280,9 +280,13 @@ describe('SmurfDetectionService', () => {
 
     it('should detect summoner spell changes as suspicious', async () => {
       const matches = [
-        createMockMatch(Date.now() - 86400000, 'puuid-123', 157, true, 10, 5, 8, 150, 3600, 4, 7), // Flash + Ignite
-        createMockMatch(Date.now() - 172800000, 'puuid-123', 157, true, 12, 3, 6, 160, 3200, 7, 4), // Ignite + Flash (swapped)
-        createMockMatch(Date.now() - 259200000, 'puuid-123', 157, true, 8, 4, 10, 140, 2800, 4, 14), // Flash + Teleport
+        // Establish Flash on spell1 (D key) pattern - need at least 3 games
+        createMockMatch(Date.now() - 432000000, 'puuid-123', 157, true, 10, 5, 8, 150, 3600, 4, 7), // Flash + Ignite (Flash on D)
+        createMockMatch(Date.now() - 345600000, 'puuid-123', 157, true, 12, 3, 6, 160, 3200, 4, 7), // Flash + Ignite (Flash on D)
+        createMockMatch(Date.now() - 259200000, 'puuid-123', 157, true, 8, 4, 10, 140, 2800, 4, 7), // Flash + Ignite (Flash on D)
+        // Flash position swap - Flash moves to spell2 (F key)
+        createMockMatch(Date.now() - 172800000, 'puuid-123', 157, true, 12, 3, 6, 160, 3200, 7, 4), // Ignite + Flash (Flash on F) - SWAP!
+        createMockMatch(Date.now() - 86400000, 'puuid-123', 157, true, 10, 5, 8, 150, 3600, 14, 4), // Teleport + Flash (Flash on F)
       ];
 
       mockRiotApi.getMatchDetails.mockImplementation((matchId: string) => {
@@ -598,19 +602,19 @@ describe('SmurfDetectionService', () => {
       // Set up a clear smurf scenario:
       // - High performance on multiple different champions
       // - Large playtime gaps
-      // - Summoner spell changes
+      // - Flash position swaps (key indicator)
       const now = Date.now();
       const matches = [
-        // Recent excellent games on different champions
-        createMockMatch(now - 86400000, 'puuid-123', 157, true, 25, 1, 20, 280, 3600, 4, 7),
-        createMockMatch(now - (2 * 86400000), 'puuid-123', 238, true, 20, 2, 15, 250, 3200, 4, 7),
-        createMockMatch(now - (3 * 86400000), 'puuid-123', 91, true, 18, 1, 12, 200, 2800, 4, 7),
-        createMockMatch(now - (4 * 86400000), 'puuid-123', 157, true, 22, 2, 18, 260, 3400, 4, 7),
-        createMockMatch(now - (5 * 86400000), 'puuid-123', 238, true, 19, 1, 16, 240, 3100, 4, 7),
+        // Recent excellent games with Flash on F key (spell2)
+        createMockMatch(now - 86400000, 'puuid-123', 157, true, 25, 1, 20, 280, 3600, 7, 4), // Flash on F
+        createMockMatch(now - (2 * 86400000), 'puuid-123', 238, true, 20, 2, 15, 250, 3200, 14, 4), // Flash on F
+        createMockMatch(now - (3 * 86400000), 'puuid-123', 91, true, 18, 1, 12, 200, 2800, 7, 4), // Flash on F
         
-        // Big gap
-        createMockMatch(now - (40 * 86400000), 'puuid-123', 1, false, 2, 10, 3, 80, 2400, 7, 4), // 40 days ago, poor performance, different spells
-        createMockMatch(now - (41 * 86400000), 'puuid-123', 5, false, 1, 8, 2, 60, 2200, 7, 4),
+        // Big gap (40 days) then older games with Flash on D key (spell1) - different pattern
+        createMockMatch(now - (40 * 86400000), 'puuid-123', 1, false, 2, 10, 3, 80, 2400, 4, 7), // Flash on D - PATTERN ESTABLISHED
+        createMockMatch(now - (41 * 86400000), 'puuid-123', 5, false, 1, 8, 2, 60, 2200, 4, 7), // Flash on D
+        createMockMatch(now - (42 * 86400000), 'puuid-123', 8, false, 3, 9, 4, 70, 2300, 4, 7), // Flash on D
+        createMockMatch(now - (43 * 86400000), 'puuid-123', 11, false, 2, 7, 3, 65, 2100, 4, 7), // Flash on D
       ];
 
       mockRiotApi.getMatchDetails.mockImplementation((matchId: string) => {

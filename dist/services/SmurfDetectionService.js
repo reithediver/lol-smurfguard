@@ -117,13 +117,13 @@ class SmurfDetectionService {
         return champions.reduce((sum, champ) => sum + champ.suspicionLevel, 0) / champions.length;
     }
     calculateSmurfProbability(factors) {
-        // Champion performance (60-70% weight)
-        const championScore = factors.championPerformance.overallPerformanceScore * 0.65;
-        // Summoner spell usage (25% weight)
-        const spellScore = factors.summonerSpellUsage.patternChangeScore * 0.25;
-        // Playtime gaps (10% weight)
-        const gapScore = factors.playtimeGaps.totalGapScore * 0.10;
-        // Player associations (5% weight)
+        // Champion performance (75% weight - increased as main indicator)
+        const championScore = factors.championPerformance.overallPerformanceScore * 0.75;
+        // Summoner spell usage (5% weight - reduced as it's rare but indicative)
+        const spellScore = factors.summonerSpellUsage.patternChangeScore * 0.05;
+        // Playtime gaps (15% weight - increased slightly)
+        const gapScore = factors.playtimeGaps.totalGapScore * 0.15;
+        // Player associations (5% weight - kept same)
         const associationScore = factors.playerAssociations.associationScore * 0.05;
         // Calculate total probability
         const totalProbability = championScore + spellScore + gapScore + associationScore;
@@ -134,7 +134,7 @@ class SmurfDetectionService {
         return Math.min(Math.max(adjustedProbability, 0), 1);
     }
     async analyzeSummonerSpells(matches, targetPuuid) {
-        if (matches.length < 2) {
+        if (matches.length < 3) { // Need at least 3 games to establish a pattern
             return {
                 spellPlacementChanges: [],
                 patternChangeScore: 0
@@ -142,30 +142,65 @@ class SmurfDetectionService {
         }
         const sortedMatches = matches.sort((a, b) => new Date(a.gameCreation).getTime() - new Date(b.gameCreation).getTime());
         const spellChanges = [];
-        let patternChangeCount = 0;
-        for (let i = 1; i < sortedMatches.length; i++) {
+        let keyPositionSwaps = 0;
+        // Track Flash (spell ID 4) position consistency
+        let establishedFlashPosition = null;
+        let positionEstablishmentGames = 0;
+        for (let i = 0; i < sortedMatches.length; i++) {
             const currentMatch = sortedMatches[i];
-            const previousMatch = sortedMatches[i - 1];
             const currentPlayer = currentMatch.participants.find(p => p.puuid === targetPuuid);
-            const previousPlayer = previousMatch.participants.find(p => p.puuid === targetPuuid);
-            if (!currentPlayer || !previousPlayer)
+            if (!currentPlayer)
                 continue;
-            // Check if spells are in the same order
-            const currentSpellOrder = `${currentPlayer.summonerSpells.spell1Id}-${currentPlayer.summonerSpells.spell2Id}`;
-            const previousSpellOrder = `${previousPlayer.summonerSpells.spell1Id}-${previousPlayer.summonerSpells.spell2Id}`;
-            // Check if either spell changed
-            if (currentSpellOrder !== previousSpellOrder) {
-                spellChanges.push({
-                    date: new Date(currentMatch.gameCreation),
-                    oldPlacement: previousSpellOrder,
-                    newPlacement: currentSpellOrder
-                });
-                patternChangeCount++;
+            const { spell1Id, spell2Id } = currentPlayer.summonerSpells;
+            // Check if Flash is being used and where it's positioned
+            if (spell1Id === 4) { // Flash on D key (spell1)
+                if (establishedFlashPosition === null) {
+                    if (positionEstablishmentGames >= 2) {
+                        establishedFlashPosition = 'spell1';
+                    }
+                    else {
+                        positionEstablishmentGames++;
+                    }
+                }
+                else if (establishedFlashPosition === 'spell2') {
+                    // Flash moved from F to D - KEY POSITION SWAP DETECTED
+                    spellChanges.push({
+                        date: new Date(currentMatch.gameCreation),
+                        oldPlacement: 'Flash on F key',
+                        newPlacement: 'Flash on D key',
+                        swapType: 'Flash position swap'
+                    });
+                    keyPositionSwaps++;
+                }
+            }
+            else if (spell2Id === 4) { // Flash on F key (spell2)
+                if (establishedFlashPosition === null) {
+                    if (positionEstablishmentGames >= 2) {
+                        establishedFlashPosition = 'spell2';
+                    }
+                    else {
+                        positionEstablishmentGames++;
+                    }
+                }
+                else if (establishedFlashPosition === 'spell1') {
+                    // Flash moved from D to F - KEY POSITION SWAP DETECTED
+                    spellChanges.push({
+                        date: new Date(currentMatch.gameCreation),
+                        oldPlacement: 'Flash on D key',
+                        newPlacement: 'Flash on F key',
+                        swapType: 'Flash position swap'
+                    });
+                    keyPositionSwaps++;
+                }
             }
         }
-        // Calculate a score based on the number of changes relative to total matches
-        const maxChangesExpected = Math.ceil(matches.length / 3); // Assume changing every 3 games is normal
-        const patternChangeScore = Math.min(patternChangeCount / maxChangesExpected, 1);
+        // Calculate suspicion score based on key position swaps
+        // Even one swap is highly suspicious since players are very consistent with keybinds
+        let patternChangeScore = 0;
+        if (keyPositionSwaps >= 1) {
+            // High suspicion for any key position swaps
+            patternChangeScore = Math.min(keyPositionSwaps * 0.8, 1.0);
+        }
         return {
             spellPlacementChanges: spellChanges,
             patternChangeScore: patternChangeScore

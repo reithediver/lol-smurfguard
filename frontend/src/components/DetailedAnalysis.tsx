@@ -61,40 +61,65 @@ interface DetailedAnalysisProps {
 const Container = styled.div`
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
-  background: linear-gradient(135deg, #0f1419 0%, #1a202c 50%, #2d3748 100%);
+  padding: 24px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+`;
+
+const DashboardHeader = styled.div`
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+`;
+
+const DashboardTitle = styled.h1`
+  color: #f1f5f9;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.025em;
+`;
+
+const DashboardSubtitle = styled.p`
+  color: #94a3b8;
+  font-size: 16px;
+  margin: 0;
+  font-weight: 500;
 `;
 
 const AnalysisGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 24px;
   
   @media (min-width: 768px) {
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
   }
   
   @media (min-width: 1200px) {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 28px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
   }
 `;
 
 const AnalysisCard = styled.div`
-  background: rgba(26, 32, 44, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(74, 85, 104, 0.3);
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%);
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-    border-color: rgba(99, 179, 237, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+    border-color: rgba(59, 130, 246, 0.5);
   }
 `;
 
@@ -107,95 +132,102 @@ const SectionHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%);
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #3730a3 0%, #4338ca 100%);
   color: white;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
   font-weight: 600;
-  font-size: 15px;
-  transition: all 0.3s ease;
+  font-size: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
 
   &:hover {
-    background: linear-gradient(135deg, #3182ce 0%, #4299e1 100%);
-    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
   }
 `;
 
 const SectionContent = styled.div<{ isExpanded: boolean }>`
-  max-height: ${props => props.isExpanded ? '1000px' : '0'};
+  max-height: ${props => props.isExpanded ? '2000px' : '0'};
   opacity: ${props => props.isExpanded ? '1' : '0'};
   overflow: hidden;
-  transition: all 0.4s ease-in-out;
-  padding: ${props => props.isExpanded ? '16px 0' : '0'};
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: ${props => props.isExpanded ? '20px 0' : '0'};
 `;
 
 const CompactStatGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin: 16px 0;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
 `;
 
 const CompactStatCard = styled.div`
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-  color: #e2e8f0;
-  padding: 12px 16px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  color: #f1f5f9;
+  padding: 20px;
+  border-radius: 12px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(74, 85, 104, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(71, 85, 105, 0.3);
   
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-color: rgba(99, 179, 237, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    border-color: rgba(59, 130, 246, 0.5);
+    background: linear-gradient(135deg, #334155 0%, #475569 100%);
   }
 `;
 
 const StatValue = styled.div`
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 4px;
-  color: #63b3ed;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #60a5fa;
+  letter-spacing: -0.025em;
 `;
 
 const StatLabel = styled.div`
-  font-size: 11px;
-  opacity: 0.8;
-  font-weight: 500;
-  color: #a0aec0;
+  font-size: 12px;
+  opacity: 0.85;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
 
 const ChampionGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
 `;
 
 const ChampionCard = styled.div`
-  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-  padding: 16px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #334155 0%, #475569 100%);
+  padding: 20px;
+  border-radius: 12px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(74, 85, 104, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(71, 85, 105, 0.3);
   
   &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    border-color: rgba(99, 179, 237, 0.4);
+    transform: scale(1.03);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    border-color: rgba(59, 130, 246, 0.5);
   }
 `;
 
 const ChampionName = styled.h5`
-  color: #e2e8f0;
-  font-weight: bold;
-  margin-bottom: 12px;
-  font-size: 14px;
+  color: #f1f5f9;
+  font-weight: 700;
+  margin-bottom: 16px;
+  font-size: 16px;
+  letter-spacing: -0.025em;
 `;
 
 const ChampionStatGrid = styled.div`
@@ -349,9 +381,9 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
   const [expandedSections, setExpandedSections] = useState({
     championPerformance: true,
     summonerSpells: false,
-    playtimeGaps: true,
-    trends: true,
-    advancedMetrics: false
+    playtimeGaps: false,
+    advancedMetrics: false,
+    trendAnalysis: false
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -510,23 +542,28 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
 
   return (
     <Container>
-      <SectionTitle>🔍 Ultra-Advanced Smurf Analysis Dashboard</SectionTitle>
-      
+      <DashboardHeader>
+        <DashboardTitle>Advanced Smurf Detection Analysis</DashboardTitle>
+        <DashboardSubtitle>
+          Comprehensive behavioral pattern analysis using machine learning algorithms and 5+ year historical data
+        </DashboardSubtitle>
+      </DashboardHeader>
+
       <AnalysisGrid>
         <AnalysisCard>
           <SectionHeader onClick={() => toggleSection('championPerformance')}>
             <span>🏆 Champion Performance</span>
-            <div>
+    <div>
               <WeightBadge>65% weight</WeightBadge>
               <span style={{ marginLeft: '12px' }}>
                 {expandedSections.championPerformance ? '▼' : '▶'}
               </span>
             </div>
-          </SectionHeader>
-          <SectionContent isExpanded={expandedSections.championPerformance}>
+        </SectionHeader>
+        <SectionContent isExpanded={expandedSections.championPerformance}>
             <CompactStatGrid>
               <CompactStatCard>
-                <StatValue>{Math.round(analysis.championPerformance.overallPerformanceScore * 100)}%</StatValue>
+              <StatValue>{Math.round(analysis.championPerformance.overallPerformanceScore * 100)}%</StatValue>
                 <StatLabel>Performance Score</StatLabel>
               </CompactStatCard>
               <CompactStatCard>
@@ -566,7 +603,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
         <AnalysisCard>
           <SectionHeader onClick={() => toggleSection('playtimeGaps')}>
             <span>⏰ Playtime Gaps</span>
-            <div>
+                  <div>
               <WeightBadge>10% weight</WeightBadge>
               <span style={{ marginLeft: '12px' }}>
                 {expandedSections.playtimeGaps ? '▼' : '▶'}
@@ -603,19 +640,19 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
                   </GapAlert>
                 );
               })}
-            </div>
+                  </div>
           </SectionContent>
         </AnalysisCard>
 
         <AnalysisCard>
           <SectionHeader onClick={() => toggleSection('summonerSpells')}>
             <span>✨ Summoner Spells</span>
-            <div>
+                  <div>
               <WeightBadge>25% weight</WeightBadge>
               <span style={{ marginLeft: '12px' }}>
                 {expandedSections.summonerSpells ? '▼' : '▶'}
               </span>
-            </div>
+                  </div>
           </SectionHeader>
           <SectionContent isExpanded={expandedSections.summonerSpells}>
             <CompactStatGrid>
@@ -637,7 +674,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
               border: '1px solid rgba(74, 85, 104, 0.3)'
             }}>
               {analysis.summonerSpellUsage.spellPlacementChanges.length > 0 ? (
-                <div>
+                  <div>
                   <h5 style={{ marginBottom: '12px', color: '#e2e8f0', fontSize: '14px' }}>Recent Spell Changes:</h5>
                   {analysis.summonerSpellUsage.spellPlacementChanges.slice(0, 3).map((change, index) => (
                     <div key={index} style={{ 
@@ -649,7 +686,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
                       border: '1px solid rgba(99, 179, 237, 0.2)'
                     }}>
                       <strong>Game {change.gameId}</strong> • {new Date(change.timestamp).toLocaleDateString()}
-                    </div>
+                  </div>
                   ))}
                 </div>
               ) : (
@@ -657,21 +694,21 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
                   No significant spell pattern changes detected
                 </div>
               )}
-            </div>
-          </SectionContent>
+          </div>
+        </SectionContent>
         </AnalysisCard>
 
         <WideCard>
-          <SectionHeader onClick={() => toggleSection('trends')}>
+          <SectionHeader onClick={() => toggleSection('trendAnalysis')}>
             <span>📈 Performance Trends</span>
             <div>
               <WeightBadge>Analysis over time</WeightBadge>
               <span style={{ marginLeft: '12px' }}>
-                {expandedSections.trends ? '▼' : '▶'}
+                {expandedSections.trendAnalysis ? '▼' : '▶'}
               </span>
             </div>
           </SectionHeader>
-          <SectionContent isExpanded={expandedSections.trends}>
+          <SectionContent isExpanded={expandedSections.trendAnalysis}>
             <TrendContainer>
               <TrendCard>
                 <TrendTitle>📊 Performance & KDA Progression</TrendTitle>
@@ -705,7 +742,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
                 {expandedSections.advancedMetrics ? '▼' : '▶'}
               </span>
             </div>
-          </SectionHeader>
+        </SectionHeader>
           <SectionContent isExpanded={expandedSections.advancedMetrics}>
             <div style={{ 
               display: 'grid', 
@@ -733,9 +770,9 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
                     {metric.description}
                   </div>
                 </MetricCard>
-              ))}
-            </div>
-          </SectionContent>
+            ))}
+          </div>
+        </SectionContent>
         </WideCard>
       </AnalysisGrid>
     </Container>

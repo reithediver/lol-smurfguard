@@ -13,6 +13,7 @@ import { SmurfDetectionService } from './services/SmurfDetectionService';
 import { ChampionService } from './services/ChampionService';
 import { ChallengerService } from './services/ChallengerService';
 import { AdvancedDataService } from './services/AdvancedDataService';
+import { EnhancedAnalysisService } from './services/EnhancedAnalysisService';
 
 // Load environment variables
 dotenv.config();
@@ -104,10 +105,11 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
 
   try {
     logger.info(`🔍 Comprehensive analysis requested for: ${summonerName}`);
-    logger.info('🚀 Initiating 5+ year ultra-comprehensive analysis...');
+    logger.info('🚀 Initiating enhanced comprehensive analysis...');
     
-    const advancedService = new AdvancedDataService(riotApi);
-    const analysis = await advancedService.analyzePlayerComprehensively(summonerName);
+    // Use new enhanced service
+    const enhancedService = new EnhancedAnalysisService(riotApi, 'na1');
+    const analysis = await enhancedService.analyzePlayerComprehensively(summonerName);
     
     const responseTime = Date.now() - startTime;
     performanceMonitor.recordRequest(responseTime, false);
@@ -118,17 +120,15 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
       metadata: {
         responseTime: `${responseTime}ms`,
         timestamp: new Date().toISOString(),
-        dataQuality: analysis.dataQuality,
-        analysisDepth: '5-year ultra-comprehensive',
-        accountSwitchingAnalysis: true,
-        gapAnalysis: 'enhanced',
+        dataQuality: analysis.analysisMetadata.dataQuality,
+        analysisDepth: 'enhanced-comprehensive',
         features: [
-          '5+ years historical data',
-          'Account switching detection',
-          'Enhanced gap analysis (weeks to years)',
-          'Champion expertise after gaps',
-          'Role mastery changes',
-          'Performance anomaly detection'
+          'Op.gg style performance metrics',
+          'Lolrewind historical timeline analysis',
+          'Advanced smurf detection algorithms',
+          'Behavioral pattern analysis',
+          'Champion mastery progression tracking',
+          'Activity gap detection with performance correlation'
         ]
       }
     });
@@ -137,20 +137,19 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
     const responseTime = Date.now() - startTime;
     performanceMonitor.recordRequest(responseTime, true);
     
-    logger.error(`Error in comprehensive analysis for ${summonerName}:`, error);
+    logger.error(`Error in enhanced comprehensive analysis for ${summonerName}:`, error);
     
     if (error instanceof Error && error.message.includes('API key')) {
       res.status(403).json({
         success: false,
         error: 'API_KEY_LIMITATION',
-        message: '5+ year ultra-comprehensive analysis requires Personal/Production API key. Currently using Development key.',
+        message: 'Enhanced comprehensive analysis requires Personal/Production API key. Currently using Development key.',
         features: {
           missing: [
-            '5+ years of historical data access',
-            'Account switching detection',
-            'Enhanced gap analysis (months/years)',
-            'Champion expertise tracking after gaps',
-            'Cross-account performance patterns'
+            'Extended historical data access (5+ years)',
+            'Match timeline data for precise performance metrics',
+            'Champion mastery scores',
+            'Advanced behavioral pattern detection'
           ],
           available: ['Basic analysis with limited recent data']
         },
@@ -160,11 +159,149 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
     } else {
       res.status(500).json({
         success: false,
-        error: 'ULTRA_ANALYSIS_FAILED',
-        message: 'Failed to perform 5+ year ultra-comprehensive analysis',
+        error: 'ENHANCED_ANALYSIS_FAILED',
+        message: 'Failed to perform enhanced comprehensive analysis',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
+  }
+});
+
+// Enhanced stats endpoint for op.gg style data
+app.get('/api/stats/enhanced/:summonerName', async (req, res) => {
+  const { summonerName } = req.params;
+  const startTime = Date.now();
+
+  try {
+    logger.info(`📊 Enhanced stats requested for: ${summonerName}`);
+    
+    const enhancedService = new EnhancedAnalysisService(riotApi, 'na1');
+    
+    // Get basic summoner info first
+    const summoner = await riotApi.getSummonerByName(summonerName);
+    
+    // Get limited match history for stats
+    const matchHistory = await enhancedService.getExtensiveMatchHistory(summoner.puuid);
+    const gameMetrics = await enhancedService.processMatchMetrics(matchHistory.slice(0, 100)); // Last 100 games
+    
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, false);
+    
+    // Calculate op.gg style statistics
+    const stats = {
+      summoner: {
+        name: summoner.name,
+        level: summoner.summonerLevel,
+        profileIconId: summoner.profileIconId
+      },
+      recentStats: {
+        totalGames: gameMetrics.length,
+        winRate: (gameMetrics.filter(g => g.outcome === 'win').length / gameMetrics.length) * 100,
+        avgKDA: gameMetrics.reduce((sum, g) => sum + g.metrics.kda.ratio, 0) / gameMetrics.length,
+        avgCS: gameMetrics.reduce((sum, g) => sum + g.metrics.csData.perMinute, 0) / gameMetrics.length,
+        avgVision: gameMetrics.reduce((sum, g) => sum + g.metrics.visionMetrics.visionScore, 0) / gameMetrics.length,
+        avgDamageShare: gameMetrics.reduce((sum, g) => sum + g.metrics.damageMetrics.damageShare, 0) / gameMetrics.length
+      },
+      championStats: enhancedService.analyzeChampionMastery(gameMetrics).slice(0, 10), // Top 10 champions
+      performanceTrends: {
+        last20Games: gameMetrics.slice(0, 20).map(g => ({
+          timestamp: g.timestamp,
+          outcome: g.outcome,
+          champion: g.champion,
+          kda: g.metrics.kda.ratio,
+          cs: g.metrics.csData.perMinute
+        }))
+      }
+    };
+    
+    res.json({
+      success: true,
+      data: stats,
+      metadata: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        gamesAnalyzed: gameMetrics.length
+      }
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, true);
+    
+    logger.error(`Error in enhanced stats for ${summonerName}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'ENHANCED_STATS_FAILED',
+      message: 'Failed to retrieve enhanced statistics',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Lolrewind style timeline endpoint
+app.get('/api/timeline/:summonerName', async (req, res) => {
+  const { summonerName } = req.params;
+  const { timespan = '6months' } = req.query;
+  const startTime = Date.now();
+
+  try {
+    logger.info(`📈 Timeline analysis requested for: ${summonerName} (${timespan})`);
+    
+    const enhancedService = new EnhancedAnalysisService(riotApi, 'na1');
+    
+    // Get summoner and extensive match history
+    const summoner = await riotApi.getSummonerByName(summonerName);
+    const matchHistory = await enhancedService.getExtensiveMatchHistory(summoner.puuid);
+    const gameMetrics = await enhancedService.processMatchMetrics(matchHistory);
+    
+    // Build timeline data
+    const timeline = enhancedService.buildHistoricalTimeline(gameMetrics, summoner);
+    
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, false);
+    
+    res.json({
+      success: true,
+      data: {
+        summoner: {
+          name: summoner.name,
+          level: summoner.summonerLevel
+        },
+        timeline,
+        gameMetrics: gameMetrics.map(g => ({
+          timestamp: g.timestamp,
+          champion: g.champion,
+          outcome: g.outcome,
+          kda: g.metrics.kda.ratio,
+          cs: g.metrics.csData.perMinute,
+          damageShare: g.metrics.damageMetrics.damageShare,
+          visionScore: g.metrics.visionMetrics.visionScore
+        })),
+        metadata: {
+          gamesAnalyzed: gameMetrics.length,
+          timeSpanDays: enhancedService.calculateTimeSpan(gameMetrics),
+          oldestGame: gameMetrics.length > 0 ? gameMetrics[gameMetrics.length - 1].timestamp : null,
+          newestGame: gameMetrics.length > 0 ? gameMetrics[0].timestamp : null
+        }
+      },
+      metadata: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        requestedTimespan: timespan
+      }
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, true);
+    
+    logger.error(`Error in timeline analysis for ${summonerName}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'TIMELINE_ANALYSIS_FAILED',
+      message: 'Failed to generate timeline analysis',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
@@ -424,6 +561,406 @@ app.get('/api/analysis/capabilities', (req, res) => {
       }
     }
   });
+});
+
+// Challenger Smurf Analysis Demo Endpoint
+app.get('/api/demo/challenger-analysis', async (req, res) => {
+  const startTime = Date.now();
+
+  try {
+    logger.info('🎮 Challenger smurf analysis demo requested');
+    
+    // Get challenger data
+    const challengers = await challengerService.getTopChallengers(20);
+    const platform = await limitedAccessService.getPlatformStatus();
+    const rotation = await championService.getChampionRotation();
+    
+    // Create mock smurf analysis for demonstration
+    const demoAnalysis = challengers.map((challenger, index) => {
+      // Create realistic but fake smurf probabilities for demo
+      const mockSmurfProbability = Math.random() * 100;
+      const riskLevel = mockSmurfProbability > 80 ? 'Very High' : 
+                       mockSmurfProbability > 60 ? 'High' : 
+                       mockSmurfProbability > 40 ? 'Moderate' : 
+                       mockSmurfProbability > 20 ? 'Low' : 'Very Low';
+      
+      return {
+        summonerId: challenger.summonerId,
+        rank: index + 1,
+        leaguePoints: challenger.leaguePoints,
+        wins: challenger.wins,
+        losses: challenger.losses,
+        winRate: ((challenger.wins / (challenger.wins + challenger.losses)) * 100).toFixed(1),
+        
+        // Mock smurf analysis (what would be real with full API access)
+        smurfAnalysis: {
+          probability: parseFloat(mockSmurfProbability.toFixed(1)),
+          riskLevel,
+          factors: {
+            championPerformance: {
+              weight: 65,
+              score: Math.random() * 100,
+              details: "First-time champion performance analysis"
+            },
+            summonerSpells: {
+              weight: 25, 
+              score: Math.random() * 100,
+              details: "Summoner spell placement patterns"
+            },
+            playtimeGaps: {
+              weight: 10,
+              score: Math.random() * 100,
+              details: "Account activity gap analysis"
+            }
+          },
+          
+          // Demonstration features available with full API access
+          enhancedFeatures: {
+            "5+ Year Analysis": "Historical performance patterns over years",
+            "Account Switching Detection": "Gaps in play followed by skill spikes", 
+            "Champion Expertise Analysis": "First-time champion mastery detection",
+            "Role Mastery Changes": "Sudden expertise in new roles",
+            "Performance Anomaly Detection": "Abnormal skill progression"
+          }
+        },
+        
+        // Real data we can actually access
+        realData: {
+          currentLP: challenger.leaguePoints,
+          seasonWins: challenger.wins,
+          seasonLosses: challenger.losses,
+          veteran: challenger.veteran,
+          hotStreak: challenger.hotStreak,
+          freshBlood: challenger.freshBlood
+        }
+      };
+    });
+
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, false);
+    
+    res.json({
+      success: true,
+      demoMode: true,
+      message: "This is a demonstration using available challenger data. Full smurf detection requires summoner/match data access.",
+      
+      // Demo data
+      data: {
+        analysis: demoAnalysis.slice(0, 10), // Top 10 for demo
+        platformStatus: {
+          region: platform.name,
+          incidents: platform.incidents?.length || 0,
+          maintenances: platform.maintenances?.length || 0
+        },
+        championRotation: {
+          freeChampions: rotation.freeChampionIds.length,
+          newPlayerChampions: rotation.freeChampionIdsForNewPlayers.length
+        }
+      },
+      
+      // System capabilities
+      systemInfo: {
+        currentApiAccess: {
+          challengerData: true,
+          championRotation: true,
+          platformData: true,
+          summonerData: false,
+          matchData: false
+        },
+        
+        fullCapabilities: {
+          "Real Smurf Detection": "Requires summoner + match data access",
+          "5+ Year Historical Analysis": "Deep account history analysis",
+          "Champion Performance Tracking": "First-time champion mastery detection", 
+          "Account Switching Detection": "Gap analysis with skill spikes",
+          "Tournament-Grade Accuracy": "Professional esports integrity"
+        },
+        
+        demoFeatures: [
+          "🏆 Challenger leaderboard integration",
+          "📊 Performance monitoring system", 
+          "🎯 Risk assessment algorithms",
+          "📈 Data visualization capabilities",
+          "🔧 Production-ready infrastructure"
+        ]
+      },
+      
+      metadata: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        totalChallengers: challengers.length,
+        apiKeyStatus: "Development - Challenger/Platform/Rotation access only"
+      }
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    performanceMonitor.recordRequest(responseTime, true);
+    
+    logger.error('Error in challenger demo analysis:', error);
+    res.status(500).json({
+      success: false,
+      error: 'DEMO_ANALYSIS_FAILED',
+      message: 'Failed to generate challenger smurf analysis demo'
+    });
+  }
+});
+
+// Mock Challenger Data Endpoint (For testing frontend without API access)
+app.get('/api/mock/challenger-demo', async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    logger.info('🎮 Mock challenger demo data requested');
+    
+    // Static mock data that works without any API permissions
+    const mockChallengers = [
+      {
+        summonerId: "mock-summoner-1",
+        summonerName: "FakerKR",
+        rank: 1,
+        leaguePoints: 1247,
+        wins: 234,
+        losses: 45,
+        winRate: "83.9",
+        veteran: true,
+        hotStreak: true,
+        freshBlood: false,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-2", 
+        summonerName: "ShowMaker",
+        rank: 2,
+        leaguePoints: 1189,
+        wins: 198,
+        losses: 67,
+        winRate: "74.7",
+        veteran: true,
+        hotStreak: false,
+        freshBlood: false,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-3",
+        summonerName: "SuspiciousPlayer",
+        rank: 3,
+        leaguePoints: 1156,
+        wins: 89,
+        losses: 12,
+        winRate: "88.1",
+        veteran: false,
+        hotStreak: true,
+        freshBlood: true,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-4",
+        summonerName: "NewProdigy",
+        rank: 4,
+        leaguePoints: 1134,
+        wins: 156,
+        losses: 23,
+        winRate: "87.2",
+        veteran: false,
+        hotStreak: false,
+        freshBlood: true,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-5",
+        summonerName: "MidLaneGod",
+        rank: 5,
+        leaguePoints: 1098,
+        wins: 267,
+        losses: 89,
+        winRate: "75.0",
+        veteran: true,
+        hotStreak: false,
+        freshBlood: false,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-6",
+        summonerName: "SmurfAlert",
+        rank: 6,
+        leaguePoints: 1067,
+        wins: 78,
+        losses: 8,
+        winRate: "90.7",
+        veteran: false,
+        hotStreak: true,
+        freshBlood: true,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-7",
+        summonerName: "VeteranPlayer",
+        rank: 7,
+        leaguePoints: 1045,
+        wins: 289,
+        losses: 134,
+        winRate: "68.3",
+        veteran: true,
+        hotStreak: false,
+        freshBlood: false,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-8",
+        summonerName: "SkillJumper",
+        rank: 8,
+        leaguePoints: 1023,
+        wins: 123,
+        losses: 18,
+        winRate: "87.2",
+        veteran: false,
+        hotStreak: true,
+        freshBlood: true,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-9",
+        summonerName: "LegitPlayer",
+        rank: 9,
+        leaguePoints: 998,
+        wins: 201,
+        losses: 87,
+        winRate: "69.8",
+        veteran: true,
+        hotStreak: false,
+        freshBlood: false,
+        inactive: false
+      },
+      {
+        summonerId: "mock-summoner-10",
+        summonerName: "AltAccount",
+        rank: 10,
+        leaguePoints: 976,
+        wins: 67,
+        losses: 11,
+        winRate: "85.9",
+        veteran: false,
+        hotStreak: false,
+        freshBlood: true,
+        inactive: false
+      }
+    ];
+    
+    // Generate realistic smurf analysis for each player
+    const analysisData = mockChallengers.map((challenger) => {
+      // Create smurf probability based on player characteristics
+      let smurfProbability = 0;
+      
+      // High win rate increases smurf probability
+      const winRate = parseFloat(challenger.winRate);
+      if (winRate > 85) smurfProbability += 40;
+      else if (winRate > 80) smurfProbability += 25;
+      else if (winRate > 75) smurfProbability += 15;
+      else smurfProbability += 5;
+      
+      // Low game count with high win rate increases probability
+      const totalGames = challenger.wins + challenger.losses;
+      if (totalGames < 100 && winRate > 80) smurfProbability += 30;
+      else if (totalGames < 150 && winRate > 75) smurfProbability += 20;
+      else if (totalGames < 200) smurfProbability += 10;
+      
+      // Fresh blood with high performance indicates smurf
+      if (challenger.freshBlood && winRate > 80) smurfProbability += 25;
+      
+      // Veteran players are less likely to be smurfs
+      if (challenger.veteran) smurfProbability -= 15;
+      
+      // Add some randomness but cap at 95%
+      smurfProbability += Math.random() * 10;
+      smurfProbability = Math.min(95, Math.max(5, smurfProbability));
+      
+      const riskLevel = smurfProbability > 80 ? 'Very High' : 
+                       smurfProbability > 60 ? 'High' : 
+                       smurfProbability > 40 ? 'Moderate' : 
+                       smurfProbability > 20 ? 'Low' : 'Very Low';
+      
+      return {
+        ...challenger,
+        smurfAnalysis: {
+          probability: parseFloat(smurfProbability.toFixed(1)),
+          riskLevel,
+          factors: {
+            championPerformance: {
+              weight: 65,
+              score: Math.random() * 100,
+              details: "Champion mastery vs account age analysis"
+            },
+            accountActivity: {
+              weight: 25, 
+              score: Math.random() * 100,
+              details: "Playtime patterns and gaps analysis"
+            },
+            winRateAnomaly: {
+              weight: 10,
+              score: winRate > 85 ? 90 : winRate > 75 ? 70 : 40,
+              details: `${challenger.winRate}% win rate analysis`
+            }
+          },
+          insights: {
+            totalGames,
+            averageLP: Math.round(challenger.leaguePoints / totalGames * 10) / 10,
+            accountFlags: [
+              ...(challenger.freshBlood ? ['Fresh Account'] : []),
+              ...(challenger.veteran ? ['Veteran Player'] : []),
+              ...(challenger.hotStreak ? ['Current Hot Streak'] : []),
+              ...(winRate > 85 ? ['Exceptional Win Rate'] : []),
+              ...(totalGames < 100 ? ['Low Game Count'] : [])
+            ]
+          }
+        }
+      };
+    });
+    
+    const responseTime = Date.now() - startTime;
+    
+    res.json({
+      success: true,
+      mockData: true,
+      message: "Mock challenger data for frontend/backend testing (no API permissions required)",
+      data: {
+        analysis: analysisData,
+        summary: {
+          totalPlayers: analysisData.length,
+          highRiskPlayers: analysisData.filter(p => p.smurfAnalysis.riskLevel === 'Very High' || p.smurfAnalysis.riskLevel === 'High').length,
+          averageWinRate: (analysisData.reduce((sum, p) => sum + parseFloat(p.winRate), 0) / analysisData.length).toFixed(1),
+          veteranCount: analysisData.filter(p => p.veteran).length,
+          freshBloodCount: analysisData.filter(p => p.freshBlood).length
+        }
+      },
+      systemInfo: {
+        apiKeyStatus: "Development Key - Mock Data Mode",
+        description: "This endpoint provides realistic mock data for testing your frontend and backend integration without requiring API permissions.",
+        availableForTesting: [
+          "Frontend component rendering",
+          "Backend response handling", 
+          "Data visualization",
+          "Risk assessment display",
+          "User interface interactions"
+        ]
+      },
+      metadata: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString(),
+        endpoint: "/api/mock/challenger-demo",
+        dataSource: "Static mock data"
+      }
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    logger.error('Error in mock challenger demo:', error);
+    res.status(500).json({
+      success: false,
+      error: 'MOCK_DATA_FAILED',
+      message: 'Failed to generate mock challenger demo data'
+    });
+  }
 });
 
 // Main initialization function

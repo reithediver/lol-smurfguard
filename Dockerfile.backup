@@ -1,0 +1,41 @@
+# Simple Dockerfile for Railway deployment
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies for better compatibility
+RUN apk add --no-cache libc6-compat
+
+# Copy package files
+COPY package*.json ./
+COPY frontend/package*.json ./frontend/
+
+# Install backend dependencies
+RUN npm install
+
+# Install frontend dependencies
+RUN cd frontend && npm install
+
+# Copy source code
+COPY . .
+
+# Build backend
+RUN npm run build
+
+# Build frontend
+RUN cd frontend && npm run build
+
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node dist/utils/health-check.js || exit 1
+
+# Start the application
+CMD ["npm", "start"] 

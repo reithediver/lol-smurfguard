@@ -174,7 +174,7 @@ export class SmurfDetectionService {
     }
 
     private async analyzeSummonerSpells(matches: MatchHistory[], targetPuuid: string) {
-        if (matches.length < 2) {
+        if (matches.length < 3) { // Need at least 3 games to establish a pattern
             return {
                 spellPlacementChanges: [],
                 patternChangeScore: 0
@@ -186,35 +186,65 @@ export class SmurfDetectionService {
         );
         
         const spellChanges = [];
-        let patternChangeCount = 0;
+        let keyPositionSwaps = 0;
         
-        for (let i = 1; i < sortedMatches.length; i++) {
+        // Track Flash (spell ID 4) position consistency
+        let establishedFlashPosition: 'spell1' | 'spell2' | null = null;
+        let positionEstablishmentGames = 0;
+        
+        for (let i = 0; i < sortedMatches.length; i++) {
             const currentMatch = sortedMatches[i];
-            const previousMatch = sortedMatches[i-1];
-            
             const currentPlayer = currentMatch.participants.find(p => p.puuid === targetPuuid);
-            const previousPlayer = previousMatch.participants.find(p => p.puuid === targetPuuid);
             
-            if (!currentPlayer || !previousPlayer) continue;
+            if (!currentPlayer) continue;
             
-            // Check if spells are in the same order
-            const currentSpellOrder = `${currentPlayer.summonerSpells.spell1Id}-${currentPlayer.summonerSpells.spell2Id}`;
-            const previousSpellOrder = `${previousPlayer.summonerSpells.spell1Id}-${previousPlayer.summonerSpells.spell2Id}`;
+            const { spell1Id, spell2Id } = currentPlayer.summonerSpells;
             
-            // Check if either spell changed
-            if (currentSpellOrder !== previousSpellOrder) {
-                spellChanges.push({
-                    date: new Date(currentMatch.gameCreation),
-                    oldPlacement: previousSpellOrder,
-                    newPlacement: currentSpellOrder
-                });
-                patternChangeCount++;
+            // Check if Flash is being used and where it's positioned
+            if (spell1Id === 4) { // Flash on D key (spell1)
+                if (establishedFlashPosition === null) {
+                    if (positionEstablishmentGames >= 2) {
+                        establishedFlashPosition = 'spell1';
+                    } else {
+                        positionEstablishmentGames++;
+                    }
+                } else if (establishedFlashPosition === 'spell2') {
+                    // Flash moved from F to D - KEY POSITION SWAP DETECTED
+                    spellChanges.push({
+                        date: new Date(currentMatch.gameCreation),
+                        oldPlacement: 'Flash on F key',
+                        newPlacement: 'Flash on D key',
+                        swapType: 'Flash position swap'
+                    });
+                    keyPositionSwaps++;
+                }
+            } else if (spell2Id === 4) { // Flash on F key (spell2)
+                if (establishedFlashPosition === null) {
+                    if (positionEstablishmentGames >= 2) {
+                        establishedFlashPosition = 'spell2';
+                    } else {
+                        positionEstablishmentGames++;
+                    }
+                } else if (establishedFlashPosition === 'spell1') {
+                    // Flash moved from D to F - KEY POSITION SWAP DETECTED
+                    spellChanges.push({
+                        date: new Date(currentMatch.gameCreation),
+                        oldPlacement: 'Flash on D key',
+                        newPlacement: 'Flash on F key',
+                        swapType: 'Flash position swap'
+                    });
+                    keyPositionSwaps++;
+                }
             }
         }
         
-        // Calculate a score based on the number of changes relative to total matches
-        const maxChangesExpected = Math.ceil(matches.length / 3); // Assume changing every 3 games is normal
-        const patternChangeScore = Math.min(patternChangeCount / maxChangesExpected, 1);
+        // Calculate suspicion score based on key position swaps
+        // Even one swap is highly suspicious since players are very consistent with keybinds
+        let patternChangeScore = 0;
+        if (keyPositionSwaps >= 1) {
+            // High suspicion for any key position swaps
+            patternChangeScore = Math.min(keyPositionSwaps * 0.8, 1.0);
+        }
         
         return {
             spellPlacementChanges: spellChanges,
