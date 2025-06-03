@@ -51,6 +51,27 @@ const Container = styled.div`
   min-height: 100vh;
 `;
 
+const InfoBanner = styled.div`
+  background: linear-gradient(135deg, #1e40af, #3730a3);
+  border: 1px solid #3b82f6;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  color: #e0e7ff;
+`;
+
+const InfoTitle = styled.h3`
+  margin: 0 0 10px 0;
+  color: #ddd6fe;
+  font-weight: 600;
+`;
+
+const InfoText = styled.p`
+  margin: 5px 0;
+  line-height: 1.5;
+  color: #c7d2fe;
+`;
+
 const Header = styled.div`
   text-align: center;
   margin-bottom: 30px;
@@ -258,22 +279,31 @@ const SuspicionBar = styled.div<{ level: number }>`
 `;
 
 const LoadingSpinner = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
+  text-align: center;
+  padding: 40px;
+  color: #60a5fa;
   font-size: 1.2rem;
-  color: #64748b;
+  animation: pulse 2s infinite;
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
 `;
 
 const ErrorMessage = styled.div`
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid #ef4444;
-  border-radius: 8px;
-  padding: 15px;
-  color: #ef4444;
-  text-align: center;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fef2f2;
+  padding: 20px;
+  border-radius: 12px;
   margin-bottom: 20px;
+  border: 1px solid #f87171;
+  white-space: pre-line;
+  line-height: 1.6;
+  
+  strong {
+    color: #fecaca;
+  }
 `;
 
 const ChampionFlag = styled.span<{ flag: string }>`
@@ -320,25 +350,74 @@ export const AdvancedSmurfAnalysis: React.FC = () => {
     setAnalysisData(null);
 
     try {
-      // Try both the new endpoint and fallback to existing endpoints
+      // Use the Railway backend URL consistently
+      const baseURL = 'https://smurfgaurd-production.up.railway.app';
       const endpoints = [
-        `/api/analyze/champion-outliers/${encodeURIComponent(playerName)}`,
-        `https://smurfgaurd-production.up.railway.app/api/analyze/champion-outliers/${encodeURIComponent(playerName)}`,
-        `/api/analyze/advanced-smurf/${encodeURIComponent(playerName)}`
+        `${baseURL}/api/analyze/champion-outliers/${encodeURIComponent(playerName)}`,
+        `${baseURL}/api/analyze/advanced-smurf/${encodeURIComponent(playerName)}`,
+        `${baseURL}/api/analyze/basic/${encodeURIComponent(playerName)}`
       ];
 
       let response = null;
+      let lastError = null;
+      
       for (const endpoint of endpoints) {
         try {
-          response = await fetch(endpoint);
-          if (response.ok) break;
+          console.log(`Trying endpoint: ${endpoint}`);
+          response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            console.log(`Success with endpoint: ${endpoint}`);
+            break;
+          } else {
+            console.log(`Failed with status ${response.status}: ${endpoint}`);
+            
+            // Handle specific error cases
+            if (response.status === 403) {
+              lastError = `API Access Forbidden (403): The Development API key cannot access data for famous players like "${playerName}". Try a less well-known summoner name, or check our Demo tab for working examples with challenger data.`;
+            } else if (response.status === 404) {
+              lastError = `Player "${playerName}" not found. Please check the spelling and make sure the player exists in the NA region.`;
+            } else if (response.status === 429) {
+              lastError = `Rate limit exceeded. Please wait a moment and try again.`;
+            } else if (response.status === 500) {
+              // Try to get the error details from the response
+              try {
+                const errorData = await response.json();
+                if (errorData.details && errorData.details.includes('403')) {
+                  lastError = `API Access Restricted: The Development API key cannot access data for "${playerName}". This is a Riot Games API limitation for famous players. Try a different summoner name or check our Demo tab for working examples.`;
+                } else {
+                  lastError = `Server Error (500): ${errorData.message || 'Internal server error'}`;
+                }
+              } catch {
+                lastError = `Server Error (500): Internal server error`;
+              }
+            } else {
+              lastError = `HTTP ${response.status}: ${response.statusText}`;
+            }
+          }
         } catch (e) {
+          console.log(`Network error with endpoint: ${endpoint}`, e);
+          lastError = e instanceof Error ? e.message : 'Network error';
           continue; // Try next endpoint
         }
       }
 
       if (!response || !response.ok) {
-        throw new Error('Failed to fetch analysis data');
+        throw new Error(lastError || 'All endpoints failed to respond');
+      }
+
+      // Verify we got JSON, not HTML
+      const contentType = response.headers.get('Content-Type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Received non-JSON response:', text.substring(0, 200));
+        throw new Error('Server returned HTML instead of JSON. Backend may be down.');
       }
 
       const result = await response.json();
@@ -346,11 +425,28 @@ export const AdvancedSmurfAnalysis: React.FC = () => {
       if (result.success) {
         setAnalysisData(result.data);
       } else {
-        throw new Error(result.message || 'Analysis failed');
+        // Handle API-specific error messages
+        let errorMessage = result.message || result.error || 'Analysis failed';
+        
+        if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+          errorMessage = `API Access Restricted: The Development API key cannot analyze "${playerName}". This is a Riot Games limitation for famous players. Try a different summoner name or check our Demo tab for working examples with challenger data.`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      console.error('Analysis error:', error);
+      let errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Add helpful suggestion for common API limitations
+      if (errorMessage.includes('403') || errorMessage.includes('Forbidden') || 
+          errorMessage.toLowerCase().includes('famous') || 
+          ['faker', 'doublelift', 'bjergsen', 'sneaky', 'imaqtpie'].includes(playerName.toLowerCase())) {
+        errorMessage += '\n\n💡 Tip: Try searching for a less well-known summoner name, or visit our Demo tab to see the advanced analysis features working with challenger data.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -373,6 +469,19 @@ export const AdvancedSmurfAnalysis: React.FC = () => {
 
   return (
     <Container>
+      <InfoBanner>
+        <InfoTitle>ℹ️ API Access Information</InfoTitle>
+        <InfoText>
+          <strong>Current Limitation:</strong> The Development API key cannot access data for famous players (Faker, Doublelift, etc.) due to Riot Games restrictions.
+        </InfoText>
+        <InfoText>
+          <strong>What works:</strong> Analysis of less well-known summoner names in NA region. Try searching for regular players instead of pro players.
+        </InfoText>
+        <InfoText>
+          <strong>See it working:</strong> Visit the <strong>Demo</strong> tab to see the full advanced analysis system working with challenger data.
+        </InfoText>
+      </InfoBanner>
+
       <Header>
         <Title>Advanced Smurf Detection</Title>
         <Subtitle>Detect dramatic playstyle changes and account switching patterns</Subtitle>
@@ -380,7 +489,7 @@ export const AdvancedSmurfAnalysis: React.FC = () => {
         <SearchSection>
           <SearchInput
             type="text"
-            placeholder="Enter summoner name..."
+            placeholder="Enter summoner name (try non-famous players)..."
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
             onKeyPress={handleKeyPress}
