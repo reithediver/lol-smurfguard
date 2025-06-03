@@ -492,6 +492,97 @@ app.get('/api/analyze/champions/:summonerName', async (req, res) => {
         });
     }
 });
+// Comprehensive Analysis Endpoint (Ultra-Deep Analysis)
+app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
+    const { summonerName } = req.params;
+    const startTime = Date.now();
+    try {
+        loggerService_1.logger.info(`🔍 Ultra-comprehensive analysis requested for: ${summonerName}`);
+        loggerService_1.logger.info('📊 Performing 5+ year historical analysis with account switching detection...');
+        const advancedService = new AdvancedDataService_1.AdvancedDataService(riotApi);
+        const analysis = await advancedService.analyzePlayerComprehensively(summonerName);
+        const comprehensiveReport = {
+            summonerName,
+            overallSmurfProbability: analysis.smurfProbability.overall,
+            riskLevel: analysis.smurfProbability.evidenceStrength,
+            evidenceStrength: analysis.smurfProbability.evidenceStrength,
+            // Full comprehensive data
+            historicalAnalysis: analysis.historicalAnalysis,
+            performanceMetrics: analysis.performanceMetrics,
+            suspiciousPatterns: analysis.suspiciousPatterns,
+            accountSwitchingDetection: {
+                probability: analysis.historicalAnalysis.playtimeAnalysis.gaps.reduce((max, gap) => Math.max(max, gap.accountSwitchProbability || 0), 0),
+                suspiciousGaps: analysis.historicalAnalysis.playtimeAnalysis.gaps.filter(gap => gap.suspicionLevel === 'high' || gap.suspicionLevel === 'extreme'),
+                expertiseAfterGaps: analysis.performanceMetrics.filter(p => p.championMastery.suspiciousIndicators.highInitialPerformance &&
+                    p.championMastery.firstTimePerformance).length
+            },
+            keyFindings: [
+                `Account age: ${analysis.historicalAnalysis.accountAge} days`,
+                `Total games analyzed: ${analysis.dataQuality.gamesCovered}`,
+                `Time span covered: ${analysis.dataQuality.timeSpanDays} days`,
+                `Playtime gaps detected: ${analysis.historicalAnalysis.playtimeAnalysis.gaps.length}`,
+                `Champions with suspicious first-time performance: ${analysis.performanceMetrics.filter(p => p.championMastery.suspiciousIndicators.highInitialPerformance).length}`,
+                `Overall smurf probability: ${analysis.smurfProbability.overall.toFixed(1)}%`
+            ],
+            dataQuality: analysis.dataQuality,
+            detailedReport: analysis.detailedReport
+        };
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, false);
+        res.json({
+            success: true,
+            data: comprehensiveReport,
+            metadata: {
+                responseTime: `${responseTime}ms`,
+                timestamp: new Date().toISOString(),
+                analysisDepth: 'ultra-comprehensive-5-year-historical'
+            }
+        });
+    }
+    catch (error) {
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, true);
+        loggerService_1.logger.error(`Error in comprehensive analysis for ${summonerName}:`, error);
+        // Use the specific status code from the service error, or default to 500
+        const statusCode = error.statusCode || error.response?.status || 500;
+        const errorMessage = error.message || 'Failed to perform comprehensive analysis';
+        // Map error codes to user-friendly responses
+        let userMessage = errorMessage;
+        let errorCode = 'COMPREHENSIVE_ANALYSIS_FAILED';
+        switch (statusCode) {
+            case 403:
+                errorCode = 'API_ACCESS_FORBIDDEN';
+                userMessage = `Cannot access player data for "${summonerName}". This is likely due to API restrictions on famous players.`;
+                break;
+            case 404:
+                errorCode = 'SUMMONER_NOT_FOUND';
+                userMessage = `Summoner "${summonerName}" not found. Please check the spelling and try again.`;
+                break;
+            case 429:
+                errorCode = 'RATE_LIMITED';
+                userMessage = 'Too many requests. Please wait a moment and try again.';
+                break;
+            case 503:
+                errorCode = 'SERVICE_UNAVAILABLE';
+                userMessage = 'Riot API is currently unavailable. Please try again later.';
+                break;
+            default:
+                userMessage = 'Comprehensive analysis failed due to an unexpected error.';
+                break;
+        }
+        res.status(statusCode).json({
+            success: false,
+            error: errorCode,
+            message: userMessage,
+            details: errorMessage,
+            suggestions: statusCode === 403 ? [
+                'Try searching for a less well-known summoner name',
+                'Visit the Demo tab to see the analysis system working',
+                'Famous players (Faker, Doublelift, etc.) are restricted by Riot API'
+            ] : undefined
+        });
+    }
+});
 // API Capability Overview
 app.get('/api/analysis/capabilities', (req, res) => {
     const apiKeyType = process.env.RIOT_API_KEY ? 'development' : 'none';
