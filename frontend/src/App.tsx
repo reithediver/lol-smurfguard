@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DetailedAnalysis } from './components/DetailedAnalysis';
 import { EnhancedPlayerDashboard } from './components/EnhancedPlayerDashboard';
+import { AdvancedSmurfAnalysis } from './components/AdvancedSmurfAnalysis';
 import ChallengerDemo from './components/ChallengerDemo';
 import DebugTest from './components/DebugTest';
 import styled from 'styled-components';
@@ -171,7 +172,7 @@ const ViewButton = styled.button<{ $active: boolean }>`
 `;
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'analysis' | 'demo' | 'debug'>('demo');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'advanced' | 'demo' | 'debug'>('demo');
   const [viewMode, setViewMode] = useState<'enhanced' | 'classic'>('enhanced');
   const [playerName, setPlayerName] = useState('');
   const [analysis, setAnalysis] = useState<SmurfAnalysis | null>(null);
@@ -445,6 +446,9 @@ function App() {
           <Tab $active={activeTab === 'demo'} onClick={() => setActiveTab('demo')}>
             🏆 Demo
           </Tab>
+          <Tab $active={activeTab === 'advanced'} onClick={() => setActiveTab('advanced')}>
+            🔍 Advanced Detection
+          </Tab>
           <Tab $active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
             🔍 Analysis
           </Tab>
@@ -454,6 +458,8 @@ function App() {
         </TabContainer>
 
         {activeTab === 'demo' && <ChallengerDemo />}
+
+        {activeTab === 'advanced' && <AdvancedSmurfAnalysis />}
 
         {activeTab === 'analysis' && (
           <>
