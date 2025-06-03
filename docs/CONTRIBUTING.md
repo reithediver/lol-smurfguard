@@ -3,18 +3,25 @@
 ## Project Notes
 This project is a comprehensive League of Legends smurf detection system featuring **5+ year historical analysis**, **tournament-grade accuracy**, and **professional-grade analytics**. The system provides ultra-advanced smurf detection comparable to commercial platforms like op.gg and lolrewind.
 
-## 📋 **Documentation Index & Purpose**
+## 📋 **FOR AI ASSISTANTS - READ THIS FIRST**
 
-### **🚨 CRITICAL FOR AI ASSISTANTS:**
-- **[AI_TASK_LIST.md](AI_TASK_LIST.md)** - **READ FIRST** - Task management, duplicate prevention, clear workflow rules
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - **THIS FILE** - Project overview, structure, and status
+### **🚨 SINGLE SOURCE OF TRUTH:**
+- **[AI_QUICK_STATUS.md](AI_QUICK_STATUS.md)** - **READ THIS FIRST** - Complete project status, deployment info, git status, commands, and rules in one place
+
+### **📂 Additional Documentation (if needed):**
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - **THIS FILE** - Project overview and structure
+- **[GIT_WORKFLOW_GUIDE.md](GIT_WORKFLOW_GUIDE.md)** - Git safety protocols (referenced from AI_QUICK_STATUS)
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Comprehensive deployment documentation
+
+⚡ **AI Rule**: Check AI_QUICK_STATUS.md first - it contains everything you need to get started quickly!
+
+## 📋 **Documentation Index & Purpose**
 
 ### **📂 Project Management:**
 - **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Detailed progress tracking and feature completion status
 - **[CHANGELOG.md](CHANGELOG.md)** - Complete history of updates and changes
 
 ### **🚀 Deployment & Setup:**
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Comprehensive deployment documentation
 - **[DEPLOYMENT_SETUP_GUIDE.md](DEPLOYMENT_SETUP_GUIDE.md)** - Step-by-step deployment configuration
 - **[VERCEL_SETUP_WALKTHROUGH.md](VERCEL_SETUP_WALKTHROUGH.md)** - Frontend deployment guide
 - **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Pre-deployment verification
@@ -27,7 +34,6 @@ This project is a comprehensive League of Legends smurf detection system featuri
 - **[API_TRANSITION_PLAN.md](API_TRANSITION_PLAN.md)** - Transition plan from mock to real API data
 
 ### **💻 Development Workflow:**
-- **[GIT_WORKFLOW_GUIDE.md](GIT_WORKFLOW_GUIDE.md)** - Git branching strategy and safety protocols
 - **[SMURF_DETECTION_GUIDE.md](SMURF_DETECTION_GUIDE.md)** - Smurf detection algorithms and methodology
 
 ## Directory Structure
@@ -218,12 +224,12 @@ main (PROTECTED) ← Only after user confirms everything tested
 ## 🎯 **AI Development Guidelines**
 
 ### **📋 MANDATORY READING FOR AI ASSISTANTS:**
-1. **[AI_TASK_LIST.md](AI_TASK_LIST.md)** - Task management and workflow rules
+1. **[AI_QUICK_STATUS.md](AI_QUICK_STATUS.md)** - Complete project status, deployment info, git status, commands, and rules in one place
 2. **[GIT_WORKFLOW_GUIDE.md](GIT_WORKFLOW_GUIDE.md)** - Git safety protocols
 3. **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Current feature completion status
 
 ### **🚨 Critical Rules:**
-1. **Check AI_TASK_LIST.md FIRST** - Prevent duplicate work
+1. **Check AI_QUICK_STATUS.md FIRST** - Prevent duplicate work
 2. **Never create standalone demos** - Always integrate into existing structure
 3. **Follow project structure** - Don't modify without permission
 4. **Ask for clarification** - Don't guess what user wants
