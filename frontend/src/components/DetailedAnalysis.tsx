@@ -27,7 +27,7 @@ ChartJS.register(
 
 interface DetailedAnalysisProps {
   analysis: {
-    championPerformance: {
+    championPerformance?: {
       firstTimeChampions: Array<{
         championName: string;
         winRate: number;
@@ -37,7 +37,7 @@ interface DetailedAnalysisProps {
       }>;
       overallPerformanceScore: number;
     };
-    summonerSpellUsage: {
+    summonerSpellUsage?: {
       spellPlacementChanges: Array<{
         gameId: string;
         timestamp: Date;
@@ -46,7 +46,7 @@ interface DetailedAnalysisProps {
       }>;
       patternChangeScore: number;
     };
-    playtimeGaps: {
+    playtimeGaps?: {
       gaps: Array<{
         startDate: Date;
         endDate: Date;
@@ -55,6 +55,8 @@ interface DetailedAnalysisProps {
       }>;
       totalGapScore: number;
     };
+    // Allow any other properties for compatibility
+    [key: string]: any;
   };
 }
 
@@ -379,11 +381,11 @@ const ProgressBar = styled.div<{ percentage: number; color: string }>`
 
 export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) => {
   const [expandedSections, setExpandedSections] = useState({
-    championPerformance: true,
+    championPerformance: false,
     summonerSpells: false,
     playtimeGaps: false,
+    trendAnalysis: false,
     advancedMetrics: false,
-    trendAnalysis: false
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -392,6 +394,26 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
       [section]: !prev[section]
     }));
   };
+
+  // Provide default values for missing data
+  const defaultChampionPerformance = {
+    firstTimeChampions: [],
+    overallPerformanceScore: 0
+  };
+
+  const defaultSummonerSpellUsage = {
+    spellPlacementChanges: [],
+    patternChangeScore: 0
+  };
+
+  const defaultPlaytimeGaps = {
+    gaps: [],
+    totalGapScore: 0
+  };
+
+  const championPerformance = analysis.championPerformance || defaultChampionPerformance;
+  const summonerSpellUsage = analysis.summonerSpellUsage || defaultSummonerSpellUsage;
+  const playtimeGaps = analysis.playtimeGaps || defaultPlaytimeGaps;
 
   const chartOptions = {
     responsive: true,
@@ -450,20 +472,20 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
   };
 
   const championPerformanceData = {
-    labels: analysis.championPerformance.firstTimeChampions.slice(0, 5).map(c => 
+    labels: championPerformance.firstTimeChampions.slice(0, 5).map(c => 
       c.championName.length > 8 ? c.championName.slice(0, 8) + '...' : c.championName
     ),
     datasets: [
       {
         label: 'Win Rate (%)',
-        data: analysis.championPerformance.firstTimeChampions.slice(0, 5).map(c => c.winRate * 100),
+        data: championPerformance.firstTimeChampions.slice(0, 5).map(c => c.winRate * 100),
         backgroundColor: 'rgba(99, 179, 237, 0.7)',
         borderColor: 'rgba(99, 179, 237, 1)',
         borderWidth: 1,
       },
       {
         label: 'KDA',
-        data: analysis.championPerformance.firstTimeChampions.slice(0, 5).map(c => c.kda * 10),
+        data: championPerformance.firstTimeChampions.slice(0, 5).map(c => c.kda * 10),
         backgroundColor: 'rgba(129, 140, 248, 0.7)',
         borderColor: 'rgba(129, 140, 248, 1)',
         borderWidth: 1,
@@ -472,12 +494,12 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
   };
 
   const playtimeGapsData = {
-    labels: analysis.playtimeGaps.gaps.slice(0, 6).map(g => 
+    labels: playtimeGaps.gaps.slice(0, 6).map(g => 
       new Date(g.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     ),
     datasets: [{
       label: 'Gap Duration (Days)',
-      data: analysis.playtimeGaps.gaps.slice(0, 6).map(g => Math.round(g.durationHours / 24)),
+      data: playtimeGaps.gaps.slice(0, 6).map(g => Math.round(g.durationHours / 24)),
       backgroundColor: 'rgba(236, 72, 153, 0.7)',
       borderColor: 'rgba(236, 72, 153, 1)',
       borderWidth: 1,
@@ -563,11 +585,11 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
         <SectionContent isExpanded={expandedSections.championPerformance}>
             <CompactStatGrid>
               <CompactStatCard>
-              <StatValue>{Math.round(analysis.championPerformance.overallPerformanceScore * 100)}%</StatValue>
+              <StatValue>{Math.round(championPerformance.overallPerformanceScore * 100)}%</StatValue>
                 <StatLabel>Performance Score</StatLabel>
               </CompactStatCard>
               <CompactStatCard>
-                <StatValue>{analysis.championPerformance.firstTimeChampions.length}</StatValue>
+                <StatValue>{championPerformance.firstTimeChampions.length}</StatValue>
                 <StatLabel>Champions Analyzed</StatLabel>
               </CompactStatCard>
             </CompactStatGrid>
@@ -577,7 +599,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
             </ChartContainer>
             
             <ChampionGrid>
-              {analysis.championPerformance.firstTimeChampions.slice(0, 4).map((champ, index) => (
+              {championPerformance.firstTimeChampions.slice(0, 4).map((champ, index) => (
                 <ChampionCard key={index}>
                   <ChampionName>{champ.championName}</ChampionName>
                   <ChampionStatGrid>
@@ -613,11 +635,11 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
           <SectionContent isExpanded={expandedSections.playtimeGaps}>
             <CompactStatGrid>
               <CompactStatCard>
-                <StatValue>{analysis.playtimeGaps.gaps.length}</StatValue>
+                <StatValue>{playtimeGaps.gaps.length}</StatValue>
                 <StatLabel>Total Gaps</StatLabel>
               </CompactStatCard>
               <CompactStatCard>
-                <StatValue>{Math.round(analysis.playtimeGaps.totalGapScore * 100)}%</StatValue>
+                <StatValue>{Math.round(playtimeGaps.totalGapScore * 100)}%</StatValue>
                 <StatLabel>Gap Suspicion</StatLabel>
               </CompactStatCard>
             </CompactStatGrid>
@@ -627,7 +649,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
             </ChartContainer>
             
             <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-              {analysis.playtimeGaps.gaps.slice(0, 6).map((gap, index) => {
+              {playtimeGaps.gaps.slice(0, 6).map((gap, index) => {
                 const durationDays = Math.round(gap.durationHours / 24);
                 const severity = getGapSeverity(gap.durationHours);
                 
@@ -657,37 +679,38 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
           <SectionContent isExpanded={expandedSections.summonerSpells}>
             <CompactStatGrid>
               <CompactStatCard>
-                <StatValue>{analysis.summonerSpellUsage.spellPlacementChanges.length}</StatValue>
+                <StatValue>{summonerSpellUsage.spellPlacementChanges.length}</StatValue>
                 <StatLabel>Spell Changes</StatLabel>
               </CompactStatCard>
               <CompactStatCard>
-                <StatValue>{Math.round(analysis.summonerSpellUsage.patternChangeScore * 100)}%</StatValue>
+                <StatValue>{Math.round(summonerSpellUsage.patternChangeScore * 100)}%</StatValue>
                 <StatLabel>Pattern Score</StatLabel>
               </CompactStatCard>
             </CompactStatGrid>
             
             <div style={{ 
-              background: 'rgba(26, 32, 44, 0.8)', 
-              padding: '16px', 
+              padding: '16px',
+              background: 'rgba(45, 55, 72, 0.3)',
               borderRadius: '8px',
-              color: '#e2e8f0',
               border: '1px solid rgba(74, 85, 104, 0.3)'
             }}>
-              {analysis.summonerSpellUsage.spellPlacementChanges.length > 0 ? (
+              {summonerSpellUsage.spellPlacementChanges.length > 0 ? (
                   <div>
                   <h5 style={{ marginBottom: '12px', color: '#e2e8f0', fontSize: '14px' }}>Recent Spell Changes:</h5>
-                  {analysis.summonerSpellUsage.spellPlacementChanges.slice(0, 3).map((change, index) => (
-                    <div key={index} style={{ 
-                      padding: '8px 12px', 
-                      margin: '4px 0',
-                      background: 'rgba(99, 179, 237, 0.1)',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      border: '1px solid rgba(99, 179, 237, 0.2)'
-                    }}>
-                      <strong>Game {change.gameId}</strong> • {new Date(change.timestamp).toLocaleDateString()}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {summonerSpellUsage.spellPlacementChanges.slice(0, 3).map((change, index) => (
+                      <div key={index} style={{ 
+                        padding: '8px 12px', 
+                        margin: '4px 0',
+                        background: 'rgba(99, 179, 237, 0.1)',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        border: '1px solid rgba(99, 179, 237, 0.2)'
+                      }}>
+                        <strong>Game {change.gameId}</strong> • {new Date(change.timestamp).toLocaleDateString()}
+                      </div>
+                    ))}
                   </div>
-                  ))}
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', color: '#a0aec0', fontSize: '13px' }}>

@@ -397,13 +397,14 @@ class ApiService {
    */
   async getOpggIntegrationStatus(): Promise<any> {
     try {
-      const response = await this.api.get<ApiResponse<any>>('/integration/status');
+      const response = await this.api.get<any>('/integration/status');
       
-      if (!response.data.success || !response.data.integration) {
+      if (!response.data.success) {
         throw new Error(response.data.error?.message || 'Failed to get integration status');
       }
 
-      return response.data.integration;
+      // Handle different response structures
+      return response.data.integration || response.data.data || response.data;
     } catch (error) {
       throw error;
     }
@@ -414,13 +415,13 @@ class ApiService {
    */
   async getAnalysisCapabilities(): Promise<any> {
     try {
-      const response = await this.api.get<ApiResponse<any>>('/analysis/capabilities');
+      const response = await this.api.get<any>('/analysis/capabilities');
       
-      if (!response.data.success || !response.data.capabilities) {
+      if (!response.data.success) {
         throw new Error(response.data.error?.message || 'Failed to get analysis capabilities');
       }
 
-      return response.data.capabilities;
+      return response.data.capabilities || response.data.data || response.data;
     } catch (error) {
       throw error;
     }

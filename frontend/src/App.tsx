@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { DetailedAnalysis } from './components/DetailedAnalysis';
-import { EnhancedPlayerDashboard } from './components/EnhancedPlayerDashboard';
-import { AdvancedSmurfAnalysis } from './components/AdvancedSmurfAnalysis';
-import ChallengerDemo from './components/ChallengerDemo';
-import DebugTest from './components/DebugTest';
-import { apiService } from './services/api';
-import { SmurfAnalysis } from './types';
-import styled from 'styled-components';
 import './App.css';
+import styled from 'styled-components';
+import { apiService } from './services/api';
+import { SmurfAnalysis, Region, AnalysisRequest } from './types';
+import ChallengerDemo from './components/ChallengerDemo';
+import { AdvancedSmurfAnalysis } from './components/AdvancedSmurfAnalysis';
+import DebugTest from './components/DebugTest';
+import { EnhancedPlayerDashboard } from './components/EnhancedPlayerDashboard';
 
 const AppContainer = styled.div`
   max-width: 1200px;
@@ -478,7 +477,75 @@ function App() {
                   <ProbabilityLabel>{getProbabilityLabel(analysis.smurfProbability)}</ProbabilityLabel>
                 </ProbabilityDisplay>
 
-                <DetailedAnalysis analysis={analysis} />
+                {/* Show detailed analysis only if the data structure matches expectations */}
+                {analysis.championStats && Array.isArray(analysis.championStats) && analysis.championStats.length > 0 && (
+                  <div style={{
+                    background: '#2a2a2a',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    marginBottom: '20px'
+                  }}>
+                    <h3 style={{ color: '#e2e8f0', marginBottom: '16px' }}>🏆 Champion Performance</h3>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                      gap: '12px' 
+                    }}>
+                      {analysis.championStats.slice(0, 4).map((champ, index) => (
+                        <div key={index} style={{
+                          background: 'rgba(45, 55, 72, 0.6)',
+                          padding: '12px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(74, 85, 104, 0.3)'
+                        }}>
+                          <div style={{ fontWeight: 'bold', color: '#e2e8f0', marginBottom: '8px' }}>
+                            {champ.championName}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#a0aec0' }}>
+                            <div>Win Rate: {Math.round(champ.winRate)}%</div>
+                            <div>KDA: {champ.kda.toFixed(1)}</div>
+                            <div>CS/min: {champ.csPerMinute.toFixed(1)}</div>
+                            <div>Games: {champ.gamesPlayed}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Show detection reasons */}
+                {analysis.reasons && Array.isArray(analysis.reasons) && analysis.reasons.length > 0 && (
+                  <div style={{
+                    background: '#2a2a2a',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    marginBottom: '20px'
+                  }}>
+                    <h3 style={{ color: '#e2e8f0', marginBottom: '16px' }}>🚨 Detection Indicators</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {analysis.reasons.map((reason, index) => (
+                        <div key={index} style={{
+                          background: reason.severity === 'HIGH' ? 'rgba(252, 129, 129, 0.1)' : 'rgba(236, 201, 75, 0.1)',
+                          padding: '12px',
+                          borderRadius: '6px',
+                          border: `1px solid ${reason.severity === 'HIGH' ? 'rgba(252, 129, 129, 0.3)' : 'rgba(236, 201, 75, 0.3)'}`
+                        }}>
+                          <div style={{ fontWeight: 'bold', color: '#e2e8f0', marginBottom: '4px' }}>
+                            {reason.type.replace('_', ' ')} ({reason.severity})
+                          </div>
+                          <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '8px' }}>
+                            {reason.description}
+                          </div>
+                          {reason.evidence && reason.evidence.length > 0 && (
+                            <div style={{ fontSize: '12px', color: '#68d391' }}>
+                              Evidence: {reason.evidence.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </>
