@@ -372,6 +372,118 @@ class ApiService {
 
     return mockAnalysis;
   }
+
+  /**
+   * OP.GG Enhanced Player Analysis - Real Data Integration
+   */
+  async analyzePlayerWithOpgg(playerName: string, region: Region = 'na1'): Promise<any> {
+    try {
+      const response = await this.api.get<ApiResponse<any>>(
+        `/analyze/opgg-enhanced/${encodeURIComponent(playerName)}?region=${region}`
+      );
+      
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.error?.message || 'OP.GG enhanced analysis failed');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get OP.GG Integration Status
+   */
+  async getOpggIntegrationStatus(): Promise<any> {
+    try {
+      const response = await this.api.get<ApiResponse<any>>('/integration/status');
+      
+      if (!response.data.success || !response.data.integration) {
+        throw new Error(response.data.error?.message || 'Failed to get integration status');
+      }
+
+      return response.data.integration;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get Analysis Capabilities
+   */
+  async getAnalysisCapabilities(): Promise<any> {
+    try {
+      const response = await this.api.get<ApiResponse<any>>('/analysis/capabilities');
+      
+      if (!response.data.success || !response.data.capabilities) {
+        throw new Error(response.data.error?.message || 'Failed to get analysis capabilities');
+      }
+
+      return response.data.capabilities;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh Player Data (OP.GG)
+   */
+  async refreshPlayerData(playerName: string, region: Region = 'na1'): Promise<boolean> {
+    try {
+      const response = await this.api.post<ApiResponse<any>>(
+        `/refresh/${encodeURIComponent(playerName)}`,
+        { region }
+      );
+      
+      return response.data.success;
+    } catch (error) {
+      console.warn('Failed to refresh player data:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clear Cache
+   */
+  async clearCache(): Promise<boolean> {
+    try {
+      const response = await this.api.delete<ApiResponse<any>>('/cache/clear');
+      return response.data.success;
+    } catch (error) {
+      console.warn('Failed to clear cache:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Enhanced Analysis with Fallback
+   * Tries OP.GG first, falls back to basic analysis
+   */
+  async analyzePlayerEnhanced(playerName: string, region: Region = 'na1'): Promise<any> {
+    try {
+      // First try OP.GG enhanced analysis
+      return await this.analyzePlayerWithOpgg(playerName, region);
+    } catch (opggError) {
+      console.warn('OP.GG analysis failed, falling back to basic analysis:', opggError);
+      
+      try {
+        // Fallback to basic analysis
+        return await this.analyzePlayer({
+          playerName,
+          region,
+          gameCount: 20,
+          includeRanked: true,
+          includeNormal: false
+        });
+      } catch (basicError) {
+        console.warn('Basic analysis also failed, using mock data:', basicError);
+        
+        // Final fallback to mock data
+        return await this.mockAnalyzePlayer(playerName);
+      }
+    }
+  }
 }
 
 // Export singleton instance

@@ -21,6 +21,8 @@ const AdvancedDataService_1 = require("./services/AdvancedDataService");
 const RankBenchmarkService_1 = require("./services/RankBenchmarkService");
 const PlaystyleAnalysisService_1 = require("./services/PlaystyleAnalysisService");
 const HybridAnalysisService_1 = require("./services/HybridAnalysisService");
+const DataFetchingService_1 = require("./services/DataFetchingService");
+const OpggDataAdapter_1 = require("./services/OpggDataAdapter");
 // import { EnhancedAnalysisService } from './services/EnhancedAnalysisService'; // Temporarily disabled due to TypeScript errors
 // Load environment variables
 dotenv_1.default.config();
@@ -49,6 +51,16 @@ const apiKeyValidator = new api_key_validator_1.ApiKeyValidator(apiKey);
 const rankBenchmarkService = new RankBenchmarkService_1.RankBenchmarkService();
 const playstyleAnalysisService = new PlaystyleAnalysisService_1.PlaystyleAnalysisService();
 const hybridAnalysisService = new HybridAnalysisService_1.HybridAnalysisService(apiKey);
+// Initialize OP.GG integration services
+const dataFetchingService = new DataFetchingService_1.DataFetchingService(riotApi);
+const opggAdapter = new OpggDataAdapter_1.OpggDataAdapter();
+// Log OP.GG integration status
+const opggStatus = dataFetchingService.getIntegrationStatus();
+loggerService_1.logger.info(`OP.GG Integration Status: ${opggStatus.serviceName}`);
+loggerService_1.logger.info(`OP.GG Features: ${opggStatus.features.join(', ')}`);
+if (opggStatus.limitations.length > 0) {
+    loggerService_1.logger.warn(`OP.GG Limitations: ${opggStatus.limitations.join(', ')}`);
+}
 // Setup API routes
 app.get('/api/health', async (req, res, next) => {
     try {
@@ -583,71 +595,193 @@ app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
         });
     }
 });
-// API Capability Overview
-app.get('/api/analysis/capabilities', (req, res) => {
-    const apiKeyType = process.env.RIOT_API_KEY ? 'development' : 'none';
-    res.json({
-        success: true,
-        capabilities: {
-            apiKeyType,
-            availableAnalysis: {
-                basic: {
-                    available: true,
-                    description: 'Basic smurf detection with limited recent data',
-                    endpoint: '/api/analyze/basic/:summonerName'
-                },
-                ultraComprehensive: {
-                    available: apiKeyType !== 'development',
-                    description: '5+ years of historical data, account switching detection, enhanced gap analysis',
-                    endpoint: '/api/analyze/comprehensive/:summonerName',
-                    requiredApiKey: 'Personal or Production',
-                    features: [
-                        '5+ years historical analysis',
-                        'Account switching detection',
-                        'Enhanced gap analysis (weeks to years)',
-                        'Champion expertise after gaps',
-                        'Role mastery changes',
-                        'Performance anomaly detection'
-                    ]
-                },
-                enhancedHistorical: {
-                    available: apiKeyType !== 'development',
-                    description: 'Deep historical pattern analysis with account switching detection',
-                    endpoint: '/api/analyze/historical/:summonerName',
-                    requiredApiKey: 'Personal or Production'
-                },
-                championFocused: {
-                    available: apiKeyType !== 'development',
-                    description: 'Champion mastery progression with post-gap expertise analysis',
-                    endpoint: '/api/analyze/champions/:summonerName',
-                    requiredApiKey: 'Personal or Production'
-                }
-            },
-            enhancedMetrics: {
-                fiveYearAnalysis: apiKeyType !== 'development',
-                accountSwitchingDetection: apiKeyType !== 'development',
-                enhancedGapAnalysis: apiKeyType !== 'development',
-                championPostGapExpertise: apiKeyType !== 'development',
-                csPerMinute: apiKeyType !== 'development',
-                laneDominance: apiKeyType !== 'development',
-                visionMetrics: apiKeyType !== 'development',
-                skillProgression: apiKeyType !== 'development',
-                roleShiftDetection: apiKeyType !== 'development'
-            },
-            upgradeInstructions: {
-                personalApiKey: 'https://developer.riotgames.com/app-type',
-                benefits: [
-                    'Access to summoner and match data',
-                    '5+ years of historical analysis',
-                    'Account switching detection',
-                    'Enhanced gap analysis (months to years)',
-                    'Champion expertise tracking after gaps',
-                    'Performance anomaly detection',
-                    'Role mastery change detection'
+// OP.GG Enhanced Player Analysis - Real Data Integration
+app.get('/api/analyze/opgg-enhanced/:summonerName', async (req, res) => {
+    const { summonerName } = req.params;
+    const { region = 'na1' } = req.query;
+    const startTime = Date.now();
+    try {
+        loggerService_1.logger.info(`🌟 OP.GG Enhanced analysis requested for: ${summonerName} in ${region}`);
+        // Use enhanced data fetching with OP.GG integration
+        const enhancedAnalysis = await dataFetchingService.fetchEnhancedPlayerAnalysis(summonerName, region);
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, false);
+        res.json({
+            success: true,
+            data: enhancedAnalysis,
+            metadata: {
+                responseTime: `${responseTime}ms`,
+                timestamp: new Date().toISOString(),
+                analysisType: 'opgg-enhanced',
+                dataSource: enhancedAnalysis.analysisMetadata.apiLimitations.includes('OP.GG data unavailable') ? 'Riot API Fallback' : 'OP.GG MCP',
+                features: [
+                    'Real summoner data via OP.GG',
+                    'Enhanced match history analysis',
+                    'Champion mastery verification',
+                    'Professional-grade UI integration',
+                    'Meta comparison capabilities'
                 ]
             }
+        });
+    }
+    catch (error) {
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, true);
+        loggerService_1.logger.error(`Error in OP.GG enhanced analysis for ${summonerName}:`, error);
+        const statusCode = error.statusCode || 500;
+        let userMessage = error.message || 'Failed to perform OP.GG enhanced analysis';
+        let errorCode = 'OPGG_ENHANCED_ANALYSIS_FAILED';
+        switch (statusCode) {
+            case 404:
+                errorCode = 'SUMMONER_NOT_FOUND';
+                userMessage = `Summoner "${summonerName}" not found in ${region}. Please check the spelling and region.`;
+                break;
+            case 429:
+                errorCode = 'RATE_LIMIT_EXCEEDED';
+                userMessage = 'OP.GG API rate limit exceeded. Please wait a moment and try again.';
+                break;
+            case 503:
+                errorCode = 'OPGG_SERVICE_UNAVAILABLE';
+                userMessage = 'OP.GG service is currently unavailable. Falling back to Riot API data.';
+                break;
         }
-    });
+        res.status(statusCode).json({
+            success: false,
+            error: errorCode,
+            message: userMessage,
+            details: error.message,
+            fallbackAvailable: true,
+            suggestions: [
+                'Try again in a few moments',
+                'Check if summoner name is spelled correctly',
+                'Verify the correct region is selected'
+            ]
+        });
+    }
+});
+// OP.GG Data Refresh Endpoint
+app.post('/api/refresh/:summonerName', async (req, res) => {
+    const { summonerName } = req.params;
+    const { region = 'na1' } = req.body;
+    const startTime = Date.now();
+    try {
+        loggerService_1.logger.info(`🔄 Data refresh requested for: ${summonerName} in ${region}`);
+        await dataFetchingService.refreshSummonerData(summonerName, region);
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, false);
+        res.json({
+            success: true,
+            message: `Successfully refreshed data for ${summonerName}`,
+            metadata: {
+                responseTime: `${responseTime}ms`,
+                timestamp: new Date().toISOString(),
+                refreshedSummoner: summonerName,
+                region: region
+            }
+        });
+    }
+    catch (error) {
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, true);
+        loggerService_1.logger.error(`Error refreshing data for ${summonerName}:`, error);
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            success: false,
+            error: 'DATA_REFRESH_FAILED',
+            message: error.message || 'Failed to refresh summoner data',
+            fallbackNote: statusCode === 400 ? 'OP.GG integration may not be enabled' : undefined
+        });
+    }
+});
+// OP.GG Integration Status Endpoint
+app.get('/api/integration/status', (req, res) => {
+    try {
+        const integrationStatus = dataFetchingService.getIntegrationStatus();
+        const cacheStats = dataFetchingService.getCacheStats();
+        res.json({
+            success: true,
+            integration: integrationStatus,
+            cache: cacheStats,
+            metadata: {
+                timestamp: new Date().toISOString(),
+                endpoint: '/api/integration/status'
+            }
+        });
+    }
+    catch (error) {
+        loggerService_1.logger.error('Error getting integration status:', error);
+        res.status(500).json({
+            success: false,
+            error: 'INTEGRATION_STATUS_ERROR',
+            message: 'Failed to get integration status'
+        });
+    }
+});
+// Cache Management Endpoint
+app.delete('/api/cache/clear', (req, res) => {
+    try {
+        dataFetchingService.clearCache();
+        res.json({
+            success: true,
+            message: 'All caches cleared successfully',
+            metadata: {
+                timestamp: new Date().toISOString(),
+                clearedCaches: ['basic', 'enhanced', 'opgg']
+            }
+        });
+    }
+    catch (error) {
+        loggerService_1.logger.error('Error clearing cache:', error);
+        res.status(500).json({
+            success: false,
+            error: 'CACHE_CLEAR_ERROR',
+            message: 'Failed to clear cache'
+        });
+    }
+});
+// Analysis capabilities endpoint
+app.get('/api/analysis/capabilities', (req, res) => {
+    try {
+        const integrationStatus = dataFetchingService.getIntegrationStatus();
+        const capabilities = {
+            basicAnalysis: {
+                available: true,
+                endpoint: '/api/analyze/basic/:summonerName',
+                description: 'Basic smurf detection using Riot API',
+                dataSource: 'Riot API'
+            },
+            enhancedAnalysis: {
+                available: integrationStatus.opggEnabled,
+                endpoint: '/api/analyze/opgg-enhanced/:summonerName',
+                description: 'Enhanced analysis with real OP.GG data',
+                dataSource: integrationStatus.opggEnabled ? 'OP.GG MCP + Riot API Fallback' : 'Riot API Only'
+            },
+            advancedFeatures: {
+                dataRefresh: integrationStatus.opggEnabled,
+                realTimeData: integrationStatus.opggEnabled,
+                championAnalysis: integrationStatus.opggEnabled,
+                metaComparison: integrationStatus.opggEnabled
+            },
+            regions: ['na1', 'euw1', 'kr', 'br1', 'eun1', 'jp1', 'lan', 'las', 'oc1', 'tr1', 'ru'],
+            limitations: integrationStatus.limitations
+        };
+        res.json({
+            success: true,
+            capabilities,
+            metadata: {
+                timestamp: new Date().toISOString(),
+                integrationEnabled: integrationStatus.opggEnabled
+            }
+        });
+    }
+    catch (error) {
+        loggerService_1.logger.error('Error getting analysis capabilities:', error);
+        res.status(500).json({
+            success: false,
+            error: 'CAPABILITIES_ERROR',
+            message: 'Failed to get analysis capabilities'
+        });
+    }
 });
 // Challenger Smurf Analysis Demo Endpoint
 app.get('/api/demo/challenger-analysis', async (req, res) => {
