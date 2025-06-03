@@ -1,161 +1,158 @@
-# AI Assistant Task List & Workflow
+# AI Task Management & Workflow Rules
 
-## 🚨 **CRITICAL RULES FOR AI ASSISTANTS**
+CRITICAL RULES FOR AI ASSISTANTS - Follow these workflows to prevent duplicate work and confusion.
 
-### **Before Starting ANY Task:**
-1. ✅ **Read CONTRIBUTING.md** - Understand project structure
-2. ✅ **Check this task list** - See what's already done
-3. ✅ **Never create standalone demos** - Always integrate into existing structure
-4. ✅ **Ask user for clarification** if task seems like duplicate work
+## PROJECT SETUP VERIFICATION
 
-### **Project Structure - DO NOT MODIFY:**
-```
+Before starting any task:
+1. Read AI_QUICK_STATUS.md first - contains current deployment status, git state, and project info
+2. Check this task list for available work
+3. Never create standalone demos - always integrate into existing structure
+4. Ask user for clarification if task seems like duplicate work
+
+## PROJECT STRUCTURE - DO NOT MODIFY
+
 league-smurf-detector/
-├── frontend/                    # React app (LIVE on Vercel)
-│   ├── src/components/         # Integrated React components
-│   └── src/services/           # Frontend API services
-├── src/                        # Backend (Deploy to Railway)
-│   ├── services/               # Backend business logic
-│   ├── api/                    # Riot API integration
-│   └── index.ts                # Main server file
-├── docs/                       # Documentation only
-└── config/                     # Configuration files
-```
+├── frontend/ (React app - LIVE on Vercel)
+│   ├── src/components/ (Integrated React components)
+│   └── src/services/ (Frontend API services)
+├── src/ (Backend - LIVE on Railway)
+│   ├── services/ (Backend business logic)
+│   ├── api/ (Riot API integration)
+│   └── utils/ (Utilities and helpers)
+├── docs/ (Documentation - AI optimized)
+└── tests/ (19/19 passing)
 
-## ✅ **COMPLETED TASKS - DO NOT DUPLICATE**
+## COMPLETED TASKS - DO NOT REPEAT
 
-### **Advanced Smurf Detection System** ✅
-- **Backend Services:**
-  - ✅ `RankBenchmarkService.ts` - Role-specific rank comparisons (Iron-Challenger)
-  - ✅ `PlaystyleAnalysisService.ts` - 30-day time window analysis, dramatic changes
-  - ✅ `HybridAnalysisService.ts` - Combined quick/deep/hybrid analysis
-  - ✅ API endpoints: `/api/analyze/advanced-smurf/` and `/api/analyze/champion-outliers/`
+MAJOR FEATURES COMPLETE:
+- Service consolidation (removed duplicates: smurf-detector.service.ts, riot.service.ts)
+- Advanced smurf detection system integrated into frontend
+- RankBenchmarkService with role-specific comparisons
+- PlaystyleAnalysisService with 30-day time window analysis
+- HybridAnalysisService with quick/deep/hybrid modes
+- Professional op.gg-style UI components
+- Railway deployment working and live
+- Package.json fixed for proper backend deployment
+- All 19 tests passing
+- Frontend builds successfully
+- Documentation consolidated
 
-- **Frontend Integration:**
-  - ✅ `AdvancedSmurfAnalysis.tsx` - op.gg-style tables, outlier detection
-  - ✅ Integrated as "Advanced Detection" tab in existing App.tsx
-  - ✅ Rank vs performance tables with 95th+ percentile highlighting
-  - ✅ Dramatic playstyle change detection with visual indicators
+BACKEND SERVICES WORKING:
+- SmurfDetectionService.ts (core detection algorithms)
+- AdvancedDataService.ts (comprehensive analysis)
+- RankBenchmarkService.ts (role-specific rank comparisons)
+- PlaystyleAnalysisService.ts (dramatic playstyle change detection)
+- HybridAnalysisService.ts (combined analysis modes)
+- All TODO comments fixed
+- Champion name mapping implemented
+- Dynamic region support added
 
-### **Core Features Implemented** ✅
-- ✅ **Rank Benchmarking:** CS/min, KDA, kill participation, vision, damage, gold, wards
-- ✅ **Outlier Detection:** 95th+ percentile highlighting, suspicion scoring
-- ✅ **Playstyle Evolution:** 30-day windows, gradual/sudden/dramatic shifts
-- ✅ **Champion Analysis:** "Too good too fast", sudden expertise flags
-- ✅ **Professional UI:** op.gg-style design, comprehensive data tables
+FRONTEND COMPONENTS WORKING:
+- AdvancedSmurfAnalysis.tsx (advanced detection interface)
+- EnhancedPlayerDashboard.tsx (op.gg-style dashboard)
+- Tab system integration complete
+- Professional styling with outlier detection
 
-## 🎯 **AVAILABLE TASKS FOR AI ASSISTANTS**
+## AVAILABLE TASKS FOR AI ASSISTANTS
 
-### **Priority 1 - Backend Optimization** ✅ **COMPLETED**
-- [x] **Service Consolidation** - Review and merge duplicate services:
-  - ✅ Removed `smurf-detector.service.ts` (kept `SmurfDetectionService.ts` - more complete)
-  - ✅ Removed `riot.service.ts` (kept `api/RiotApi.ts` - proper structure)
-  - ✅ Fixed champion name TODO in SmurfDetectionService.ts
-  - ✅ All 19 tests still passing after cleanup
+PRIORITY 1 - UI ENHANCEMENTS:
+- Polish advanced detection interface
+- Improve error messages for API limitations
+- Add loading states and progress indicators
+- Enhance responsive design for mobile
 
-- [x] **API Key Enhancement** - Improve API key handling:
-  - ✅ Fixed hardcoded region in AdvancedDataService.ts (now dynamic)
-  - ✅ Fixed seasonal activity TODO - implemented comprehensive tracking
-  - ✅ Fixed historical rank TODO - added performance-based estimation
-  - ✅ Better error messages for Development vs Personal API keys
+PRIORITY 2 - ERROR HANDLING:
+- Better user experience when Development API Key limits hit
+- Graceful degradation for missing data
+- Improved error messages and recovery suggestions
+- API rate limit handling improvements
 
-### **Priority 2 - Data Enhancement** 🔄 **READY FOR IMPLEMENTATION**
-- [ ] **Real Rank Detection** - Instead of hardcoded 'GOLD':
-  - Fetch actual player rank from ranked API
-  - Use appropriate rank benchmarks for comparison
-  - Handle unranked players appropriately
+PRIORITY 3 - FEATURE EXTENSIONS:
+- Additional analysis modes
+- Extended champion performance metrics
+- Historical trend analysis (within API limitations)
+- Export functionality for analysis results
 
-- [ ] **Enhanced Metrics** - Add more sophisticated analysis:
-  - Role detection from match history (not hardcoded 'MIDDLE')
-  - Champion difficulty scoring (simple vs complex champions)
-  - Meta champion detection based on patch data
+PRIORITY 4 - DOCUMENTATION:
+- Update API documentation with new endpoints
+- Code documentation improvements
+- User guide for frontend features
 
-### **Priority 3 - Frontend Polish** 🔄 **READY FOR IMPLEMENTATION**
-- [ ] **Error Handling** - Better user experience:
-  - Loading states with progress indicators
-  - Informative error messages
-  - Retry mechanisms for failed requests
+## BLOCKED TASKS - REQUIRE PERSONAL API KEY
 
-- [ ] **Data Visualization** - Charts and graphs:
-  - Performance trends over time
-  - Percentile visualization
-  - Champion mastery progression charts
+These tasks cannot be completed with Development API Key:
+- Real player data analysis
+- Match history deep analysis (beyond basic endpoints)
+- Full rank detection features
+- Historical player performance tracking
 
-### **Priority 4 - Testing & Documentation** 🔄 **READY FOR IMPLEMENTATION**
-- [ ] **Backend Testing** - Comprehensive test coverage:
-  - Unit tests for analysis services
-  - Integration tests for API endpoints
-  - Mock data for testing
+## WORKFLOW RULES
 
-- [ ] **User Documentation** - Clear guides:
-  - How to interpret results
-  - Understanding suspicion scores
-  - API key setup instructions
+GIT WORKFLOW:
+- Always work on development branch first
+- Test everything before merging to main
+- Railway deploys automatically when code pushed
+- User must confirm before production deployment
 
-## ✅ **COMPLETED IN PHASE 1 - Service Consolidation**
+INTEGRATION RULES:
+- Never create standalone projects or demos
+- Always integrate features into existing components
+- Follow existing component patterns and styling
+- Maintain consistency with current architecture
 
-### **🧹 Cleanup Completed:**
-- ✅ **Removed 2 duplicate services** (saved ~12KB of redundant code)
-- ✅ **Fixed 4 TODO comments** with proper implementations
-- ✅ **Made region dynamic** instead of hardcoded 'na1'
-- ✅ **Added champion name mapping** for 100+ champions
-- ✅ **Implemented seasonal activity tracking**
-- ✅ **Added rank estimation** based on performance
-- ✅ **All 19 tests passing** - no regressions
+TESTING REQUIREMENTS:
+- Run npx jest to verify all 19 tests pass
+- Test frontend build with npm run build
+- Verify Railway deployment still works
+- Check both frontend and backend health endpoints
 
-### **🚀 Ready for Phase 2:**
-- ✅ **Codebase cleaned** - no more duplicate services
-- ✅ **TODOs resolved** - major ones fixed
-- ✅ **Project organized** - cleaner structure
-- ✅ **Tests validated** - everything working
+## SERVICE REFERENCE
 
-## 🎯 **CURRENT PROJECT STATUS**
+EXISTING SERVICES (working - do not duplicate):
+- RankBenchmarkService.ts
+- PlaystyleAnalysisService.ts  
+- HybridAnalysisService.ts
+- SmurfDetectionService.ts
+- AdvancedDataService.ts
+- ChallengerService.ts
+- ChampionService.ts
+- LimitedAccessService.ts
 
-### **Working & Deployed:**
-- ✅ Frontend: React app with Advanced Detection tab
-- ✅ Backend: Ready for Railway deployment (cleaned & optimized)
-- ✅ Integration: All components properly connected
-- ✅ **NEW**: Service consolidation complete - cleaner codebase
+REMOVED SERVICES (do not recreate):
+- smurf-detector.service.ts (duplicate)
+- riot.service.ts (duplicate)
+- EnhancedAnalysisService.ts.disabled (40+ TypeScript errors)
 
-### **Ready for User Testing:**
-- ✅ Advanced Smurf Analysis functionality
-- ✅ Rank benchmarking with outlier detection
-- ✅ Playstyle change detection
-- ✅ Professional UI matching op.gg style
-- ✅ **NEW**: Champion names displayed properly
-- ✅ **NEW**: Dynamic region support
+## API ENDPOINTS WORKING
 
-### **Next Steps (User Choice):**
-1. **Deploy backend to Railway** for full functionality (RECOMMENDED NEXT)
-2. **Enhance with Priority 2 tasks** (real rank detection)
-3. **Add Priority 3 features** (error handling, loading states)
-4. **Polish with Priority 4 improvements** (testing, documentation)
+Advanced analysis endpoints:
+- /api/analyze/advanced-smurf/:summonerName
+- /api/analyze/champion-outliers/:summonerName
+- /api/analyze/basic/:summonerName
+- /api/analyze/historical/:summonerName
+- /api/analyze/champions/:summonerName
+- /api/analysis/capabilities
 
-## 🚫 **FORBIDDEN TASKS - DO NOT DO**
+Health and monitoring:
+- /api/health (comprehensive health check)
+- /health (basic health for load balancers)
+- /api/metrics (performance metrics)
+- /metrics (Prometheus format)
 
-### **Never Create These:**
-- ❌ Standalone demo files (use existing Demo tab)
-- ❌ Separate HTML/CSS files (use React styled-components)
-- ❌ Duplicate services with similar names
-- ❌ New component directories outside `frontend/src/components/`
-- ❌ Alternative project structures
+## CURRENT PROJECT PHASE
 
-### **Always Check First:**
-- ❌ Don't create new endpoints without checking existing ones
-- ❌ Don't modify project structure without user permission
-- ❌ Don't create "enhanced" versions of existing files
-- ❌ Don't add new dependencies without asking
+Phase completed: Service consolidation and Railway deployment
+Current status: Production-ready with mock data
+Ready for: Feature enhancements and UI improvements
+Limitation: Development API Key restricts real player data access
 
-## 📝 **TASK ASSIGNMENT PROTOCOL**
+## QUICK REFERENCE
 
-### **When User Assigns a Task:**
-1. **Check this list** - Is it already done?
-2. **Ask for clarification** - Which specific part needs work?
-3. **Propose specific changes** - Don't guess what they want
-4. **Work within existing structure** - Modify, don't replace
+Git status: development branch (clean)
+Railway status: Project "SmurfGaurd" linked and deployed
+Tests: 19/19 passing
+Frontend: Live at https://lol-smurfguard.vercel.app/
+Backend: Live on Railway
 
-### **Before Making Changes:**
-1. **Read existing code** - Understand current implementation
-2. **Identify exact files to modify** - Be specific
-3. **Explain your approach** - Get user confirmation
-4. **Make minimal changes** - Don't refactor unless asked 
+If unsure about project state, check AI_QUICK_STATUS.md first. 
