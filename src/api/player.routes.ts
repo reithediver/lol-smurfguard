@@ -1,24 +1,21 @@
 import { Router, Request, Response } from 'express';
 import { AppError } from '../utils/errorHandler';
-import { riotService } from '../services/riot.service';
+import { RiotApi } from './RiotApi';
 
 const router = Router();
+const riotApi = new RiotApi(process.env.RIOT_API_KEY || '');
 
 // Get player analysis
 router.get('/:summonerName', async (req: Request, res: Response) => {
   try {
     const { summonerName } = req.params;
-    const summoner = await riotService.getSummonerByName(summonerName);
-    const leagueEntries = await riotService.getLeagueEntries(summoner.id);
-    const championMastery = await riotService.getChampionMastery(summoner.puuid);
-    const recentMatches = await riotService.getMatchHistory(summoner.puuid, undefined, 10);
+    const summoner = await riotApi.getSummonerByName(summonerName);
+    const matchHistory = await riotApi.getMatchHistory(summoner.puuid, 10);
 
     // TODO: Implement smurf detection logic
     res.status(200).json({
       summoner,
-      leagueEntries,
-      championMastery,
-      recentMatches,
+      recentMatches: matchHistory,
       smurfProbability: 0, // Placeholder for smurf detection algorithm
     });
   } catch (error) {
@@ -30,10 +27,10 @@ router.get('/:summonerName', async (req: Request, res: Response) => {
 router.get('/:summonerName/matches', async (req: Request, res: Response) => {
   try {
     const { summonerName } = req.params;
-    const summoner = await riotService.getSummonerByName(summonerName);
-    const matchIds = await riotService.getMatchHistory(summoner.puuid);
+    const summoner = await riotApi.getSummonerByName(summonerName);
+    const matchIds = await riotApi.getMatchHistory(summoner.puuid);
     const matches = await Promise.all(
-      matchIds.map((matchId: string) => riotService.getMatchDetails(matchId))
+      matchIds.map((matchId: string) => riotApi.getMatchDetails(matchId))
     );
 
     res.status(200).json({
@@ -48,11 +45,13 @@ router.get('/:summonerName/matches', async (req: Request, res: Response) => {
 router.get('/:summonerName/champions', async (req: Request, res: Response) => {
   try {
     const { summonerName } = req.params;
-    const summoner = await riotService.getSummonerByName(summonerName);
-    const championMastery = await riotService.getChampionMastery(summoner.puuid);
-
+    const summoner = await riotApi.getSummonerByName(summonerName);
+    // Note: Champion mastery API would need additional endpoints
+    
     res.status(200).json({
-      championMastery,
+      summonerName: summoner.name,
+      level: summoner.summonerLevel,
+      message: 'Champion mastery requires additional API endpoints'
     });
   } catch (error) {
     throw new AppError('Error fetching champion statistics', 500);
@@ -64,7 +63,6 @@ router.get('/live/:summonerName', async (req: Request, res: Response) => {
   try {
     let { summonerName } = req.params;
     console.log('Received request for summoner:', summonerName);
-    console.log('RIOT_API_KEY status:', process.env.RIOT_API_KEY ? 'Key present (starts with ' + process.env.RIOT_API_KEY.substring(0, 8) + '...)' : 'Key missing');
     
     // Remove region tag if present (e.g., #NA1) as Riot API doesn't use it in the URL
     if (summonerName.includes('#')) {
@@ -72,34 +70,19 @@ router.get('/live/:summonerName', async (req: Request, res: Response) => {
       console.log('Removed region tag, using name:', summonerName);
     }
     
-    // Check if the API key has the necessary permissions
     try {
-      // First try to get league data which might be accessible
-      const leagueData = await riotService.getChallengersLeague();
-      console.log('League data successfully retrieved, API key has some permissions');
-      
-      // Try to fetch summoner data
       console.log('Fetching summoner data for:', summonerName);
-      const summoner = await riotService.getSummonerByName(summonerName);
+      const summoner = await riotApi.getSummonerByName(summonerName);
       console.log('Summoner data received:', summoner.id);
-      
-      // Continue with the existing functionality...
-      // Fetch league entries
-      console.log('Fetching league entries for:', summoner.id);
-      const leagueEntries = await riotService.getLeagueEntries(summoner.id);
-      
-      // Fetch champion mastery
-      console.log('Fetching champion mastery for:', summoner.id);
-      const championMastery = await riotService.getChampionMastery(summoner.id);
       
       // Fetch recent matches
       console.log('Fetching match history for:', summoner.puuid);
-      const matchIds = await riotService.getMatchHistory(summoner.puuid, undefined, 5); // Reduced to 5 to avoid rate limits
+      const matchIds = await riotApi.getMatchHistory(summoner.puuid, 5); // Reduced to 5 to avoid rate limits
       console.log('Fetched match IDs:', matchIds);
       
       // Only fetch details for the first match to avoid rate limits during testing
       const matches = matchIds.length > 0 ? 
-        [await riotService.getMatchDetails(matchIds[0])] : [];
+        [await riotApi.getMatchDetails(matchIds[0])] : [];
       
       // Compose a Player object (simplified for now)
       const player = {
@@ -113,8 +96,7 @@ router.get('/live/:summonerName', async (req: Request, res: Response) => {
         smurfProbability: 0,
         suspiciousPatterns: [],
         matchHistory: matches,
-        championStats: [], // TODO: Map championMastery and match data to ChampionStats
-        leagueEntries,
+        championStats: [], // TODO: Map match data to ChampionStats
         lastUpdated: new Date()
       };
       
@@ -128,30 +110,13 @@ router.get('/live/:summonerName', async (req: Request, res: Response) => {
       if (apiError.response?.status === 403) {
         console.error('API access forbidden - API key has insufficient permissions');
         
-        // Try to get some usable data that's accessible
-        try {
-          const challengerLeague = await riotService.getChallengersLeague();
-          const championRotation = await riotService.getChampionRotation();
-          
-          res.status(200).json({
-            error: 'Limited API access',
-            message: 'Your API key does not have permission to access the requested data. Here is some available data instead.',
-            apiKeyLimited: true,
-            summonerName: summonerName,
-            availableData: {
-              challengerLeague: {
-                tier: challengerLeague.tier,
-                queue: challengerLeague.queue,
-                name: challengerLeague.name,
-                topPlayers: challengerLeague.entries.slice(0, 5)
-              },
-              championRotation
-            },
-            howToFix: 'You need to apply for a Riot API key with higher permissions. Visit https://developer.riotgames.com/ to request a production API key.'
-          });
-        } catch (fallbackError) {
-          throw new AppError('API key has insufficient permissions. Apply for a production key at https://developer.riotgames.com/', 403);
-        }
+        res.status(403).json({
+          error: 'Limited API access',
+          message: 'Your API key does not have permission to access the requested data.',
+          apiKeyLimited: true,
+          summonerName: summonerName,
+          howToFix: 'You need to apply for a Riot API key with higher permissions. Visit https://developer.riotgames.com/ to request a production API key.'
+        });
       } else {
         throw apiError; // Re-throw other errors
       }

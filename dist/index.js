@@ -18,6 +18,9 @@ const SmurfDetectionService_1 = require("./services/SmurfDetectionService");
 const ChampionService_1 = require("./services/ChampionService");
 const ChallengerService_1 = require("./services/ChallengerService");
 const AdvancedDataService_1 = require("./services/AdvancedDataService");
+const RankBenchmarkService_1 = require("./services/RankBenchmarkService");
+const PlaystyleAnalysisService_1 = require("./services/PlaystyleAnalysisService");
+const HybridAnalysisService_1 = require("./services/HybridAnalysisService");
 // import { EnhancedAnalysisService } from './services/EnhancedAnalysisService'; // Temporarily disabled due to TypeScript errors
 // Load environment variables
 dotenv_1.default.config();
@@ -42,6 +45,10 @@ const limitedAccessService = new LimitedAccessService_1.LimitedAccessService(api
 const championService = new ChampionService_1.ChampionService(apiKey, 'na1');
 const challengerService = new ChallengerService_1.ChallengerService(apiKey, 'na1');
 const apiKeyValidator = new api_key_validator_1.ApiKeyValidator(apiKey);
+// Initialize the new advanced analysis services
+const rankBenchmarkService = new RankBenchmarkService_1.RankBenchmarkService();
+const playstyleAnalysisService = new PlaystyleAnalysisService_1.PlaystyleAnalysisService();
+const hybridAnalysisService = new HybridAnalysisService_1.HybridAnalysisService(apiKey);
 // Setup API routes
 app.get('/api/health', async (req, res, next) => {
     try {
@@ -93,222 +100,209 @@ app.get('/metrics', (req, res) => {
     res.set('Content-Type', 'text/plain');
     res.send(performance_monitor_1.performanceMonitor.getPrometheusMetrics());
 });
-// Advanced Smurf Analysis Endpoints
-/*
-app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
-  const { summonerName } = req.params;
-  const startTime = Date.now();
-
-  try {
-    logger.info(`🔍 Comprehensive analysis requested for: ${summonerName}`);
-    logger.info('🚀 Initiating enhanced comprehensive analysis...');
-    
-    // Use new enhanced service
-    const enhancedService = new EnhancedAnalysisService(riotApi, 'na1');
-    const analysis = await enhancedService.analyzePlayerComprehensively(summonerName);
-    
-    const responseTime = Date.now() - startTime;
-    performanceMonitor.recordRequest(responseTime, false);
-    
-    res.json({
-      success: true,
-      data: analysis,
-      metadata: {
-        responseTime: `${responseTime}ms`,
-        timestamp: new Date().toISOString(),
-        dataQuality: analysis.analysisMetadata.dataQuality,
-        analysisDepth: 'enhanced-comprehensive',
-        features: [
-          'Op.gg style performance metrics',
-          'Lolrewind historical timeline analysis',
-          'Advanced smurf detection algorithms',
-          'Behavioral pattern analysis',
-          'Champion mastery progression tracking',
-          'Activity gap detection with performance correlation'
-        ]
-      }
-    });
-
-  } catch (error) {
-    const responseTime = Date.now() - startTime;
-    performanceMonitor.recordRequest(responseTime, true);
-    
-    logger.error(`Error in enhanced comprehensive analysis for ${summonerName}:`, error);
-    
-    if (error instanceof Error && error.message.includes('API key')) {
-      res.status(403).json({
-        success: false,
-        error: 'API_KEY_LIMITATION',
-        message: 'Enhanced comprehensive analysis requires Personal/Production API key. Currently using Development key.',
-        features: {
-          missing: [
-            'Extended historical data access (5+ years)',
-            'Match timeline data for precise performance metrics',
-            'Champion mastery scores',
-            'Advanced behavioral pattern detection'
-          ],
-          available: ['Basic analysis with limited recent data']
-        },
-        recommendation: 'Apply for Personal API key at https://developer.riotgames.com/app-type',
-        limitedAlternative: `/api/analyze/basic/${summonerName}`
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'ENHANCED_ANALYSIS_FAILED',
-        message: 'Failed to perform enhanced comprehensive analysis',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  }
-});
-*/
-// Enhanced stats endpoint for op.gg style data
-/*
-app.get('/api/stats/enhanced/:summonerName', async (req, res) => {
-  const { summonerName } = req.params;
-  const startTime = Date.now();
-
-  try {
-    logger.info(`📊 Enhanced stats requested for: ${summonerName}`);
-    
-    const enhancedService = new EnhancedAnalysisService(riotApi, 'na1');
-    
-    // Get basic summoner info first
-    const summoner = await riotApi.getSummonerByName(summonerName);
-    
-    // Get limited match history for stats
-    const matchHistory = await enhancedService.getExtensiveMatchHistory(summoner.puuid);
-    const gameMetrics = await enhancedService.processMatchMetrics(matchHistory.slice(0, 100)); // Last 100 games
-    
-    const responseTime = Date.now() - startTime;
-    performanceMonitor.recordRequest(responseTime, false);
-    
-    // Calculate op.gg style statistics
-    const stats = {
-      summoner: {
-        name: summoner.name,
-        level: summoner.summonerLevel,
-        profileIconId: summoner.profileIconId
-      },
-      recentStats: {
-        totalGames: gameMetrics.length,
-        winRate: (gameMetrics.filter(g => g.outcome === 'win').length / gameMetrics.length) * 100,
-        avgKDA: gameMetrics.reduce((sum, g) => sum + g.metrics.kda.ratio, 0) / gameMetrics.length,
-        avgCS: gameMetrics.reduce((sum, g) => sum + g.metrics.csData.perMinute, 0) / gameMetrics.length,
-        avgVision: gameMetrics.reduce((sum, g) => sum + g.metrics.visionMetrics.visionScore, 0) / gameMetrics.length,
-        avgDamageShare: gameMetrics.reduce((sum, g) => sum + g.metrics.damageMetrics.damageShare, 0) / gameMetrics.length
-      },
-      championStats: enhancedService.analyzeChampionMastery(gameMetrics).slice(0, 10), // Top 10 champions
-      performanceTrends: {
-        last20Games: gameMetrics.slice(0, 20).map(g => ({
-          timestamp: g.timestamp,
-          outcome: g.outcome,
-          champion: g.champion,
-          kda: g.metrics.kda.ratio,
-          cs: g.metrics.csData.perMinute
-        }))
-      }
-    };
-    
-    res.json({
-      success: true,
-      data: stats,
-      metadata: {
-        responseTime: `${responseTime}ms`,
-        timestamp: new Date().toISOString(),
-        gamesAnalyzed: gameMetrics.length
-      }
-    });
-
-  } catch (error) {
-    const responseTime = Date.now() - startTime;
-    performanceMonitor.recordRequest(responseTime, true);
-    
-    logger.error(`Error in enhanced stats for ${summonerName}:`, error);
-    res.status(500).json({
-      success: false,
-      error: 'ENHANCED_STATS_FAILED',
-      message: 'Failed to retrieve enhanced statistics',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-*/
-// Timeline analysis endpoint for lolrewind style historical view
-/*
-app.get('/api/timeline/:summonerName', async (req, res) => {
-  const { summonerName } = req.params;
-  const startTime = Date.now();
-
-  try {
-    logger.info(`📈 Timeline analysis requested for: ${summonerName}`);
-    
-    const enhancedService = new EnhancedAnalysisService(riotApi, 'na1');
-    
-    // Get basic summoner info first
-    const summoner = await riotApi.getSummonerByName(summonerName);
-    
-    // Get extensive match history for timeline analysis
-    const matchHistory = await enhancedService.getExtensiveMatchHistory(summoner.puuid);
-    const gameMetrics = await enhancedService.processMatchMetrics(matchHistory);
-    
-    // Build timeline with performance data
-    const timeline = enhancedService.buildHistoricalTimeline(gameMetrics, summoner);
-    
-    const responseTime = Date.now() - startTime;
-    performanceMonitor.recordRequest(responseTime, false);
-    
-    const timelineData = {
-      summoner: {
-        name: summoner.name,
-        level: summoner.summonerLevel,
-        profileIconId: summoner.profileIconId
-      },
-      timeline: {
-        totalGames: gameMetrics.length,
-        timelineEvents: gameMetrics.slice(0, 100).map(g => ({
-          timestamp: g.timestamp,
-          champion: g.champion,
-          outcome: g.outcome,
-          kda: g.metrics.kda.ratio,
-          cs: g.metrics.csData.perMinute,
-          damageShare: g.metrics.damageMetrics.damageShare,
-          visionScore: g.metrics.visionMetrics.visionScore
-        })),
-        performance: {
-          timeSpanDays: enhancedService.calculateTimeSpan(gameMetrics),
-          oldestGame: gameMetrics.length > 0 ? gameMetrics[gameMetrics.length - 1].timestamp : null,
-          newestGame: gameMetrics.length > 0 ? gameMetrics[0].timestamp : null
+// Advanced Smurf Analysis with Rank Benchmarking and Playstyle Detection
+app.get('/api/analyze/advanced-smurf/:summonerName', async (req, res) => {
+    const { summonerName } = req.params;
+    const { analysisType = 'hybrid' } = req.query; // 'quick', 'deep', or 'hybrid'
+    const startTime = Date.now();
+    try {
+        loggerService_1.logger.info(`🔍 Advanced smurf analysis requested for: ${summonerName} (${analysisType} mode)`);
+        // Get basic summoner info
+        const summoner = await riotApi.getSummonerByName(summonerName);
+        const matchHistory = await riotApi.getMatchHistory(summoner.puuid, 100);
+        // Perform the advanced analysis based on requested type
+        let analysisResult;
+        switch (analysisType) {
+            case 'quick':
+                analysisResult = await hybridAnalysisService.performQuickAnalysis(summonerName, 'na1');
+                break;
+            case 'deep':
+                analysisResult = await hybridAnalysisService.performDeepAnalysis(summonerName, 'na1');
+                break;
+            case 'hybrid':
+            default:
+                analysisResult = await hybridAnalysisService.performHybridAnalysis(summonerName, 'na1');
+                break;
         }
-      }
-    };
-    
-    res.json({
-      success: true,
-      data: timelineData,
-      metadata: {
-        responseTime: `${responseTime}ms`,
-        timestamp: new Date().toISOString(),
-        gamesAnalyzed: gameMetrics.length,
-        timelineSpan: `${timelineData.timeline.performance.timeSpanDays} days`
-      }
-    });
-
-  } catch (error) {
-    const responseTime = Date.now() - startTime;
-    performanceMonitor.recordRequest(responseTime, true);
-    
-    logger.error(`Error in timeline analysis for ${summonerName}:`, error);
-    res.status(500).json({
-      success: false,
-      error: 'TIMELINE_ANALYSIS_FAILED',
-      message: 'Failed to retrieve timeline analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, false);
+        res.json({
+            success: true,
+            data: {
+                summonerName,
+                level: summoner.summonerLevel,
+                ...analysisResult,
+                analysisMetadata: {
+                    analysisType,
+                    responseTime: `${responseTime}ms`,
+                    timestamp: new Date().toISOString(),
+                    gamesAnalyzed: matchHistory.length,
+                    features: [
+                        'Rank-based performance benchmarking',
+                        'Role-specific suspicious behavior detection',
+                        'Playstyle evolution tracking',
+                        'Account switching pattern analysis',
+                        'Champion mastery anomaly detection',
+                        'Performance outlier identification'
+                    ]
+                }
+            }
+        });
+    }
+    catch (error) {
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, true);
+        loggerService_1.logger.error(`Error in advanced smurf analysis for ${summonerName}:`, error);
+        // Use the specific status code from the service error, or default to 500
+        const statusCode = error.statusCode || error.response?.status || 500;
+        const errorMessage = error.message || 'Failed to perform advanced smurf analysis';
+        // Map error codes to user-friendly responses
+        let userMessage = errorMessage;
+        let errorCode = 'ADVANCED_SMURF_ANALYSIS_FAILED';
+        switch (statusCode) {
+            case 403:
+                errorCode = 'API_ACCESS_FORBIDDEN';
+                userMessage = `Cannot access player data for "${summonerName}". The Development API key has restrictions on famous players.`;
+                break;
+            case 404:
+                errorCode = 'PLAYER_NOT_FOUND';
+                userMessage = `Player "${summonerName}" not found. Please check the spelling and ensure they exist in the NA region.`;
+                break;
+            case 429:
+                errorCode = 'RATE_LIMIT_EXCEEDED';
+                userMessage = 'API rate limit exceeded. Please wait a moment and try again.';
+                break;
+            case 503:
+                errorCode = 'SERVICE_UNAVAILABLE';
+                userMessage = 'Riot API is currently unavailable. Please try again later.';
+                break;
+            default:
+                userMessage = 'Advanced analysis failed due to an unexpected error.';
+                break;
+        }
+        res.status(statusCode).json({
+            success: false,
+            error: errorCode,
+            message: userMessage,
+            details: errorMessage,
+            suggestions: statusCode === 403 ? [
+                'Try searching for a less well-known summoner name',
+                'Visit the Demo tab to see the analysis system working',
+                'Famous players (Faker, Doublelift, etc.) are restricted by Riot API'
+            ] : undefined
+        });
+    }
 });
-*/
+// Detailed Champion Performance Analysis with Outlier Detection
+app.get('/api/analyze/champion-outliers/:summonerName', async (req, res) => {
+    const { summonerName } = req.params;
+    const startTime = Date.now();
+    try {
+        loggerService_1.logger.info(`🎯 Champion outlier analysis requested for: ${summonerName}`);
+        const summoner = await riotApi.getSummonerByName(summonerName);
+        const matchHistory = await riotApi.getMatchHistory(summoner.puuid, 200);
+        // Get basic player metrics for rank comparison
+        const recentMatches = matchHistory.slice(0, 50);
+        const playerMetrics = {
+            csPerMin: 0,
+            kda: 0,
+            killParticipation: 0,
+            visionScore: 0,
+            primaryRole: 'MIDDLE' // Default, would be determined from match data
+        };
+        // Calculate metrics from recent matches
+        if (recentMatches.length > 0) {
+            let totalCs = 0, totalKDA = 0, totalKP = 0, totalVision = 0, totalMinutes = 0;
+            recentMatches.forEach((match) => {
+                const participant = match.info?.participants?.find((p) => p.puuid === summoner.puuid);
+                if (participant) {
+                    const gameDuration = match.info.gameDuration / 60;
+                    totalCs += (participant.totalMinionsKilled + participant.neutralMinionsKilled);
+                    totalKDA += participant.deaths > 0 ? (participant.kills + participant.assists) / participant.deaths : participant.kills + participant.assists;
+                    totalKP += participant.challenges?.killParticipation || 0;
+                    totalVision += participant.visionScore || 0;
+                    totalMinutes += gameDuration;
+                }
+            });
+            playerMetrics.csPerMin = totalMinutes > 0 ? totalCs / totalMinutes : 0;
+            playerMetrics.kda = totalKDA / recentMatches.length;
+            playerMetrics.killParticipation = (totalKP / recentMatches.length) * 100;
+            playerMetrics.visionScore = totalVision / recentMatches.length;
+        }
+        // Analyze each champion's performance vs rank benchmarks
+        const championAnalysis = rankBenchmarkService.comparePlayerToRank(playerMetrics, playerMetrics.primaryRole, 'GOLD' // Default rank, would be fetched from ranked data
+        );
+        const playstyleEvolution = await playstyleAnalysisService.analyzePlaystyleEvolution(matchHistory);
+        // Combine and identify outliers
+        const outlierAnalysis = {
+            performanceOutliers: championAnalysis.filter((comparison) => comparison.suspiciousLevel > 70 || comparison.percentile > 95),
+            playstyleShifts: playstyleEvolution.playstyleShifts.filter((shift) => shift.type === 'dramatic' || shift.type === 'sudden'),
+            championMasteryAnomalies: playstyleEvolution.championEvolution.filter((champion) => champion.suspicionFlags.tooGoodTooFast ||
+                champion.suspicionFlags.suddenExpertise),
+            summary: {
+                totalChampionsAnalyzed: playstyleEvolution.championEvolution.length,
+                suspiciousPerformanceCount: championAnalysis.filter((c) => c.suspiciousLevel > 70).length,
+                outlierPerformanceCount: championAnalysis.filter((c) => c.percentile > 95).length,
+                dramaticShiftsDetected: playstyleEvolution.playstyleShifts.filter((s) => s.type === 'dramatic').length,
+                overallSuspicionScore: playstyleEvolution.overallSuspicionScore
+            }
+        };
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, false);
+        res.json({
+            success: true,
+            data: outlierAnalysis,
+            metadata: {
+                responseTime: `${responseTime}ms`,
+                timestamp: new Date().toISOString(),
+                analysisDepth: 'comprehensive-outlier-detection'
+            }
+        });
+    }
+    catch (error) {
+        const responseTime = Date.now() - startTime;
+        performance_monitor_1.performanceMonitor.recordRequest(responseTime, true);
+        loggerService_1.logger.error(`Error in champion outlier analysis for ${summonerName}:`, error);
+        // Use the specific status code from the service error, or default to 500
+        const statusCode = error.statusCode || error.response?.status || 500;
+        const errorMessage = error.message || 'Failed to perform champion outlier analysis';
+        // Map error codes to user-friendly responses
+        let userMessage = errorMessage;
+        let errorCode = 'CHAMPION_OUTLIER_ANALYSIS_FAILED';
+        switch (statusCode) {
+            case 403:
+                errorCode = 'API_ACCESS_FORBIDDEN';
+                userMessage = `Cannot access player data for "${summonerName}". The Development API key has restrictions on famous players.`;
+                break;
+            case 404:
+                errorCode = 'PLAYER_NOT_FOUND';
+                userMessage = `Player "${summonerName}" not found. Please check the spelling and ensure they exist in the NA region.`;
+                break;
+            case 429:
+                errorCode = 'RATE_LIMIT_EXCEEDED';
+                userMessage = 'API rate limit exceeded. Please wait a moment and try again.';
+                break;
+            case 503:
+                errorCode = 'SERVICE_UNAVAILABLE';
+                userMessage = 'Riot API is currently unavailable. Please try again later.';
+                break;
+            default:
+                userMessage = 'Champion outlier analysis failed due to an unexpected error.';
+                break;
+        }
+        res.status(statusCode).json({
+            success: false,
+            error: errorCode,
+            message: userMessage,
+            details: errorMessage,
+            suggestions: statusCode === 403 ? [
+                'Try searching for a less well-known summoner name',
+                'Visit the Demo tab to see the analysis system working',
+                'Famous players (Faker, Doublelift, etc.) are restricted by Riot API'
+            ] : undefined
+        });
+    }
+});
 // Quick Analysis Endpoint (for current development API key)
 app.get('/api/analyze/basic/:summonerName', async (req, res) => {
     const { summonerName } = req.params;
@@ -334,11 +328,43 @@ app.get('/api/analyze/basic/:summonerName', async (req, res) => {
         const responseTime = Date.now() - startTime;
         performance_monitor_1.performanceMonitor.recordRequest(responseTime, true);
         loggerService_1.logger.error(`Error in basic analysis for ${summonerName}:`, error);
-        res.status(500).json({
+        // Use the specific status code from the service error, or default to 500
+        const statusCode = error.statusCode || 500;
+        const errorMessage = error.message || 'Failed to perform basic analysis';
+        // Map error codes to user-friendly responses
+        let userMessage = errorMessage;
+        let errorCode = 'BASIC_ANALYSIS_FAILED';
+        switch (statusCode) {
+            case 403:
+                errorCode = 'API_ACCESS_FORBIDDEN';
+                userMessage = `Cannot access player data for "${summonerName}". The Development API key has restrictions on famous players.`;
+                break;
+            case 404:
+                errorCode = 'PLAYER_NOT_FOUND';
+                userMessage = `Player "${summonerName}" not found. Please check the spelling and ensure they exist in the NA region.`;
+                break;
+            case 429:
+                errorCode = 'RATE_LIMIT_EXCEEDED';
+                userMessage = 'API rate limit exceeded. Please wait a moment and try again.';
+                break;
+            case 503:
+                errorCode = 'SERVICE_UNAVAILABLE';
+                userMessage = 'Riot API is currently unavailable. Please try again later.';
+                break;
+            default:
+                userMessage = 'Analysis failed due to an unexpected error.';
+                break;
+        }
+        res.status(statusCode).json({
             success: false,
-            error: 'BASIC_ANALYSIS_FAILED',
-            message: 'Failed to perform basic analysis',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: errorCode,
+            message: userMessage,
+            details: errorMessage,
+            suggestions: statusCode === 403 ? [
+                'Try searching for a less well-known summoner name',
+                'Visit the Demo tab to see the analysis system working',
+                'Famous players (Faker, Doublelift, etc.) are restricted by Riot API'
+            ] : undefined
         });
     }
 });
@@ -551,12 +577,15 @@ app.get('/api/demo/challenger-analysis', async (req, res) => {
                         mockSmurfProbability > 20 ? 'Low' : 'Very Low';
             return {
                 summonerId: challenger.summonerId,
-                rank: index + 1,
+                summonerName: challenger.summonerName,
+                rank: challenger.rank,
                 leaguePoints: challenger.leaguePoints,
                 wins: challenger.wins,
                 losses: challenger.losses,
-                winRate: ((challenger.wins / (challenger.wins + challenger.losses)) * 100).toFixed(1),
-                // Mock smurf analysis (what would be real with full API access)
+                winRate: challenger.winRate,
+                veteran: challenger.veteran,
+                hotStreak: challenger.hotStreak,
+                freshBlood: challenger.freshBlood,
                 smurfAnalysis: {
                     probability: parseFloat(mockSmurfProbability.toFixed(1)),
                     riskLevel,
@@ -833,7 +862,16 @@ app.get('/api/mock/challenger-demo', async (req, res) => {
                     smurfProbability > 40 ? 'Moderate' :
                         smurfProbability > 20 ? 'Low' : 'Very Low';
             return {
-                ...challenger,
+                summonerId: challenger.summonerId,
+                summonerName: challenger.summonerName,
+                rank: challenger.rank,
+                leaguePoints: challenger.leaguePoints,
+                wins: challenger.wins,
+                losses: challenger.losses,
+                winRate: challenger.winRate,
+                veteran: challenger.veteran,
+                hotStreak: challenger.hotStreak,
+                freshBlood: challenger.freshBlood,
                 smurfAnalysis: {
                     probability: parseFloat(smurfProbability.toFixed(1)),
                     riskLevel,
@@ -865,6 +903,15 @@ app.get('/api/mock/challenger-demo', async (req, res) => {
                             ...(totalGames < 100 ? ['Low Game Count'] : [])
                         ]
                     }
+                },
+                // Add the realData structure that the frontend expects
+                realData: {
+                    currentLP: challenger.leaguePoints,
+                    seasonWins: challenger.wins,
+                    seasonLosses: challenger.losses,
+                    veteran: challenger.veteran,
+                    hotStreak: challenger.hotStreak,
+                    freshBlood: challenger.freshBlood
                 }
             };
         });

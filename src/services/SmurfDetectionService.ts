@@ -80,9 +80,24 @@ export class SmurfDetectionService {
 
             analysis.smurfProbability = this.calculateSmurfProbability(analysis.analysisFactors);
             return analysis;
-        } catch (error) {
+        } catch (error: any) {
             logger.error('Error analyzing player:', error);
-            throw createError(500, 'Failed to analyze player');
+            
+            // Handle specific Riot API errors
+            if (error.response?.status === 403) {
+                throw createError(403, `API access forbidden for "${summonerName}". The Development API key cannot access famous players. Try a different summoner name.`);
+            } else if (error.response?.status === 404) {
+                throw createError(404, `Player "${summonerName}" not found. Please check the spelling and region.`);
+            } else if (error.response?.status === 429) {
+                throw createError(429, 'Rate limit exceeded. Please wait a moment and try again.');
+            } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+                throw createError(503, 'Unable to connect to Riot API. Please try again later.');
+            } else {
+                // For other errors, preserve the original message if available
+                const errorMessage = error.message || 'Failed to analyze player';
+                const statusCode = error.response?.status || error.statusCode || 500;
+                throw createError(statusCode, errorMessage);
+            }
         }
     }
 

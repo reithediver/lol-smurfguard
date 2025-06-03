@@ -160,17 +160,52 @@ app.get('/api/analyze/advanced-smurf/:summonerName', async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     const responseTime = Date.now() - startTime;
     performanceMonitor.recordRequest(responseTime, true);
     
     logger.error(`Error in advanced smurf analysis for ${summonerName}:`, error);
     
-    res.status(500).json({
+    // Use the specific status code from the service error, or default to 500
+    const statusCode = error.statusCode || error.response?.status || 500;
+    const errorMessage = error.message || 'Failed to perform advanced smurf analysis';
+    
+    // Map error codes to user-friendly responses
+    let userMessage = errorMessage;
+    let errorCode = 'ADVANCED_SMURF_ANALYSIS_FAILED';
+    
+    switch (statusCode) {
+      case 403:
+        errorCode = 'API_ACCESS_FORBIDDEN';
+        userMessage = `Cannot access player data for "${summonerName}". The Development API key has restrictions on famous players.`;
+        break;
+      case 404:
+        errorCode = 'PLAYER_NOT_FOUND';
+        userMessage = `Player "${summonerName}" not found. Please check the spelling and ensure they exist in the NA region.`;
+        break;
+      case 429:
+        errorCode = 'RATE_LIMIT_EXCEEDED';
+        userMessage = 'API rate limit exceeded. Please wait a moment and try again.';
+        break;
+      case 503:
+        errorCode = 'SERVICE_UNAVAILABLE';
+        userMessage = 'Riot API is currently unavailable. Please try again later.';
+        break;
+      default:
+        userMessage = 'Advanced analysis failed due to an unexpected error.';
+        break;
+    }
+    
+    res.status(statusCode).json({
       success: false,
-      error: 'ADVANCED_SMURF_ANALYSIS_FAILED',
-      message: 'Failed to perform advanced smurf analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: errorCode,
+      message: userMessage,
+      details: errorMessage,
+      suggestions: statusCode === 403 ? [
+        'Try searching for a less well-known summoner name',
+        'Visit the Demo tab to see the analysis system working',
+        'Famous players (Faker, Doublelift, etc.) are restricted by Riot API'
+      ] : undefined
     });
   }
 });
@@ -261,15 +296,52 @@ app.get('/api/analyze/champion-outliers/:summonerName', async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     const responseTime = Date.now() - startTime;
     performanceMonitor.recordRequest(responseTime, true);
     
     logger.error(`Error in champion outlier analysis for ${summonerName}:`, error);
-    res.status(500).json({
+    
+    // Use the specific status code from the service error, or default to 500
+    const statusCode = error.statusCode || error.response?.status || 500;
+    const errorMessage = error.message || 'Failed to perform champion outlier analysis';
+    
+    // Map error codes to user-friendly responses
+    let userMessage = errorMessage;
+    let errorCode = 'CHAMPION_OUTLIER_ANALYSIS_FAILED';
+    
+    switch (statusCode) {
+      case 403:
+        errorCode = 'API_ACCESS_FORBIDDEN';
+        userMessage = `Cannot access player data for "${summonerName}". The Development API key has restrictions on famous players.`;
+        break;
+      case 404:
+        errorCode = 'PLAYER_NOT_FOUND';
+        userMessage = `Player "${summonerName}" not found. Please check the spelling and ensure they exist in the NA region.`;
+        break;
+      case 429:
+        errorCode = 'RATE_LIMIT_EXCEEDED';
+        userMessage = 'API rate limit exceeded. Please wait a moment and try again.';
+        break;
+      case 503:
+        errorCode = 'SERVICE_UNAVAILABLE';
+        userMessage = 'Riot API is currently unavailable. Please try again later.';
+        break;
+      default:
+        userMessage = 'Champion outlier analysis failed due to an unexpected error.';
+        break;
+    }
+    
+    res.status(statusCode).json({
       success: false,
-      error: 'CHAMPION_OUTLIER_ANALYSIS_FAILED',
-      message: 'Failed to perform champion outlier analysis'
+      error: errorCode,
+      message: userMessage,
+      details: errorMessage,
+      suggestions: statusCode === 403 ? [
+        'Try searching for a less well-known summoner name',
+        'Visit the Demo tab to see the analysis system working',
+        'Famous players (Faker, Doublelift, etc.) are restricted by Riot API'
+      ] : undefined
     });
   }
 });
@@ -299,16 +371,52 @@ app.get('/api/analyze/basic/:summonerName', async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     const responseTime = Date.now() - startTime;
     performanceMonitor.recordRequest(responseTime, true);
     
     logger.error(`Error in basic analysis for ${summonerName}:`, error);
-    res.status(500).json({
+    
+    // Use the specific status code from the service error, or default to 500
+    const statusCode = error.statusCode || 500;
+    const errorMessage = error.message || 'Failed to perform basic analysis';
+    
+    // Map error codes to user-friendly responses
+    let userMessage = errorMessage;
+    let errorCode = 'BASIC_ANALYSIS_FAILED';
+    
+    switch (statusCode) {
+      case 403:
+        errorCode = 'API_ACCESS_FORBIDDEN';
+        userMessage = `Cannot access player data for "${summonerName}". The Development API key has restrictions on famous players.`;
+        break;
+      case 404:
+        errorCode = 'PLAYER_NOT_FOUND';
+        userMessage = `Player "${summonerName}" not found. Please check the spelling and ensure they exist in the NA region.`;
+        break;
+      case 429:
+        errorCode = 'RATE_LIMIT_EXCEEDED';
+        userMessage = 'API rate limit exceeded. Please wait a moment and try again.';
+        break;
+      case 503:
+        errorCode = 'SERVICE_UNAVAILABLE';
+        userMessage = 'Riot API is currently unavailable. Please try again later.';
+        break;
+      default:
+        userMessage = 'Analysis failed due to an unexpected error.';
+        break;
+    }
+    
+    res.status(statusCode).json({
       success: false,
-      error: 'BASIC_ANALYSIS_FAILED',
-      message: 'Failed to perform basic analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: errorCode,
+      message: userMessage,
+      details: errorMessage,
+      suggestions: statusCode === 403 ? [
+        'Try searching for a less well-known summoner name',
+        'Visit the Demo tab to see the analysis system working',
+        'Famous players (Faker, Doublelift, etc.) are restricted by Riot API'
+      ] : undefined
     });
   }
 });

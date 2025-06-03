@@ -7,6 +7,7 @@ class AdvancedDataService {
         this.ANALYSIS_TIMESPAN_MONTHS = 60; // 5 years of data
         this.MIN_GAMES_FOR_ANALYSIS = 100; // Higher threshold for 5-year analysis
         this.CHAMPION_EXPERTISE_THRESHOLD = 3; // Games to determine expertise
+        this.DEFAULT_REGION = 'na1'; // Default region if not specified
         // Enhanced gap detection thresholds
         this.GAP_THRESHOLDS = {
             MINOR: 7, // 1 week
@@ -24,26 +25,23 @@ class AdvancedDataService {
         };
         this.riotApi = riotApi;
     }
-    async analyzePlayerComprehensively(summonerName) {
-        loggerService_1.logger.info(`🔍 Starting comprehensive analysis for: ${summonerName}`);
+    async analyzePlayerComprehensively(summonerName, region = this.DEFAULT_REGION) {
+        loggerService_1.logger.info(`🔍 Starting ultra-comprehensive analysis for: ${summonerName} in region: ${region}`);
         try {
-            // 1. Get summoner basic info
             const summoner = await this.riotApi.getSummonerByName(summonerName);
-            // 2. Get all match history (going back 2 years)
             const extensiveMatchHistory = await this.getExtensiveMatchHistory(summoner.puuid);
-            // 3. Analyze historical patterns
+            if (extensiveMatchHistory.length < this.MIN_GAMES_FOR_ANALYSIS) {
+                throw new Error(`Insufficient match history for comprehensive analysis. Found ${extensiveMatchHistory.length} games, need minimum ${this.MIN_GAMES_FOR_ANALYSIS}.`);
+            }
+            loggerService_1.logger.info(`📊 Analyzing ${extensiveMatchHistory.length} games over ${this.ANALYSIS_TIMESPAN_MONTHS} months...`);
             const historicalAnalysis = await this.analyzeHistoricalPatterns(summoner, extensiveMatchHistory);
-            // 4. Calculate advanced performance metrics
             const performanceMetrics = await this.calculateAdvancedMetrics(extensiveMatchHistory);
-            // 5. Detect suspicious patterns
             const suspiciousPatterns = await this.detectSuspiciousPatterns(summoner, extensiveMatchHistory, performanceMetrics);
-            // 6. Calculate final smurf probability
             const smurfProbability = this.calculateAdvancedSmurfProbability(historicalAnalysis, performanceMetrics, suspiciousPatterns);
-            // 7. Generate detailed report
             const detailedReport = this.generateDetailedReport(summonerName, historicalAnalysis, performanceMetrics, suspiciousPatterns, smurfProbability);
             return {
                 summonerName,
-                region: 'na1', // TODO: Make dynamic
+                region: region,
                 currentRank: await this.getCurrentRank(summoner.id),
                 accountLevel: summoner.summonerLevel,
                 historicalAnalysis,
@@ -138,7 +136,8 @@ class AdvancedDataService {
                 seasonalData[season] = {
                     gamesPlayed: 0,
                     wins: 0,
-                    totalPerformance: 0
+                    totalPerformance: 0,
+                    monthlyGames: {} // Track monthly activity within season
                 };
             }
             const participant = this.findPlayerInMatch(match);
@@ -147,15 +146,60 @@ class AdvancedDataService {
                 if (participant.win)
                     seasonalData[season].wins++;
                 seasonalData[season].totalPerformance += this.calculateMatchPerformance(participant);
+                // Track monthly activity for seasonal patterns
+                const month = gameDate.getMonth();
+                seasonalData[season].monthlyGames[month] = (seasonalData[season].monthlyGames[month] || 0) + 1;
             }
         });
         return Object.entries(seasonalData).map(([season, data]) => ({
             season,
-            rank: 'Unknown', // TODO: Get historical rank data
+            rank: this.estimateSeasonRank(season, data), // Estimate based on performance
             gamesPlayed: data.gamesPlayed,
             winRate: data.gamesPlayed > 0 ? (data.wins / data.gamesPlayed) * 100 : 0,
-            averagePerformance: data.gamesPlayed > 0 ? data.totalPerformance / data.gamesPlayed : 0
+            averagePerformance: data.gamesPlayed > 0 ? data.totalPerformance / data.gamesPlayed : 0,
+            activityPattern: this.calculateSeasonalActivity(data.monthlyGames)
         }));
+    }
+    estimateSeasonRank(season, data) {
+        // Estimate rank based on performance metrics
+        const winRate = data.gamesPlayed > 0 ? (data.wins / data.gamesPlayed) : 0.5;
+        const avgPerformance = data.gamesPlayed > 0 ? data.totalPerformance / data.gamesPlayed : 0.5;
+        // Simple rank estimation based on combined metrics
+        const rankScore = (winRate * 0.6) + (avgPerformance * 0.4);
+        if (rankScore >= 0.8)
+            return 'Platinum+';
+        if (rankScore >= 0.65)
+            return 'Gold';
+        if (rankScore >= 0.5)
+            return 'Silver';
+        if (rankScore >= 0.35)
+            return 'Bronze';
+        return 'Iron';
+    }
+    calculateSeasonalActivity(monthlyGames) {
+        const months = Object.keys(monthlyGames).map(Number);
+        const gamesPerMonth = Object.values(monthlyGames);
+        return {
+            activeMonths: months.length,
+            totalMonths: 12,
+            averageGamesPerMonth: gamesPerMonth.length > 0 ? gamesPerMonth.reduce((a, b) => a + b, 0) / gamesPerMonth.length : 0,
+            consistency: this.calculateActivityConsistency(gamesPerMonth)
+        };
+    }
+    calculateActivityConsistency(gamesPerMonth) {
+        if (gamesPerMonth.length === 0)
+            return 'No Data';
+        const avg = gamesPerMonth.reduce((a, b) => a + b, 0) / gamesPerMonth.length;
+        const variance = gamesPerMonth.reduce((acc, games) => acc + Math.pow(games - avg, 2), 0) / gamesPerMonth.length;
+        const stdDev = Math.sqrt(variance);
+        const coefficient = avg > 0 ? stdDev / avg : 0;
+        if (coefficient < 0.3)
+            return 'Very Consistent';
+        if (coefficient < 0.6)
+            return 'Consistent';
+        if (coefficient < 1.0)
+            return 'Moderate';
+        return 'Inconsistent';
     }
     analyzePlaytimePatterns(matches) {
         loggerService_1.logger.info('⏰ Analyzing playtime patterns and gaps...');
@@ -184,7 +228,7 @@ class AdvancedDataService {
             playPatterns: {
                 dailyDistribution: hourlyDistribution,
                 weeklyDistribution: weeklyDistribution,
-                seasonalActivity: {} // TODO: Implement seasonal activity
+                seasonalActivity: this.calculateDetailedSeasonalActivity(sortedMatches)
             },
             gaps
         };
@@ -983,6 +1027,35 @@ class AdvancedDataService {
         // Look for patterns where player makes beginner mistakes inconsistently
         // with otherwise expert play
         return false;
+    }
+    calculateDetailedSeasonalActivity(matches) {
+        const seasonalActivity = {};
+        matches.forEach(match => {
+            const date = new Date(match.info.gameCreation);
+            const season = this.determineSeason(date);
+            seasonalActivity[season] = (seasonalActivity[season] || 0) + 1;
+        });
+        return {
+            bySeason: seasonalActivity,
+            mostActiveSeasons: Object.entries(seasonalActivity)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 3)
+                .map(([season, games]) => ({ season, games })),
+            seasonalConsistency: this.calculateSeasonalConsistency(seasonalActivity)
+        };
+    }
+    calculateSeasonalConsistency(seasonalActivity) {
+        const seasons = Object.values(seasonalActivity);
+        if (seasons.length === 0)
+            return 'No Data';
+        const avg = seasons.reduce((a, b) => a + b, 0) / seasons.length;
+        const variance = seasons.reduce((acc, games) => acc + Math.pow(games - avg, 2), 0) / seasons.length;
+        const coefficient = avg > 0 ? Math.sqrt(variance) / avg : 0;
+        if (coefficient < 0.3)
+            return 'Consistent';
+        if (coefficient < 0.7)
+            return 'Moderate';
+        return 'Irregular';
     }
 }
 exports.AdvancedDataService = AdvancedDataService;
