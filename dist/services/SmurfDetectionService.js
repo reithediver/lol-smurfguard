@@ -99,14 +99,44 @@ class SmurfDetectionService {
     // New method for analyzing by PUUID (modern Riot ID workflow)
     async analyzeSmurf(puuid, region = 'na1') {
         try {
+            loggerService_1.logger.info(`🚀 Starting smurf analysis for PUUID: ${puuid} in region: ${region}`);
             // Get summoner data using PUUID
+            loggerService_1.logger.info('📡 Fetching summoner data by PUUID...');
             const summoner = await this.riotApi.getSummonerByPuuid(puuid);
+            loggerService_1.logger.info(`✅ Summoner data retrieved: ${summoner.name} (Level ${summoner.summonerLevel})`);
             // Get match history
+            loggerService_1.logger.info('📡 Fetching match history...');
             const matchHistory = await this.riotApi.getMatchHistory(puuid);
-            const matchDetails = await Promise.all(matchHistory.slice(0, 10).map(matchId => this.riotApi.getMatchDetails(matchId)));
+            loggerService_1.logger.info(`✅ Match history retrieved: ${matchHistory.length} matches`);
+            const matchDetails = await Promise.all(matchHistory.slice(0, 10).map(matchId => {
+                loggerService_1.logger.info(`📡 Fetching match details for: ${matchId}`);
+                return this.riotApi.getMatchDetails(matchId);
+            }));
+            loggerService_1.logger.info(`✅ Match details retrieved: ${matchDetails.length} detailed matches`);
             // Get additional data
+            loggerService_1.logger.info('📡 Fetching league entries...');
             const leagueEntries = await this.riotApi.getLeagueEntries(puuid);
+            loggerService_1.logger.info(`✅ League entries retrieved: ${JSON.stringify(leagueEntries)}`);
+            loggerService_1.logger.info('📡 Fetching champion mastery...');
             const championMastery = await this.riotApi.getChampionMastery(puuid);
+            loggerService_1.logger.info(`✅ Champion mastery retrieved: ${championMastery.length} champions`);
+            loggerService_1.logger.info('🔍 Starting detailed analysis...');
+            // Analyze playtime gaps
+            loggerService_1.logger.info('📊 Analyzing playtime gaps...');
+            const playtimeGaps = await this.analyzePlaytimeGaps(matchDetails);
+            loggerService_1.logger.info(`✅ Playtime gaps analysis: ${playtimeGaps.suspiciousGaps.length} gaps found, score: ${playtimeGaps.totalGapScore}`);
+            // Analyze champion performance
+            loggerService_1.logger.info('📊 Analyzing champion performance...');
+            const championPerformance = await this.analyzeChampionPerformance(matchDetails, puuid);
+            loggerService_1.logger.info(`✅ Champion performance analysis: ${championPerformance.firstTimeChampions.length} champions, score: ${championPerformance.overallPerformanceScore}`);
+            // Analyze summoner spells
+            loggerService_1.logger.info('📊 Analyzing summoner spell usage...');
+            const summonerSpellUsage = await this.analyzeSummonerSpells(matchDetails, puuid);
+            loggerService_1.logger.info(`✅ Summoner spell analysis: ${summonerSpellUsage.spellPlacementChanges.length} changes, score: ${summonerSpellUsage.patternChangeScore}`);
+            // Analyze player associations
+            loggerService_1.logger.info('📊 Analyzing player associations...');
+            const playerAssociations = await this.analyzePlayerAssociations(matchDetails, puuid);
+            loggerService_1.logger.info(`✅ Player associations analysis: ${playerAssociations.highEloAssociations.length} associations, score: ${playerAssociations.associationScore}`);
             const analysis = {
                 summonerId: summoner.id,
                 accountId: summoner.accountId || 'N/A',
@@ -115,10 +145,10 @@ class SmurfDetectionService {
                 level: summoner.summonerLevel,
                 smurfProbability: 0,
                 analysisFactors: {
-                    playtimeGaps: await this.analyzePlaytimeGaps(matchDetails),
-                    championPerformance: await this.analyzeChampionPerformance(matchDetails, puuid),
-                    summonerSpellUsage: await this.analyzeSummonerSpells(matchDetails, puuid),
-                    playerAssociations: await this.analyzePlayerAssociations(matchDetails, puuid)
+                    playtimeGaps: playtimeGaps,
+                    championPerformance: championPerformance,
+                    summonerSpellUsage: summonerSpellUsage,
+                    playerAssociations: playerAssociations
                 },
                 lastUpdated: new Date(),
                 // Additional modern data
@@ -127,6 +157,8 @@ class SmurfDetectionService {
                 region: region
             };
             analysis.smurfProbability = this.calculateSmurfProbability(analysis.analysisFactors);
+            loggerService_1.logger.info(`🎯 Final analysis complete - Smurf probability: ${analysis.smurfProbability}%`);
+            loggerService_1.logger.info(`📋 Final analysis factors:`, JSON.stringify(analysis.analysisFactors, null, 2));
             return analysis;
         }
         catch (error) {
