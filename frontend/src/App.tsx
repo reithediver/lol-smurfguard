@@ -196,6 +196,21 @@ function App() {
       return;
     }
 
+    // Check if it's a Riot ID format and provide helpful guidance
+    if (!playerName.includes('#')) {
+      setError(`⚠️ Modern League of Legends uses Riot IDs in the format "GameName#TAG"
+      
+Examples:
+• Reinegade#Rei
+• FakerKR#123
+• YourName#NA1
+
+Please enter your full Riot ID with the # and tag.
+
+Note: Old summoner names like "Faker" are being phased out. You can find your Riot ID in your League client profile.`);
+      return;
+    }
+
     setLoading(true);
     setError('');
     
@@ -216,12 +231,21 @@ function App() {
           
           // Handle API access forbidden error specifically
           if (enhancedError?.type === 'API_ACCESS_FORBIDDEN' || enhancedError?.code === 403) {
-            setError(enhancedError.message || 'API access restricted. Development API key limitations apply.');
+            setError(`🔒 API Access Restricted
+
+The Development API key cannot access data for this player due to Riot Games restrictions.
+
+💡 What you can do:
+• Try a different Riot ID (format: GameName#TAG)
+• Visit the Demo tab to see working examples with challenger data
+• The system works great with most players, just some have restricted access
+
+Your Riot ID format looks correct: ${playerName}`);
             
             // Create mock data for demonstration
             setEnhancedAnalysis({
               summoner: {
-                name: playerName,
+                name: playerName.split('#')[0],
                 level: 30,
                 profileIconId: 1,
                 region: 'na1'
@@ -289,7 +313,9 @@ function App() {
           
           // Handle API access forbidden error for basic analysis too
           if (basicError?.type === 'API_ACCESS_FORBIDDEN' || basicError?.code === 403) {
-            setError(basicError.message || 'API access restricted. Please try the Demo tab for working examples.');
+            setError(`🔒 API Access Restricted - Please try the Demo tab for working examples.
+
+The Development API key has limitations on certain players. Your Riot ID format is correct: ${playerName}`);
             
             // Create mock classic analysis
             const mockAnalysis: SmurfAnalysis = {
@@ -335,7 +361,7 @@ function App() {
       } else if (error?.message) {
         errorMessage += error.message;
       } else {
-        errorMessage += 'Please try again or check the Demo tab for working examples.';
+        errorMessage += 'Please check your Riot ID format (GameName#TAG) and try again.';
       }
       
       setError(errorMessage);
@@ -407,7 +433,7 @@ function App() {
               <SearchContainer>
                 <PlayerInput
                   type="text"
-                  placeholder="Enter summoner name (e.g., Doublelift)"
+                  placeholder="Enter Riot ID (format: GameName#TAG) - e.g., Reinegade#Rei"
                   value={playerName}
                   onChange={(e) => setPlayerName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAnalyze()}
