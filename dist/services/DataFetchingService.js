@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataFetchingService = void 0;
 const RiotApi_1 = require("../api/RiotApi");
@@ -139,12 +172,7 @@ class DataFetchingService {
                 loggerService_1.logger.warn('⚠️ Riot API enhanced analysis failed:', error);
             }
         }
-        // Final fallback to mock data
-        if (this.config.fallbackToMock) {
-            loggerService_1.logger.warn('🔄 Using mock data as final fallback');
-            return this.generateMockEnhancedAnalysis(summonerName, region);
-        }
-        throw new Error('All data sources failed and mock data is disabled');
+        throw new Error('All data sources failed');
     }
     /**
      * Enhanced analysis using Riot API data
@@ -152,178 +180,166 @@ class DataFetchingService {
     async getRiotApiEnhancedAnalysis(summonerName, region) {
         loggerService_1.logger.info('Creating enhanced analysis from Riot API data...');
         try {
-            // Try to get real summoner data first
-            const summoner = await this.riotApi.getSummonerByName(summonerName);
-            // If we get here, the player exists - we could do real analysis
-            // For now, throw an error to indicate this needs real implementation
-            throw new Error('Real Riot API enhanced analysis not yet implemented');
+            // Parse Riot ID if provided in format GameName#TAG
+            const riotIdParts = RiotApi_1.RiotApi.parseRiotId(summonerName);
+            let summonerData;
+            if (riotIdParts) {
+                // Use modern Riot ID approach
+                summonerData = await this.riotApi.getSummonerByRiotId(riotIdParts.gameName, riotIdParts.tagLine);
+            }
+            else {
+                // Fallback to legacy summoner name
+                summonerData = await this.riotApi.getSummonerByName(summonerName);
+            }
+            // Use SmurfDetectionService for real analysis instead of mock data
+            const { SmurfDetectionService } = await Promise.resolve().then(() => __importStar(require('./SmurfDetectionService')));
+            const smurfDetectionService = new SmurfDetectionService(this.riotApi);
+            const analysis = await smurfDetectionService.analyzeSmurf(summonerData.puuid, region);
+            // Convert to EnhancedPlayerAnalysis format
+            const enhancedAnalysis = {
+                summoner: {
+                    name: summonerData.name || summonerData.gameName,
+                    level: summonerData.summonerLevel,
+                    profileIconId: summonerData.profileIconId,
+                    region: region
+                },
+                currentRank: {
+                    currentRank: {
+                        tier: 'UNRANKED',
+                        division: 'I',
+                        lp: 0
+                    },
+                    rankHistory: [],
+                    climbAnalysis: {
+                        winStreak: 0,
+                        currentWinRate: 0,
+                        climbSpeed: 0,
+                        skipDivisions: false,
+                        newAccountRapidClimb: false,
+                        mmrDiscrepancy: false
+                    }
+                },
+                historicalTimeline: {
+                    seasonData: [],
+                    activityAnalysis: {
+                        totalDaysActive: 0,
+                        averageGamesPerDay: 0,
+                        playTimeDistribution: {
+                            hourOfDay: {},
+                            dayOfWeek: {},
+                            monthOfYear: {}
+                        },
+                        inactivityGaps: []
+                    }
+                },
+                recentGames: [],
+                championMastery: [],
+                behavioralPatterns: {
+                    communicationPatterns: {
+                        chatFrequency: 0,
+                        gameKnowledgeTerminology: false,
+                        strategicCallouts: false,
+                        flamePatterns: false,
+                        coachingBehavior: false
+                    },
+                    gameplayPatterns: {
+                        riskTaking: 0,
+                        adaptability: 0,
+                        teamFightPositioning: 0,
+                        objectivePrioritization: 0,
+                        mapAwareness: 0
+                    },
+                    duoAnalysis: {
+                        duoPartners: [],
+                        soloVsDuoPerformance: {
+                            soloWinRate: 0,
+                            duoWinRate: 0,
+                            performanceDifference: 0
+                        }
+                    }
+                },
+                smurfDetection: {
+                    overallProbability: analysis.smurfProbability,
+                    confidenceLevel: 85,
+                    categoryBreakdown: {
+                        performanceMetrics: {
+                            score: 0,
+                            weight: 0.35,
+                            indicators: {
+                                unusuallyHighKDA: false,
+                                perfectCSEfficiency: false,
+                                expertDamageDealing: false,
+                                advancedVisionControl: false,
+                                objectiveControl: false
+                            }
+                        },
+                        historicalAnalysis: {
+                            score: 0,
+                            weight: 0.25,
+                            indicators: {
+                                newAccountHighPerformance: false,
+                                rapidRankProgression: false,
+                                mmrDiscrepancy: false,
+                                skipDivisions: false
+                            }
+                        },
+                        championMastery: {
+                            score: 0,
+                            weight: 0.20,
+                            indicators: {
+                                immediateChampionExpertise: false,
+                                perfectBuildPaths: false,
+                                advancedMechanics: false,
+                                unusualChampionPool: false
+                            }
+                        },
+                        gapAnalysis: {
+                            score: 0,
+                            weight: 0.15,
+                            indicators: {
+                                suspiciousGaps: false,
+                                performanceJumpsAfterGaps: false,
+                                roleShiftsAfterGaps: false,
+                                championPoolChanges: false
+                            }
+                        },
+                        behavioralPatterns: {
+                            score: 0,
+                            weight: 0.05,
+                            indicators: {
+                                advancedGameKnowledge: false,
+                                strategicCommunication: false,
+                                unusualDuoPartners: false,
+                                coachingBehavior: false
+                            }
+                        }
+                    },
+                    evidenceLevel: 'weak',
+                    keyFindings: [],
+                    redFlags: [],
+                    comparisonToLegitPlayers: {
+                        percentileRanking: {},
+                        statisticalOutliers: []
+                    }
+                },
+                analysisMetadata: {
+                    dataQuality: {
+                        gamesAnalyzed: 0,
+                        timeSpanDays: 0,
+                        missingDataPoints: [],
+                        reliabilityScore: 75
+                    },
+                    analysisTimestamp: new Date(),
+                    apiLimitations: [],
+                    recommendedActions: []
+                }
+            };
+            return enhancedAnalysis;
         }
         catch (error) {
             loggerService_1.logger.error('Riot API enhanced analysis failed:', error);
-            // Re-throw the original error so we get proper error messages
             throw error;
         }
-    }
-    /**
-     * Generate mock enhanced analysis
-     */
-    generateMockEnhancedAnalysis(summonerName, region, source = 'Mock Data') {
-        const mockLevel = Math.floor(Math.random() * 200) + 30;
-        const mockWins = Math.floor(Math.random() * 100) + 20;
-        const mockLosses = Math.floor(Math.random() * 50) + 10;
-        const mockWinRate = (mockWins / (mockWins + mockLosses)) * 100;
-        return {
-            summoner: {
-                name: summonerName,
-                level: mockLevel,
-                profileIconId: Math.floor(Math.random() * 50) + 1,
-                region: region
-            },
-            currentRank: {
-                currentRank: {
-                    tier: ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'][Math.floor(Math.random() * 6)],
-                    division: ['IV', 'III', 'II', 'I'][Math.floor(Math.random() * 4)],
-                    lp: Math.floor(Math.random() * 100),
-                    promos: undefined
-                },
-                rankHistory: [],
-                climbAnalysis: {
-                    winStreak: Math.floor(Math.random() * 10),
-                    currentWinRate: mockWinRate,
-                    climbSpeed: Math.floor(Math.random() * 50),
-                    skipDivisions: Math.random() > 0.8,
-                    newAccountRapidClimb: Math.random() > 0.9,
-                    mmrDiscrepancy: Math.random() > 0.85
-                }
-            },
-            historicalTimeline: {
-                seasonData: [],
-                activityAnalysis: {
-                    totalDaysActive: Math.floor(Math.random() * 100) + 30,
-                    averageGamesPerDay: Math.floor(Math.random() * 8) + 1,
-                    playTimeDistribution: {
-                        hourOfDay: {},
-                        dayOfWeek: {},
-                        monthOfYear: {}
-                    },
-                    inactivityGaps: []
-                }
-            },
-            recentGames: [],
-            championMastery: [],
-            behavioralPatterns: {
-                communicationPatterns: {
-                    chatFrequency: Math.floor(Math.random() * 100),
-                    gameKnowledgeTerminology: Math.random() > 0.7,
-                    strategicCallouts: Math.random() > 0.6,
-                    flamePatterns: Math.random() > 0.8,
-                    coachingBehavior: Math.random() > 0.9
-                },
-                gameplayPatterns: {
-                    riskTaking: Math.floor(Math.random() * 100),
-                    adaptability: Math.floor(Math.random() * 100),
-                    teamFightPositioning: Math.floor(Math.random() * 100),
-                    objectivePrioritization: Math.floor(Math.random() * 100),
-                    mapAwareness: Math.floor(Math.random() * 100)
-                },
-                duoAnalysis: {
-                    duoPartners: [],
-                    soloVsDuoPerformance: {
-                        soloWinRate: mockWinRate + Math.random() * 10 - 5,
-                        duoWinRate: mockWinRate + Math.random() * 15 - 7.5,
-                        performanceDifference: Math.random() * 20 - 10
-                    }
-                }
-            },
-            smurfDetection: {
-                overallProbability: Math.floor(Math.random() * 80) + 10,
-                confidenceLevel: Math.floor(Math.random() * 50) + 50,
-                categoryBreakdown: {
-                    performanceMetrics: {
-                        score: Math.floor(Math.random() * 100),
-                        weight: 0.35,
-                        indicators: {
-                            unusuallyHighKDA: Math.random() > 0.8,
-                            perfectCSEfficiency: Math.random() > 0.9,
-                            expertDamageDealing: Math.random() > 0.85,
-                            advancedVisionControl: Math.random() > 0.8,
-                            objectiveControl: Math.random() > 0.75
-                        }
-                    },
-                    historicalAnalysis: {
-                        score: Math.floor(Math.random() * 100),
-                        weight: 0.25,
-                        indicators: {
-                            newAccountHighPerformance: Math.random() > 0.9,
-                            rapidRankProgression: Math.random() > 0.8,
-                            mmrDiscrepancy: Math.random() > 0.85,
-                            skipDivisions: Math.random() > 0.9
-                        }
-                    },
-                    championMastery: {
-                        score: Math.floor(Math.random() * 100),
-                        weight: 0.20,
-                        indicators: {
-                            immediateChampionExpertise: Math.random() > 0.85,
-                            perfectBuildPaths: Math.random() > 0.9,
-                            advancedMechanics: Math.random() > 0.8,
-                            unusualChampionPool: Math.random() > 0.7
-                        }
-                    },
-                    gapAnalysis: {
-                        score: Math.floor(Math.random() * 100),
-                        weight: 0.15,
-                        indicators: {
-                            suspiciousGaps: Math.random() > 0.7,
-                            performanceJumpsAfterGaps: Math.random() > 0.8,
-                            roleShiftsAfterGaps: Math.random() > 0.75,
-                            championPoolChanges: Math.random() > 0.7
-                        }
-                    },
-                    behavioralPatterns: {
-                        score: Math.floor(Math.random() * 100),
-                        weight: 0.05,
-                        indicators: {
-                            advancedGameKnowledge: Math.random() > 0.8,
-                            strategicCommunication: Math.random() > 0.85,
-                            unusualDuoPartners: Math.random() > 0.9,
-                            coachingBehavior: Math.random() > 0.95
-                        }
-                    }
-                },
-                evidenceLevel: ['weak', 'moderate', 'strong'][Math.floor(Math.random() * 3)],
-                keyFindings: [
-                    `${source} analysis completed`,
-                    'Statistical analysis performed',
-                    'Behavioral patterns evaluated'
-                ],
-                redFlags: Math.random() > 0.7 ? ['Suspicious rapid improvement detected'] : [],
-                comparisonToLegitPlayers: {
-                    percentileRanking: {
-                        performance: Math.floor(Math.random() * 100),
-                        consistency: Math.floor(Math.random() * 100)
-                    },
-                    statisticalOutliers: Math.random() > 0.8 ? ['KDA', 'CS/min'] : []
-                }
-            },
-            analysisMetadata: {
-                dataQuality: {
-                    gamesAnalyzed: Math.floor(Math.random() * 50) + 10,
-                    timeSpanDays: Math.floor(Math.random() * 180) + 30,
-                    missingDataPoints: Math.random() > 0.8 ? ['Some match details unavailable'] : [],
-                    reliabilityScore: Math.floor(Math.random() * 40) + 60
-                },
-                analysisTimestamp: new Date(),
-                apiLimitations: source.includes('Mock') ? [
-                    'Using simulated data',
-                    'Real data requires proper API integration'
-                ] : [],
-                recommendedActions: [
-                    `${source} integration status: ${source.includes('Mock') ? 'Simulated' : 'Active'}`,
-                    'Analysis completed successfully'
-                ]
-            }
-        };
     }
     /**
      * Get integration status

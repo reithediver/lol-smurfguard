@@ -96,8 +96,8 @@ app.get('/api/integration/status', async (req, res) => {
       success: true,
       integration: {
         opggEnabled: false, // OP.GG MCP is disabled
-        serviceName: 'Riot API + Mock Data Fallback',
-        features: ['Basic Analysis', 'Mock Data', 'Riot API Integration'],
+            serviceName: 'Riot API + SmurfGuard Analysis',
+    features: ['Real-time Analysis', 'Riot API Integration', 'Smurf Detection'],
         mcpTools: [],
         dataQuality: 'Limited',
         limitations: [
@@ -359,38 +359,7 @@ app.get('/api/analyze/riot-id/:gameName/:tagLine', async (req, res) => {
   }
 });
 
-// Mock demo endpoint
-app.get('/api/mock/challenger-demo', (req, res) => {
-  logger.info('Challenger demo data requested');
-  
-  res.json({
-    success: true,
-    mockData: true,
-    message: 'Mock challenger data for frontend/backend testing (Railway backend)',
-    data: {
-      analysis: [
-        {
-          summonerId: 'mock-summoner-1',
-          summonerName: 'FakerKR',
-          rank: 1,
-          leaguePoints: 1247,
-          wins: 234,
-          losses: 45,
-          winRate: '83.9',
-          veteran: true,
-          hotStreak: true,
-          freshBlood: false,
-          smurfAnalysis: {
-            probability: 19.4,
-            confidence: 92.1,
-            indicators: ['Consistent high-level play', 'Established veteran account'],
-            verdict: 'Legitimate high-skill player'
-          }
-        }
-      ]
-    }
-  });
-});
+
 
 // Analysis capabilities endpoint
 app.get('/api/analysis/capabilities', async (req, res) => {

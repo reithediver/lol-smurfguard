@@ -13,7 +13,7 @@ class OpggDataAdapter {
         this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
         this.MAX_CACHE_SIZE = 200;
         this.BASE_URL = 'https://mcp-api.op.gg/mcp';
-        this.USE_MOCK_DATA = true; // Enable mock mode since OP.GG MCP API is not available
+        this.USE_MOCK_DATA = false; // Disable mock mode - use real API calls only
         this.apiClient = axios_1.default.create({
             baseURL: this.BASE_URL,
             timeout: 10000,

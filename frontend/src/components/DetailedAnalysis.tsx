@@ -524,42 +524,8 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
     }]
   };
 
-  // Generate mock performance trend data
-  const performanceTrendData = {
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
-    datasets: [
-      {
-        label: 'Performance Score',
-        data: [4.2, 4.5, 4.8, 6.2, 7.1, 7.8, 8.3, 8.7],
-        borderColor: 'rgba(99, 179, 237, 1)',
-        backgroundColor: 'rgba(99, 179, 237, 0.1)',
-        tension: 0.4,
-        fill: true,
-      },
-      {
-        label: 'KDA',
-        data: [1.8, 2.1, 2.3, 3.2, 3.8, 4.1, 4.5, 4.8],
-        borderColor: 'rgba(129, 140, 248, 1)',
-        backgroundColor: 'rgba(129, 140, 248, 0.1)',
-        tension: 0.4,
-        fill: true,
-      }
-    ]
-  };
-
-  const gameDurationTrendData = {
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
-    datasets: [
-      {
-        label: 'Avg Game Duration (min)',
-        data: [28, 26, 24, 22, 20, 19, 18, 17],
-        borderColor: 'rgba(236, 72, 153, 1)',
-        backgroundColor: 'rgba(236, 72, 153, 0.1)',
-        tension: 0.4,
-        fill: true,
-      }
-    ]
-  };
+  // Real performance trend data would be generated from actual match history
+  // Currently showing placeholder until real data is available
 
   const getGapSeverity = (hours: number): 'low' | 'medium' | 'high' => {
     const days = hours / 24;
@@ -568,17 +534,8 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
     return 'low';
   };
 
-  // Mock advanced metrics data
-  const advancedMetrics = [
-    { name: 'Damage Efficiency', value: 87, suspicious: true, description: 'Damage per gold spent' },
-    { name: 'Vision Score Trend', value: 72, suspicious: false, description: 'Ward placement improvement' },
-    { name: 'CS Efficiency', value: 94, suspicious: true, description: 'CS per minute optimization' },
-    { name: 'Objective Control', value: 89, suspicious: true, description: 'Dragon/Baron participation' },
-    { name: 'Map Awareness', value: 76, suspicious: false, description: 'Reaction to unseen enemies' },
-    { name: 'Item Build Optimization', value: 91, suspicious: true, description: 'Situational item choices' },
-    { name: 'Lane Dominance', value: 83, suspicious: true, description: 'Early game advantage creation' },
-    { name: 'Team Fight Positioning', value: 78, suspicious: false, description: 'Combat positioning quality' }
-  ];
+  // Advanced metrics would be calculated from real match data
+  const advancedMetrics: Array<{name: string, value: number, suspicious: boolean, description: string}> = [];
 
   return (
     <Container>
@@ -739,40 +696,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
         </SectionContent>
         </AnalysisCard>
 
-        <WideCard>
-          <SectionHeader onClick={() => toggleSection('trendAnalysis')}>
-            <span>📈 Performance Trends</span>
-            <div>
-              <WeightBadge>Analysis over time</WeightBadge>
-              <span style={{ marginLeft: '12px' }}>
-                {expandedSections.trendAnalysis ? '▼' : '▶'}
-              </span>
-            </div>
-          </SectionHeader>
-          <SectionContent isExpanded={expandedSections.trendAnalysis}>
-            <TrendContainer>
-              <TrendCard>
-                <TrendTitle>📊 Performance & KDA Progression</TrendTitle>
-                <ChartContainer style={{ height: '240px' }}>
-                  <Line data={performanceTrendData} options={chartOptions} />
-                </ChartContainer>
-                <div style={{ marginTop: '8px', color: '#a0aec0', fontSize: '11px' }}>
-                  Sudden improvements may indicate account switching
-                </div>
-              </TrendCard>
-              
-              <TrendCard>
-                <TrendTitle>⏱️ Game Duration Trend</TrendTitle>
-                <ChartContainer style={{ height: '240px' }}>
-                  <Line data={gameDurationTrendData} options={chartOptions} />
-                </ChartContainer>
-                <div style={{ marginTop: '8px', color: '#fc8181', fontSize: '11px' }}>
-                  🚨 Decreasing game times suggest skill dominance
-                </div>
-              </TrendCard>
-            </TrendContainer>
-          </SectionContent>
-        </WideCard>
+        {/* Performance trends section temporarily disabled - requires real match history data */}
 
         <WideCard>
           <SectionHeader onClick={() => toggleSection('advancedMetrics')}>
