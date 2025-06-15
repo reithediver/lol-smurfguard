@@ -62,6 +62,18 @@ interface EnhancedChampionStats {
         roamingImpact: number;
         laneWinRate: number;
     };
+    algorithmicMetrics?: {
+        consistencyScore: number;
+        improvementRate: number;
+        clutchFactor: number;
+        adaptabilityScore: number;
+        teamplayRating: number;
+        mechanicalSkill: number;
+        gameKnowledge: number;
+        pressureHandling: number;
+        learningCurve: number;
+        metaAdaptation: number;
+    };
 }
 
 interface UnifiedAnalysisData {
@@ -553,140 +565,214 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
                 </div>
             </FilterControls>
 
-            <ChampionTable>
-                <TableHeader>
-                    <div>Champion</div>
-                    <div>Games</div>
-                    <div>W/L/WR</div>
-                    <div>KDA</div>
-                    <div>CS/min</div>
-                    <div>Gold/min</div>
-                    <div>Damage</div>
-                    <div>Vision</div>
-                    <div>OP Rating</div>
-                    <div>VS Opponent</div>
-                    <div>Risk</div>
-                </TableHeader>
+            <div style={{ 
+                overflowX: 'auto', 
+                background: 'rgba(255, 255, 255, 0.05)', 
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+                <table style={{ 
+                    width: '100%', 
+                    minWidth: '1800px', 
+                    borderCollapse: 'collapse',
+                    fontSize: '14px'
+                }}>
+                    <thead>
+                        <tr style={{ 
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            borderBottom: '2px solid rgba(255, 255, 255, 0.2)'
+                        }}>
+                            <th style={{ padding: '16px 12px', textAlign: 'left', color: '#60a5fa', fontWeight: 'bold', minWidth: '120px' }}>Champion</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '80px' }}>Games</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '100px' }}>Win Rate</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '80px' }}>KDA</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '80px' }}>CS/min</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Gold/min</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Damage</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '80px' }}>Vision</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>OP Rating</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '100px' }}>VS Opponent</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Consistency</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Improvement</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Clutch</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Mechanical</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Teamplay</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Knowledge</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '90px' }}>Learning</th>
+                            <th style={{ padding: '16px 12px', textAlign: 'center', color: '#60a5fa', fontWeight: 'bold', minWidth: '80px' }}>Risk</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                 
-                {filteredChampions.map((champion, index) => (
-                    <TableRow key={`${champion.championId}-${index}`} suspicionScore={champion.suspicionScore}>
-                        <ChampionCell>
-                            <ChampionIcon>
-                                {champion.championName.slice(0, 2).toUpperCase()}
-                            </ChampionIcon>
-                            <div>
-                                <ChampionName>{champion.championName}</ChampionName>
-                                <div style={{ fontSize: '11px', color: '#64748b' }}>
-                                    {champion.mostPlayedPosition}
-                                </div>
-                            </div>
-                        </ChampionCell>
-                        
-                        <div style={{ textAlign: 'center', color: '#e2e8f0' }}>
-                            {champion.gamesPlayed}
-                        </div>
-                        
-                        <div>
-                            <div style={{ color: '#e2e8f0' }}>
-                                {champion.wins}W {champion.losses}L
-                            </div>
-                            <div style={{ color: champion.winRate >= 0.6 ? '#22c55e' : champion.winRate >= 0.5 ? '#eab308' : '#ef4444' }}>
-                                {(champion.winRate * 100).toFixed(0)}%
-                            </div>
-                            <WinRateBar winRate={champion.winRate * 100} />
-                        </div>
-                        
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#e2e8f0' }}>{champion.avgKDA.toFixed(1)}</div>
-                            <div style={{ fontSize: '10px', color: '#64748b' }}>
-                                {champion.avgKills.toFixed(1)}/{champion.avgDeaths.toFixed(1)}/{champion.avgAssists.toFixed(1)}
-                            </div>
-                        </div>
-                        
-                        <div style={{ textAlign: 'center', color: '#e2e8f0' }}>
-                            {champion.avgCSPerMin.toFixed(1)}
-                        </div>
-                        
-                        <div style={{ textAlign: 'center', color: '#e2e8f0' }}>
-                            {champion.avgGoldPerMin.toFixed(0)}
-                        </div>
-                        
-                        <div style={{ textAlign: 'center', color: '#e2e8f0' }}>
-                            {(champion.avgDamageDealt / 1000).toFixed(0)}k
-                        </div>
-                        
-                        <div style={{ textAlign: 'center', color: '#e2e8f0' }}>
-                            {champion.avgVisionScore.toFixed(0)}
-                        </div>
-                        
-                        {/* OP Rating Column */}
-                        <div style={{ textAlign: 'center' }}>
-                            {champion.opRating ? (
-                                <>
+                        {filteredChampions.map((champion, index) => (
+                            <tr key={`${champion.championId}-${index}`} style={{ 
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                                background: champion.suspicionScore >= 50 ? 'rgba(239, 68, 68, 0.1)' : 
+                                           champion.suspicionScore >= 30 ? 'rgba(245, 158, 11, 0.1)' : 'transparent'
+                            }}>
+                                {/* Champion Name */}
+                                <td style={{ padding: '16px 12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#f1f5f9', fontSize: '16px' }}>
+                                            {champion.championName}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                            {champion.mostPlayedPosition}
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                {/* Games */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.gamesPlayed}
+                                    </div>
+                                </td>
+                                
+                                {/* Win Rate */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
                                     <div style={{ 
-                                        color: champion.opRating.overall >= 70 ? '#22c55e' : 
-                                               champion.opRating.overall >= 50 ? '#eab308' : '#ef4444',
-                                        fontWeight: 'bold'
+                                        fontSize: '20px', 
+                                        fontWeight: 'bold',
+                                        color: champion.winRate >= 0.6 ? '#22c55e' : champion.winRate >= 0.5 ? '#eab308' : '#ef4444'
                                     }}>
-                                        {champion.opRating.overall}
+                                        {(champion.winRate * 100).toFixed(0)}%
                                     </div>
-                                    <div style={{ fontSize: '9px', color: '#64748b' }}>
-                                        {champion.opRating.trend === 'IMPROVING' ? '📈' : 
-                                         champion.opRating.trend === 'DECLINING' ? '📉' : '➡️'}
-                                        {champion.opRating.recent}
+                                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                        {champion.wins}W {champion.losses}L
                                     </div>
+                                </td>
+                                
+                                {/* KDA */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.avgKDA.toFixed(1)}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                        {champion.avgKills.toFixed(1)}/{champion.avgDeaths.toFixed(1)}/{champion.avgAssists.toFixed(1)}
+                                    </div>
+                                </td>
+                                
+                                {/* CS/min */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.avgCSPerMin.toFixed(1)}
+                                    </div>
+                                </td>
+                                
+                                {/* Gold/min */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.avgGoldPerMin.toFixed(0)}
+                                    </div>
+                                </td>
+                                
+                                {/* Damage */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {(champion.avgDamageDealt / 1000).toFixed(0)}k
+                                    </div>
+                                </td>
+                                
+                                {/* Vision */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.avgVisionScore.toFixed(0)}
+                                    </div>
+                                </td>
+                                
+                                {/* OP Rating */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    {champion.opRating ? (
+                                        <div style={{ 
+                                            fontSize: '20px', 
+                                            fontWeight: 'bold',
+                                            color: champion.opRating.overall >= 70 ? '#22c55e' : 
+                                                   champion.opRating.overall >= 50 ? '#eab308' : '#ef4444'
+                                        }}>
+                                            {champion.opRating.overall}
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#64748b', fontSize: '16px' }}>N/A</div>
+                                    )}
+                                </td>
+                                
+                                {/* VS Opponent */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    {champion.lanePerformance ? (
+                                        <div style={{ 
+                                            fontSize: '18px', 
+                                            fontWeight: 'bold',
+                                            color: champion.lanePerformance.vsOpponentRating >= 70 ? '#22c55e' : 
+                                                   champion.lanePerformance.vsOpponentRating >= 50 ? '#eab308' : '#ef4444'
+                                        }}>
+                                            {champion.lanePerformance.vsOpponentRating}
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#64748b', fontSize: '16px' }}>N/A</div>
+                                    )}
+                                </td>
+                                
+                                {/* Algorithmic Metrics */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.algorithmicMetrics?.consistencyScore || 'N/A'}
+                                    </div>
+                                </td>
+                                
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.algorithmicMetrics?.improvementRate || 'N/A'}
+                                    </div>
+                                </td>
+                                
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.algorithmicMetrics?.clutchFactor || 'N/A'}
+                                    </div>
+                                </td>
+                                
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.algorithmicMetrics?.mechanicalSkill || 'N/A'}
+                                    </div>
+                                </td>
+                                
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.algorithmicMetrics?.teamplayRating || 'N/A'}
+                                    </div>
+                                </td>
+                                
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.algorithmicMetrics?.gameKnowledge || 'N/A'}
+                                    </div>
+                                </td>
+                                
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e2e8f0' }}>
+                                        {champion.algorithmicMetrics?.learningCurve || 'N/A'}
+                                    </div>
+                                </td>
+                                
+                                {/* Risk Score */}
+                                <td style={{ padding: '16px 12px', textAlign: 'center' }}>
                                     <div style={{ 
-                                        fontSize: '8px', 
-                                        color: '#475569',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        marginTop: '2px'
+                                        fontSize: '20px', 
+                                        fontWeight: 'bold',
+                                        color: champion.suspicionScore >= 70 ? '#ef4444' : 
+                                               champion.suspicionScore >= 50 ? '#f97316' : 
+                                               champion.suspicionScore >= 30 ? '#eab308' : '#22c55e'
                                     }}>
-                                        <span title="Laning">L:{champion.opRating.breakdown?.laning || 0}</span>
-                                        <span title="Teamfighting">T:{champion.opRating.breakdown?.teamfighting || 0}</span>
-                                        <span title="Carrying">C:{champion.opRating.breakdown?.carrying || 0}</span>
+                                        {champion.suspicionScore}
                                     </div>
-                                </>
-                            ) : (
-                                <div style={{ color: '#64748b', fontSize: '12px' }}>
-                                    N/A
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* VS Opponent Column */}
-                        <div style={{ textAlign: 'center' }}>
-                            {champion.lanePerformance ? (
-                                <>
-                                    <div style={{ 
-                                        color: champion.lanePerformance.vsOpponentRating >= 70 ? '#22c55e' : 
-                                               champion.lanePerformance.vsOpponentRating >= 50 ? '#eab308' : '#ef4444',
-                                        fontWeight: 'bold'
-                                    }}>
-                                        {champion.lanePerformance.vsOpponentRating}%
-                                    </div>
-                                    <div style={{ fontSize: '9px', color: '#64748b' }}>
-                                        CS: {champion.lanePerformance.csAdvantage > 0 ? '+' : ''}{champion.lanePerformance.csAdvantage.toFixed(1)}
-                                    </div>
-                                    <div style={{ fontSize: '9px', color: '#64748b' }}>
-                                        Lane: {(champion.lanePerformance.laneWinRate * 100).toFixed(0)}%
-                                    </div>
-                                </>
-                            ) : (
-                                <div style={{ color: '#64748b', fontSize: '12px' }}>
-                                    N/A
-                                </div>
-                            )}
-                        </div>
-                        
-                        <div style={{ textAlign: 'center' }}>
-                            <SuspicionBadge score={champion.suspicionScore}>
-                                {champion.suspicionScore}
-                            </SuspicionBadge>
-                        </div>
-                    </TableRow>
-                ))}
-            </ChampionTable>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                                 </table>
+             </div>
 
             {/* Recent Suspicious Games */}
             {data.unifiedSuspicion.suspiciousGames.length > 0 && (

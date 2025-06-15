@@ -224,7 +224,7 @@ You can find your Riot ID in your League client profile.`);
       console.log('🎯 Using unified analysis endpoint with extensive match history...');
       result = await apiService.getUnifiedAnalysis(playerName, { 
         region: 'na1', 
-        matches: 1000 // 5 years worth of matches
+        matches: 500 // 500+ games for comprehensive analysis
       });
       console.log('🎯 Unified analysis completed, result:', result);
       

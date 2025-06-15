@@ -49,6 +49,18 @@ export interface EnhancedChampionStats extends ChampionStats {
         roamingImpact: number; // Impact on other lanes
         laneWinRate: number; // % of lanes won
     };
+    algorithmicMetrics: {
+        consistencyScore: number; // 0-100 performance consistency
+        improvementRate: number; // % improvement over time
+        clutchFactor: number; // Performance in close games
+        adaptabilityScore: number; // Ability to adapt builds/playstyle
+        teamplayRating: number; // Team coordination score
+        mechanicalSkill: number; // Mechanical execution score
+        gameKnowledge: number; // Strategic decision making
+        pressureHandling: number; // Performance under pressure
+        learningCurve: number; // How quickly they master champions
+        metaAdaptation: number; // How well they adapt to meta changes
+    };
 }
 
 export interface UnifiedPlayerAnalysis {
@@ -155,8 +167,8 @@ export class UnifiedAnalysisService {
                 throw new Error('Riot ID is required for unified analysis');
             }
             
-            // Get extensive match history (5 years worth - approximately 1000+ matches)
-            const matchCount = options.matchCount || 1000; // Default to 1000 matches for 5 years
+            // Get extensive match history (500+ matches minimum for deep analysis)
+            const matchCount = options.matchCount || 500; // Default to 500+ matches for comprehensive analysis
             
             logger.info(`🔍 Fetching ${matchCount} matches for comprehensive analysis`);
             
@@ -302,6 +314,9 @@ export class UnifiedAnalysisService {
             
             // Calculate lane performance if this is a laning role
             const lanePerformance = this.calculateLanePerformance(champion);
+            
+            // Calculate algorithmic metrics
+            const algorithmicMetrics = this.calculateAlgorithmicMetrics(champion);
 
             enhanced.push({
                 ...champion,
@@ -316,7 +331,8 @@ export class UnifiedAnalysisService {
                 },
                 firstGamePerformance: firstGamePerf,
                 opRating,
-                lanePerformance
+                lanePerformance,
+                algorithmicMetrics
             });
         }
         
@@ -394,6 +410,86 @@ export class UnifiedAnalysisService {
             killPressure: Math.max(0, Math.min(100, Math.round(killPressure))),
             roamingImpact: Math.max(0, Math.min(100, Math.round(roamingImpact))),
             laneWinRate: Math.max(0, Math.min(1, Math.round(laneWinRate * 1000) / 1000))
+        };
+    }
+    
+    private calculateAlgorithmicMetrics(champion: ChampionStats) {
+        // Advanced algorithmic calculations for deeper analysis
+        
+        // Consistency Score: How consistent performance is across games
+        const consistencyScore = Math.max(0, Math.min(100, 
+            100 - (Math.abs(champion.winRate - champion.recentWinRate) * 200) - 
+            (champion.avgDeaths > 5 ? (champion.avgDeaths - 5) * 10 : 0)
+        ));
+        
+        // Improvement Rate: Performance trend over time
+        const improvementRate = Math.max(0, Math.min(100,
+            50 + (champion.recentWinRate - champion.winRate) * 100
+        ));
+        
+        // Clutch Factor: Performance in high-pressure situations (estimated)
+        const clutchFactor = Math.max(0, Math.min(100,
+            champion.avgKDA * 20 + (champion.winRate > 0.5 ? 20 : 0) + 
+            (champion.avgAssists > 8 ? 15 : 0)
+        ));
+        
+        // Adaptability Score: Build and playstyle adaptation
+        const adaptabilityScore = Math.max(0, Math.min(100,
+            (champion.gamesPlayed > 20 ? 70 : champion.gamesPlayed * 3) +
+            (champion.avgVisionScore > 20 ? 15 : 0) +
+            (champion.avgCSPerMin > 6 ? 15 : 0)
+        ));
+        
+        // Teamplay Rating: Team coordination and support
+        const teamplayRating = Math.max(0, Math.min(100,
+            champion.avgAssists * 8 + 
+            (champion.avgVisionScore > 15 ? 20 : champion.avgVisionScore) +
+            (champion.avgDeaths < 4 ? 20 : Math.max(0, 20 - (champion.avgDeaths - 4) * 5))
+        ));
+        
+        // Mechanical Skill: Execution and precision
+        const mechanicalSkill = Math.max(0, Math.min(100,
+            (champion.avgKDA - 1) * 30 +
+            (champion.avgCSPerMin - 4) * 10 +
+            (champion.avgKills > 8 ? 20 : champion.avgKills * 2.5)
+        ));
+        
+        // Game Knowledge: Strategic decision making
+        const gameKnowledge = Math.max(0, Math.min(100,
+            champion.winRate * 60 +
+            (champion.avgVisionScore > 25 ? 25 : champion.avgVisionScore) +
+            (champion.avgGoldPerMin > 400 ? 15 : 0)
+        ));
+        
+        // Pressure Handling: Performance consistency under stress
+        const pressureHandling = Math.max(0, Math.min(100,
+            consistencyScore * 0.6 + clutchFactor * 0.4
+        ));
+        
+        // Learning Curve: How quickly they master new champions
+        const learningCurve = Math.max(0, Math.min(100,
+            (champion.gamesPlayed < 10 ? 
+                champion.winRate * 120 : // High performance on few games = fast learning
+                Math.max(30, 80 - (champion.gamesPlayed - 10) * 0.5) // Diminishing returns
+            )
+        ));
+        
+        // Meta Adaptation: Adapting to game changes
+        const metaAdaptation = Math.max(0, Math.min(100,
+            improvementRate * 0.7 + adaptabilityScore * 0.3
+        ));
+        
+        return {
+            consistencyScore: Math.round(consistencyScore),
+            improvementRate: Math.round(improvementRate),
+            clutchFactor: Math.round(clutchFactor),
+            adaptabilityScore: Math.round(adaptabilityScore),
+            teamplayRating: Math.round(teamplayRating),
+            mechanicalSkill: Math.round(mechanicalSkill),
+            gameKnowledge: Math.round(gameKnowledge),
+            pressureHandling: Math.round(pressureHandling),
+            learningCurve: Math.round(learningCurve),
+            metaAdaptation: Math.round(metaAdaptation)
         };
     }
 
