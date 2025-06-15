@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DetailedAnalysis } from './components/DetailedAnalysis';
 import ComprehensiveStats from './components/ComprehensiveStats';
+import UnifiedSmurfAnalysis from './components/UnifiedSmurfAnalysis';
 import { apiService } from './services/api';
 import styled from 'styled-components';
 import './App.css';
@@ -185,7 +186,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'smurf' | 'comprehensive'>('comprehensive');
+  const [viewMode, setViewMode] = useState<'smurf' | 'comprehensive' | 'unified'>('unified');
+  const [unifiedData, setUnifiedData] = useState<any>(null);
 
   const handleAnalyze = async () => {
     try {
@@ -220,7 +222,23 @@ You can find your Riot ID in your League client profile.`);
       
       let result;
       
-      if (viewMode === 'comprehensive') {
+      if (viewMode === 'unified') {
+        // NEW: Use the unified analysis endpoint
+        console.log('🎯 Using unified analysis endpoint...');
+        result = await apiService.getUnifiedAnalysis(playerName, { 
+          region: 'na1', 
+          matches: 200 
+        });
+        console.log('🎯 Unified analysis completed, result:', result);
+        
+        if (result && result.success && result.data) {
+          console.log(`✅ Unified analysis data received for: ${playerName}`);
+          setUnifiedData(result.data);
+          return; // Exit early for unified mode
+        } else {
+          throw new Error(result?.error?.message || 'Unified analysis failed');
+        }
+      } else if (viewMode === 'comprehensive') {
         // Temporary: Use existing comprehensive analysis endpoint until new endpoint is deployed
         console.log('📡 Using existing comprehensive analysis endpoint...');
         result = await apiService.analyzeComprehensive(playerName, 'na1');
@@ -744,6 +762,10 @@ Technical details: ${error.stack || 'No stack trace available'}`);
 
         {comprehensiveData && (
           <ComprehensiveStats data={comprehensiveData} />
+        )}
+
+        {unifiedData && (
+          <UnifiedSmurfAnalysis data={unifiedData} />
         )}
       </AppContainer>
     </ErrorBoundary>

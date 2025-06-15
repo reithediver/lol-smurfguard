@@ -11,6 +11,7 @@ const DataFetchingService_1 = require("./services/DataFetchingService");
 const SmurfDetectionService_1 = require("./services/SmurfDetectionService");
 const loggerService_1 = require("./utils/loggerService");
 const ChampionStatsService_1 = require("./services/ChampionStatsService");
+const UnifiedAnalysisService_1 = require("./services/UnifiedAnalysisService");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 // Log startup configuration
@@ -29,6 +30,7 @@ const riotApi = new RiotApi_1.RiotApi(process.env.RIOT_API_KEY || 'demo-key');
 const dataFetchingService = new DataFetchingService_1.DataFetchingService();
 const smurfDetectionService = new SmurfDetectionService_1.SmurfDetectionService(riotApi);
 const championStatsService = new ChampionStatsService_1.ChampionStatsService(riotApi);
+const unifiedAnalysisService = new UnifiedAnalysisService_1.UnifiedAnalysisService(riotApi);
 // Middleware
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
@@ -404,6 +406,92 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
             error: 'INTERNAL_ERROR',
             message: 'Failed to fetch comprehensive player statistics',
             details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+        });
+    }
+});
+// NEW: Unified Smurf Detection & Stats Endpoint
+app.get('/api/analyze/unified/:riotId', async (req, res) => {
+    const { riotId } = req.params;
+    const region = req.query.region || 'na1';
+    const matchCount = parseInt(req.query.matches) || 200;
+    const forceRefresh = req.query.refresh === 'true';
+    loggerService_1.logger.info(`🎯 Unified analysis request for: ${riotId} (${region}, ${matchCount} matches)`);
+    try {
+        // Parse Riot ID
+        const riotIdParts = RiotApi_1.RiotApi.parseRiotId(riotId);
+        if (!riotIdParts) {
+            return res.status(400).json({
+                success: false,
+                error: 'INVALID_RIOT_ID',
+                message: 'Please provide a valid Riot ID in format: GameName#TAG',
+                example: 'Faker#T1'
+            });
+        }
+        // Get summoner data first
+        const summoner = await riotApi.getSummonerByRiotId(riotIdParts.gameName, riotIdParts.tagLine);
+        // Run unified analysis
+        const unifiedAnalysis = await unifiedAnalysisService.getUnifiedAnalysis(summoner.puuid, {
+            riotId,
+            region,
+            matchCount,
+            forceRefresh
+        });
+        res.json({
+            success: true,
+            source: 'Unified Analysis Service',
+            timestamp: new Date().toISOString(),
+            data: unifiedAnalysis,
+            performance: {
+                analysisTime: Date.now() - parseInt(req.headers['x-start-time'] || '0'),
+                cacheHit: unifiedAnalysis.metadata.dataFreshness !== 'FRESH',
+                suspicionScore: unifiedAnalysis.unifiedSuspicion.overallScore,
+                riskLevel: unifiedAnalysis.unifiedSuspicion.riskLevel
+            }
+        });
+    }
+    catch (error) {
+        loggerService_1.logger.error(`Error in unified analysis for ${riotId}:`, error);
+        // Type guard for axios-like error
+        const isAxiosError = (err) => {
+            return typeof err === 'object' && err !== null && 'response' in err;
+        };
+        if (isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'PLAYER_NOT_FOUND',
+                    message: `Player "${riotId}" not found in region ${region}`,
+                    suggestions: [
+                        'Check spelling and capitalization',
+                        'Verify the tagline (part after #)',
+                        'Try a different region',
+                        'Ensure the player has recent game activity'
+                    ]
+                });
+            }
+            if (error.response?.status === 403) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'API_ACCESS_FORBIDDEN',
+                    message: 'API access restricted. This may be due to Development API Key limitations.',
+                    details: 'Some player data may not be accessible with the current API key configuration.'
+                });
+            }
+            if (error.response?.status === 429) {
+                return res.status(429).json({
+                    success: false,
+                    error: 'RATE_LIMIT_EXCEEDED',
+                    message: 'API rate limit exceeded. Please try again in a moment.',
+                    retryAfter: 60
+                });
+            }
+        }
+        res.status(500).json({
+            success: false,
+            error: 'UNIFIED_ANALYSIS_ERROR',
+            message: 'Failed to complete unified smurf analysis',
+            details: error instanceof Error ? error.message : 'Unknown error occurred',
+            timestamp: new Date().toISOString()
         });
     }
 });

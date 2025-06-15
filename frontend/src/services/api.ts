@@ -253,6 +253,32 @@ class ApiService {
   }
 
   /**
+   * NEW: Unified Smurf Analysis (combines comprehensive stats + smurf detection)
+   */
+  async getUnifiedAnalysis(riotId: string, options: {
+    region?: string;
+    matches?: number;
+    refresh?: boolean;
+  } = {}): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      if (options.region) params.append('region', options.region);
+      if (options.matches) params.append('matches', options.matches.toString());
+      if (options.refresh) params.append('refresh', 'true');
+      
+      const url = `/analyze/unified/${encodeURIComponent(riotId)}${params.toString() ? '?' + params.toString() : ''}`;
+      
+      console.log('🎯 Calling unified analysis endpoint:', url);
+      
+      const response = await this.api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Unified analysis error:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
    * Try multiple analysis methods in order of preference
    */
   async analyzePlayer(playerName: string, region: string = 'na1'): Promise<any> {

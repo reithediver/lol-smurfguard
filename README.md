@@ -1,11 +1,19 @@
-# LoL SmurfGuard - Ultra-Enhanced Smurf Detection Platform
+# LoL SmurfGuard - Comprehensive Player Statistics & Smurf Detection Platform
 
-A **professional-grade** web application that analyzes League of Legends player behavior patterns to detect potential smurf accounts with **tournament-grade accuracy**. Features **op.gg style metrics** and **lolrewind style historical analysis** for competitive integrity enforcement.
+A **professional-grade** web application featuring **OP.GG-style comprehensive player statistics** and advanced smurf detection with **tournament-grade accuracy**. Now includes **dual-mode interface** with comprehensive player analysis and smurf detection capabilities.
 
 ## 🎯 Project Overview
 
-**LoL SmurfGuard** provides **ultra-comprehensive smurf detection** comparable to commercial platforms like op.gg and lolrewind. The system helps tournament organizers and community administrators identify potential smurf accounts through:
+**LoL SmurfGuard** provides **comprehensive player statistics** and **ultra-advanced smurf detection** comparable to commercial platforms like op.gg and lolrewind. The system serves both casual players seeking detailed statistics and tournament organizers identifying potential smurf accounts through:
 
+### 📊 **NEW: Comprehensive Player Statistics (OP.GG Style)**
+- **Champion Performance Tables**: Win rates, KDA, CS/min, damage, vision scores
+- **Queue-Specific Statistics**: Ranked Solo, Flex, Normal, ARAM breakdowns
+- **Recent Games Display**: Visual win/loss indicators with champion performance
+- **Extended Match History**: 100+ match analysis with professional UI
+- **Performance Metrics**: Comprehensive statistics matching op.gg standards
+
+### 🔍 **Advanced Smurf Detection**
 - **Enhanced Performance Analytics**: Op.gg style KDA, CS efficiency, vision, damage, gold, and objective metrics
 - **Historical Timeline Analysis**: Lolrewind style season breakdowns with activity pattern analysis  
 - **Account Switching Detection**: Gap analysis with performance correlation (weeks to years)
@@ -13,15 +21,17 @@ A **professional-grade** web application that analyzes League of Legends player 
 - **Behavioral Pattern Recognition**: Advanced communication and gameplay analysis
 - **Statistical Anomaly Detection**: Percentile rankings vs legitimate players
 
-## 🚀 Enhanced Features - Version 2.1.0
+## 🚀 Enhanced Features - Version 2.2.0
 
 ### 🏆 Professional Interface
+- **Dual-Mode Interface**: Seamless toggle between "📊 Player Stats (OP.GG Style)" and "🔍 Smurf Detection"
+- **Comprehensive Stats Display**: Professional OP.GG-style champion statistics table
 - **Modern Dashboard**: Op.gg + lolrewind style interface with professional dark theme
 - **Interactive Charts**: Chart.js integration with Line, Radar, Bar, and Doughnut visualizations
-- **Tabbed Navigation**: Overview, Timeline, Champions, Analysis sections
-- **Champion Mastery Cards**: Individual champion performance displays
+- **Champion Performance Tables**: Win rates, KDA, CS/min, damage, vision with color-coded indicators
+- **Recent Games Display**: Visual win/loss indicators with champion performance metrics
 - **Real-time Updates**: Live analysis with enhanced loading states
-- **Responsive Design**: Mobile and desktop optimized with hover animations
+- **Responsive Design**: Mobile and desktop optimized with hover animations and gradients
 
 ### 🔬 Tournament-Grade Analysis
 - **78% Detection Accuracy**: Evidence-based scoring with confidence levels
@@ -32,6 +42,7 @@ A **professional-grade** web application that analyzes League of Legends player 
 - **Evidence Classification**: Weak/moderate/strong/overwhelming evidence levels
 
 ### ⚡ Enhanced API Endpoints
+- **`/api/player/comprehensive/:riotId`**: NEW - OP.GG-style comprehensive player statistics
 - **`/api/analyze/comprehensive/:summonerName`**: Ultra-comprehensive 5+ year analysis
 - **`/api/stats/enhanced/:summonerName`**: Op.gg style statistics
 - **`/api/timeline/:summonerName`**: Lolrewind style timeline data
@@ -170,12 +181,18 @@ The enhanced application will be available at:
 
 ## 🎮 Enhanced Usage
 
-### Professional Analysis
-1. Open the enhanced web application
-2. **Choose View Mode**: Enhanced Dashboard or Classic Analysis
-3. Enter a player name in the format: `PlayerName` (region auto-detected)
-4. Click **"🚀 Analyze"** for comprehensive analysis
-5. Review **professional dashboard** with interactive charts
+### Comprehensive Player Statistics (NEW)
+1. Open the enhanced web application at https://lol-smurfguard.vercel.app/
+2. **Select Mode**: Choose "📊 Player Stats (OP.GG Style)" 
+3. Enter a player name in the format: `PlayerName#TAG` (e.g., "Reinegade#Rei")
+4. Click **"🚀 Analyze"** for comprehensive statistics
+5. Review **OP.GG-style interface** with champion performance tables and recent games
+
+### Advanced Smurf Detection
+1. **Select Mode**: Choose "🔍 Smurf Detection"
+2. Enter a player name in the format: `PlayerName` (region auto-detected)
+3. Click **"🚀 Analyze"** for smurf analysis
+4. Review **professional dashboard** with interactive charts and detection results
 
 ### Understanding Enhanced Results
 
