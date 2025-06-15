@@ -7,12 +7,19 @@ export class RiotApi {
     private api: AxiosInstance;
     private cache: Map<string, { data: any; timestamp: number }>;
     private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-    private readonly RATE_LIMIT = 20; // requests per second
+    private readonly RATE_LIMIT = 10; // Reduced to 10 requests per second for safety
     private readonly MAX_QUEUE_SIZE = 1000; // Maximum number of requests in the queue
     private requestQueue: Array<() => Promise<any>> = [];
     private processingQueue = false;
     public readonly apiKey: string;
     private readonly region: string;
+    
+    // Enhanced rate limiting properties
+    private lastRequestTime = 0;
+    private requestCount = 0;
+    private readonly REQUESTS_PER_MINUTE = 100; // Conservative limit
+    private readonly REQUESTS_PER_SECOND = 20; // Burst limit
+    private readonly MIN_REQUEST_INTERVAL = 50; // Minimum 50ms between requests
 
     constructor(apiKey: string, region: string = 'na1') {
         this.apiKey = apiKey;
@@ -33,12 +40,68 @@ export class RiotApi {
         while (this.requestQueue.length > 0) {
             const request = this.requestQueue.shift();
             if (request) {
+                await this.enforceRateLimit();
                 await request();
-                await new Promise(resolve => setTimeout(resolve, 1000 / this.RATE_LIMIT));
             }
         }
 
         this.processingQueue = false;
+    }
+
+    private async enforceRateLimit(): Promise<void> {
+        const now = Date.now();
+        const timeSinceLastRequest = now - this.lastRequestTime;
+        
+        // Ensure minimum interval between requests
+        if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+            await new Promise(resolve => setTimeout(resolve, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+        }
+        
+        // Reset request count every minute
+        if (now - this.lastRequestTime > 60000) {
+            this.requestCount = 0;
+        }
+        
+        // Check if we're approaching rate limits
+        this.requestCount++;
+        if (this.requestCount >= this.REQUESTS_PER_MINUTE) {
+            console.log('⏳ Rate limit approaching, waiting 60 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 60000));
+            this.requestCount = 0;
+        }
+        
+        this.lastRequestTime = Date.now();
+    }
+
+    private async retryWithBackoff<T>(operation: () => Promise<T>, maxRetries: number = 3): Promise<T> {
+        let lastError: any;
+        
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                return await operation();
+            } catch (error: any) {
+                lastError = error;
+                
+                // Check if it's a rate limit error
+                if (error.response?.status === 429) {
+                    const retryAfter = error.response.headers['retry-after'];
+                    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000;
+                    
+                    console.log(`🚫 Rate limited. Waiting ${waitTime/1000}s before retry ${attempt + 1}/${maxRetries + 1}`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                    continue;
+                }
+                
+                // For other errors, use exponential backoff
+                if (attempt < maxRetries) {
+                    const waitTime = Math.pow(2, attempt) * 1000;
+                    console.log(`⚠️ Request failed, retrying in ${waitTime/1000}s... (${attempt + 1}/${maxRetries + 1})`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+            }
+        }
+        
+        throw lastError;
     }
 
     private async makeRequest<T>(endpoint: string, useCache: boolean = true): Promise<T> {
@@ -59,7 +122,7 @@ export class RiotApi {
             
             this.requestQueue.push(async () => {
                 try {
-                    const response = await this.api.get<T>(endpoint);
+                    const response = await this.retryWithBackoff(() => this.api.get<T>(endpoint));
                     if (useCache) {
                         this.cache.set(cacheKey, {
                             data: response.data,
@@ -144,10 +207,12 @@ export class RiotApi {
     }
 
     // Get extended match history with multiple requests if needed
-    async getExtendedMatchHistory(puuid: string, totalCount: number = 200, queueId?: number): Promise<string[]> {
+    async getExtendedMatchHistory(puuid: string, totalCount: number = 500, queueId?: number): Promise<string[]> {
         const allMatches: string[] = [];
         const batchSize = 100; // Riot API limit per request
         let start = 0;
+        
+        console.log(`🔍 Fetching ${totalCount} matches in batches of ${batchSize}...`);
         
         while (allMatches.length < totalCount && start < 1000) { // Riot API has a 1000 match limit
             const params: Record<string, string> = {
@@ -160,30 +225,53 @@ export class RiotApi {
             }
             
             try {
+                console.log(`📥 Fetching matches ${start}-${start + batchSize}...`);
+                
                 const routingValue = this.getRoutingValue(this.region);
                 const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids`;
                 
-                const response = await axios.get(url, { 
-                    headers: { 'X-Riot-Token': this.apiKey },
-                    params 
+                const response = await this.retryWithBackoff(async () => {
+                    await this.enforceRateLimit();
+                    return axios.get(url, { 
+                        headers: { 'X-Riot-Token': this.apiKey },
+                        params 
+                    });
                 });
                 
                 const matches = response.data;
-                if (matches.length === 0) break; // No more matches available
+                if (matches.length === 0) {
+                    console.log('✅ No more matches available');
+                    break; // No more matches available
+                }
                 
                 allMatches.push(...matches);
                 start += batchSize;
                 
-                // Rate limiting - wait between requests
-                if (start < totalCount) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                console.log(`📊 Progress: ${allMatches.length}/${totalCount} matches fetched`);
+                
+                // Enhanced rate limiting - longer wait between batches
+                if (start < totalCount && allMatches.length < totalCount) {
+                    const waitTime = 200 + Math.random() * 300; // 200-500ms random delay
+                    console.log(`⏳ Waiting ${waitTime.toFixed(0)}ms before next batch...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
-            } catch (error) {
-                console.error(`Error fetching matches starting at ${start}:`, error);
+            } catch (error: any) {
+                console.error(`❌ Error fetching matches starting at ${start}:`, error.response?.status || error.message);
+                
+                // If we hit rate limits, wait longer and continue
+                if (error.response?.status === 429) {
+                    const retryAfter = error.response.headers['retry-after'] || 60;
+                    console.log(`🚫 Rate limited, waiting ${retryAfter} seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                    continue; // Don't break, try again
+                }
+                
+                // For other errors, break to avoid infinite loops
                 break;
             }
         }
         
+        console.log(`✅ Completed: ${allMatches.length} matches fetched`);
         return allMatches.slice(0, totalCount);
     }
 
@@ -192,8 +280,11 @@ export class RiotApi {
         const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
         
         try {
-            const response = await axios.get(url, {
-                headers: { 'X-Riot-Token': this.apiKey }
+            const response = await this.retryWithBackoff(async () => {
+                await this.enforceRateLimit();
+                return axios.get(url, {
+                    headers: { 'X-Riot-Token': this.apiKey }
+                });
             });
             
             // Transform Riot API v5 response to our MatchHistory interface

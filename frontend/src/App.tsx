@@ -417,7 +417,32 @@ Technical details: ${error.stack || 'No stack trace available'}`);
         
         {loading && (
           <LoadingMessage>
-            Analyzing player data for suspicious patterns...
+            <div style={{ fontSize: '18px', marginBottom: '10px' }}>
+              🔍 Analyzing 500+ games with 10 algorithmic metrics...
+            </div>
+            <div style={{ fontSize: '14px', marginBottom: '15px', color: '#94a3b8' }}>
+              Processing matches in batches to respect API rate limits
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              gap: '15px',
+              fontSize: '12px',
+              color: '#64748b',
+              marginBottom: '15px'
+            }}>
+              <div>⏳ Fetching match history</div>
+              <div>📊 Processing match details</div>
+              <div>🧮 Calculating algorithms</div>
+            </div>
+            <div style={{ 
+              fontSize: '12px',
+              color: '#475569',
+              fontStyle: 'italic'
+            }}>
+              This comprehensive analysis may take 2-3 minutes due to API rate limiting
+            </div>
           </LoadingMessage>
         )}
 

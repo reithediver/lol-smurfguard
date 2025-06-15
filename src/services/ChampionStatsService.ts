@@ -143,35 +143,70 @@ export class ChampionStatsService {
 
     private async fetchMatchesInBatches(matchIds: string[], puuid: string): Promise<MatchHistory[]> {
         const matches: MatchHistory[] = [];
-        const batchSize = 10; // Process 10 matches at a time
+        const batchSize = 5; // Reduced to 5 matches at a time for better rate limiting
+        
+        logger.info(`🔄 Processing ${matchIds.length} matches in batches of ${batchSize}...`);
         
         for (let i = 0; i < matchIds.length; i += batchSize) {
             const batch = matchIds.slice(i, i + batchSize);
+            const batchNumber = Math.floor(i/batchSize) + 1;
+            const totalBatches = Math.ceil(matchIds.length/batchSize);
+            
+            logger.info(`📊 Processing batch ${batchNumber}/${totalBatches} (${batch.length} matches)`);
             
             try {
-                const batchPromises = batch.map(matchId => this.riotApi.getMatchDetails(matchId));
-                const batchMatches = await Promise.all(batchPromises);
+                // Process matches in the batch with individual error handling
+                const batchMatches: MatchHistory[] = [];
                 
-                // Filter out matches where the player didn't participate
-                const validMatches = batchMatches.filter(match => 
-                    match.participants.some(p => p.puuid === puuid)
-                );
-                
-                matches.push(...validMatches);
-                
-                // Rate limiting between batches
-                if (i + batchSize < matchIds.length) {
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                for (const matchId of batch) {
+                    try {
+                        const match = await this.riotApi.getMatchDetails(matchId);
+                        
+                        // Only include matches where the player participated
+                        if (match.participants.some(p => p.puuid === puuid)) {
+                            batchMatches.push(match);
+                        }
+                        
+                        // Small delay between individual match requests
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                    } catch (error: any) {
+                        logger.warn(`⚠️ Failed to fetch match ${matchId}: ${error.message}`);
+                        
+                        // If rate limited, wait longer
+                        if (error.response?.status === 429) {
+                            const retryAfter = error.response.headers['retry-after'] || 10;
+                            logger.info(`🚫 Rate limited, waiting ${retryAfter} seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                        }
+                        continue;
+                    }
                 }
                 
-                logger.info(`📈 Processed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(matchIds.length/batchSize)}`);
+                matches.push(...batchMatches);
+                logger.info(`✅ Batch ${batchNumber} complete: ${batchMatches.length} matches processed`);
                 
-            } catch (error) {
-                logger.warn(`⚠️ Error processing batch starting at ${i}:`, error);
+                // Enhanced rate limiting between batches
+                if (i + batchSize < matchIds.length) {
+                    const waitTime = 1000 + Math.random() * 1000; // 1-2 second wait between batches
+                    logger.info(`⏳ Waiting ${waitTime.toFixed(0)}ms before next batch...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+                
+            } catch (error: any) {
+                logger.warn(`⚠️ Error processing batch ${batchNumber}:`, error.message);
+                
+                // If batch fails due to rate limiting, wait and continue
+                if (error.response?.status === 429) {
+                    const retryAfter = error.response.headers['retry-after'] || 30;
+                    logger.info(`🚫 Batch rate limited, waiting ${retryAfter} seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                }
                 continue;
             }
         }
         
+        logger.info(`🎯 Match processing complete: ${matches.length}/${matchIds.length} matches successfully processed`);
         return matches;
     }
 
