@@ -103,11 +103,29 @@ const LoadingMessage = styled.div`
   font-size: 1.1rem;
 `;
 
+const DebugSection = styled.div`
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #94a3b8;
+`;
+
+const DebugTitle = styled.h3`
+  color: #60a5fa;
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+`;
+
 function App() {
   const [playerName, setPlayerName] = useState('');
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const handleAnalyze = async () => {
     if (!playerName.trim()) {
@@ -213,11 +231,29 @@ ${error.message || 'Please try again or verify the Riot ID format.'}`);
     }
   };
 
+  const testBackendConnection = async () => {
+    try {
+      const health = await apiService.healthCheck();
+      setDebugInfo({
+        apiUrl: process.env.REACT_APP_API_URL || 'https://smurfgaurd-production.up.railway.app/api',
+        healthCheck: health,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      setDebugInfo({
+        apiUrl: process.env.REACT_APP_API_URL || 'https://smurfgaurd-production.up.railway.app/api',
+        error: error.message,
+        type: error.type,
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
   return (
     <AppContainer>
       <Header>
-        <Title>League of Legends Smurf Detection</Title>
-        <Subtitle>Analyze players for suspicious behavior and account boosting</Subtitle>
+        <Title>SmurfGuard</Title>
+        <Subtitle>Advanced League of Legends Smurf Detection</Subtitle>
         
         <SearchSection>
           <SearchContainer>
@@ -235,6 +271,35 @@ ${error.message || 'Please try again or verify the Riot ID format.'}`);
           </SearchContainer>
         </SearchSection>
       </Header>
+
+      <DebugSection>
+        <DebugTitle>🔧 Debug Information</DebugTitle>
+        <button 
+          onClick={testBackendConnection}
+          style={{
+            background: '#334155',
+            color: '#f1f5f9',
+            border: '1px solid #475569',
+            borderRadius: '4px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            marginBottom: '10px'
+          }}
+        >
+          Test Backend Connection
+        </button>
+        {debugInfo && (
+          <pre style={{ 
+            background: '#1e293b', 
+            padding: '10px', 
+            borderRadius: '4px',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        )}
+      </DebugSection>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
       

@@ -19,6 +19,12 @@ class ApiService {
     // Use the deployed Railway backend URL or fallback to localhost for development
     this.baseURL = process.env.REACT_APP_API_URL || 'https://smurfgaurd-production.up.railway.app/api';
     
+    console.log('🌐 ApiService initialized with baseURL:', this.baseURL);
+    console.log('🔧 Environment variables:', {
+      REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+      NODE_ENV: process.env.NODE_ENV
+    });
+    
     this.api = axios.create({
       baseURL: this.baseURL,
       timeout: 30000, // 30 seconds timeout for analysis requests
@@ -30,11 +36,18 @@ class ApiService {
     // Request interceptor
     this.api.interceptors.request.use(
       (config) => {
-        console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
+        console.log(`🚀 Making ${config.method?.toUpperCase()} request to: ${config.baseURL}${config.url}`);
+        console.log('📝 Request config:', {
+          url: config.url,
+          method: config.method,
+          baseURL: config.baseURL,
+          params: config.params,
+          timeout: config.timeout
+        });
         return config;
       },
       (error) => {
-        console.error('Request interceptor error:', error);
+        console.error('❌ Request interceptor error:', error);
         return Promise.reject(error);
       }
     );
@@ -42,11 +55,22 @@ class ApiService {
     // Response interceptor
     this.api.interceptors.response.use(
       (response: AxiosResponse<ApiResponse<any>>) => {
-        console.log(`Response from ${response.config.url}:`, response.status);
+        console.log(`✅ Response from ${response.config.url}:`, response.status);
+        console.log('📊 Response data preview:', response.data);
         return response;
       },
       (error) => {
-        console.error('Response interceptor error:', error);
+        console.error('❌ Response interceptor error:', error);
+        console.error('🔍 Error details:', {
+          message: error.message,
+          code: error.code,
+          config: error.config,
+          response: error.response ? {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            data: error.response.data
+          } : null
+        });
         return Promise.reject(this.handleApiError(error));
       }
     );
