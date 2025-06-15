@@ -18,7 +18,20 @@ class ApiService {
   constructor() {
     // Force Railway backend URL for production deployments
     // Only use localhost in actual development environment
-    const isLocalDevelopment = process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost';
+    let isLocalDevelopment = false;
+    let hostname = 'unknown';
+    
+    try {
+      // Safely check if we're in a browser environment
+      if (typeof window !== 'undefined' && window.location) {
+        hostname = window.location.hostname;
+        isLocalDevelopment = process.env.NODE_ENV === 'development' && hostname === 'localhost';
+      }
+    } catch (error) {
+      console.warn('Could not access window.location:', error);
+      // Default to production mode if we can't determine environment
+      isLocalDevelopment = false;
+    }
     
     if (isLocalDevelopment) {
       this.baseURL = 'http://localhost:3001/api';
@@ -30,7 +43,7 @@ class ApiService {
     console.log('🌐 ApiService initialized with baseURL:', this.baseURL);
     console.log('🔧 Environment info:', {
       NODE_ENV: process.env.NODE_ENV,
-      hostname: window.location.hostname,
+      hostname,
       isLocalDevelopment,
       REACT_APP_API_URL: process.env.REACT_APP_API_URL // Just for debugging
     });

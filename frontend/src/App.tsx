@@ -128,14 +128,15 @@ function App() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const handleAnalyze = async () => {
-    if (!playerName.trim()) {
-      setError('Please enter a Riot ID');
-      return;
-    }
+    try {
+      if (!playerName.trim()) {
+        setError('Please enter a Riot ID');
+        return;
+      }
 
-    // Check if it's a Riot ID format
-    if (!playerName.includes('#')) {
-      setError(`Please enter a valid Riot ID in the format: GameName#TAG
+      // Check if it's a Riot ID format
+      if (!playerName.includes('#')) {
+        setError(`Please enter a valid Riot ID in the format: GameName#TAG
 
 Examples:
 • Reinegade#Rei  
@@ -143,14 +144,13 @@ Examples:
 • Player#123
 
 You can find your Riot ID in your League client profile.`);
-      return;
-    }
+        return;
+      }
 
-    setLoading(true);
-    setError('');
-    setAnalysisData(null);
-    
-    try {
+      setLoading(true);
+      setError('');
+      setAnalysisData(null);
+      
       console.log(`🔍 Searching for player: ${playerName}`);
       
       // Try comprehensive analysis first (best endpoint)
@@ -235,8 +235,19 @@ ${error.message || 'Please try again or verify the Riot ID format.'}`);
     try {
       const health = await apiService.healthCheck();
       
-      // Use the same logic as ApiService
-      const isLocalDevelopment = process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost';
+      // Use the same safe logic as ApiService
+      let isLocalDevelopment = false;
+      let hostname = 'unknown';
+      
+      try {
+        if (typeof window !== 'undefined' && window.location) {
+          hostname = window.location.hostname;
+          isLocalDevelopment = process.env.NODE_ENV === 'development' && hostname === 'localhost';
+        }
+      } catch (error) {
+        console.warn('Could not access window.location in debug:', error);
+      }
+      
       const apiUrl = isLocalDevelopment 
         ? 'http://localhost:3001/api'
         : 'https://smurfgaurd-production.up.railway.app/api';
@@ -244,14 +255,25 @@ ${error.message || 'Please try again or verify the Riot ID format.'}`);
       setDebugInfo({
         apiUrl,
         isLocalDevelopment,
-        hostname: window.location.hostname,
+        hostname,
         NODE_ENV: process.env.NODE_ENV,
         healthCheck: health,
         timestamp: new Date().toISOString()
       });
     } catch (error: any) {
-      // Use the same logic as ApiService
-      const isLocalDevelopment = process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost';
+      // Use the same safe logic as ApiService
+      let isLocalDevelopment = false;
+      let hostname = 'unknown';
+      
+      try {
+        if (typeof window !== 'undefined' && window.location) {
+          hostname = window.location.hostname;
+          isLocalDevelopment = process.env.NODE_ENV === 'development' && hostname === 'localhost';
+        }
+      } catch (error) {
+        console.warn('Could not access window.location in debug error:', error);
+      }
+      
       const apiUrl = isLocalDevelopment 
         ? 'http://localhost:3001/api'
         : 'https://smurfgaurd-production.up.railway.app/api';
@@ -259,7 +281,7 @@ ${error.message || 'Please try again or verify the Riot ID format.'}`);
       setDebugInfo({
         apiUrl,
         isLocalDevelopment,
-        hostname: window.location.hostname,
+        hostname,
         NODE_ENV: process.env.NODE_ENV,
         error: error.message,
         type: error.type,
