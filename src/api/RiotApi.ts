@@ -148,7 +148,85 @@ export class RiotApi {
             const response = await axios.get(url, {
                 headers: { 'X-Riot-Token': this.apiKey }
             });
-            return response.data;
+            
+            // Transform Riot API v5 response to our MatchHistory interface
+            const riotMatch = response.data;
+            
+            const transformedMatch: MatchHistory = {
+                matchId: riotMatch.metadata.matchId,
+                gameCreation: new Date(riotMatch.info.gameCreation),
+                gameDuration: riotMatch.info.gameDuration,
+                gameMode: riotMatch.info.gameMode,
+                gameType: riotMatch.info.gameType,
+                participants: riotMatch.info.participants.map((participant: any) => ({
+                    puuid: participant.puuid,
+                    summonerId: participant.summonerId || '',
+                    summonerName: participant.summonerName || participant.riotIdGameName || '',
+                    championId: participant.championId,
+                    championName: participant.championName,
+                    teamId: participant.teamId,
+                    stats: {
+                        kills: participant.kills,
+                        deaths: participant.deaths,
+                        assists: participant.assists,
+                        totalDamageDealt: participant.totalDamageDealtToChampions,
+                        totalDamageTaken: participant.totalDamageTaken,
+                        goldEarned: participant.goldEarned,
+                        visionScore: participant.visionScore,
+                        cs: participant.totalMinionsKilled + participant.neutralMinionsKilled,
+                        csPerMinute: (participant.totalMinionsKilled + participant.neutralMinionsKilled) / (riotMatch.info.gameDuration / 60),
+                        win: participant.win
+                    },
+                    runes: participant.perks?.styles?.map((style: any) => 
+                        style.selections?.map((selection: any) => ({
+                            runeId: selection.perk,
+                            rank: selection.var1 || 0
+                        })) || []
+                    ).flat() || [],
+                    items: [
+                        participant.item0,
+                        participant.item1,
+                        participant.item2,
+                        participant.item3,
+                        participant.item4,
+                        participant.item5,
+                        participant.item6
+                    ].filter(item => item > 0),
+                    summonerSpells: {
+                        spell1Id: participant.summoner1Id,
+                        spell2Id: participant.summoner2Id
+                    },
+                    position: participant.teamPosition || participant.individualPosition || '',
+                    lane: participant.lane || ''
+                })),
+                teams: riotMatch.info.teams.map((team: any) => ({
+                    teamId: team.teamId,
+                    win: team.win,
+                    objectives: {
+                        baron: {
+                            first: team.objectives?.baron?.first || false,
+                            kills: team.objectives?.baron?.kills || 0
+                        },
+                        dragon: {
+                            first: team.objectives?.dragon?.first || false,
+                            kills: team.objectives?.dragon?.kills || 0
+                        },
+                        herald: {
+                            first: team.objectives?.riftHerald?.first || false,
+                            kills: team.objectives?.riftHerald?.kills || 0
+                        },
+                        tower: {
+                            first: team.objectives?.tower?.first || false,
+                            kills: team.objectives?.tower?.kills || 0
+                        }
+                    }
+                })),
+                platformId: riotMatch.info.platformId,
+                queueId: riotMatch.info.queueId,
+                seasonId: riotMatch.info.gameVersion?.split('.')[0] || '13' // Extract season from game version
+            };
+            
+            return transformedMatch;
         } catch (error) {
             throw error;
         }
