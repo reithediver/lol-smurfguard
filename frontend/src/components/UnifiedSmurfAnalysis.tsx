@@ -44,7 +44,7 @@ interface EnhancedChampionStats {
         damageSharePercentile: number;
         isOutlier: boolean;
     };
-    opRating: {
+    opRating?: {
         overall: number;
         recent: number;
         trend: 'IMPROVING' | 'DECLINING' | 'STABLE';
@@ -426,7 +426,7 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
                 case 'suspicion': return b.suspicionScore - a.suspicionScore;
                 case 'winrate': return b.winRate - a.winRate;
                 case 'games': return b.gamesPlayed - a.gamesPlayed;
-                case 'oprating': return b.opRating.overall - a.opRating.overall;
+                case 'oprating': return (b.opRating?.overall || 0) - (a.opRating?.overall || 0);
                 default: return 0;
             }
         });
@@ -621,29 +621,37 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
                         
                         {/* OP Rating Column */}
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ 
-                                color: champion.opRating.overall >= 70 ? '#22c55e' : 
-                                       champion.opRating.overall >= 50 ? '#eab308' : '#ef4444',
-                                fontWeight: 'bold'
-                            }}>
-                                {champion.opRating.overall}
-                            </div>
-                            <div style={{ fontSize: '9px', color: '#64748b' }}>
-                                {champion.opRating.trend === 'IMPROVING' ? '📈' : 
-                                 champion.opRating.trend === 'DECLINING' ? '📉' : '➡️'}
-                                {champion.opRating.recent}
-                            </div>
-                            <div style={{ 
-                                fontSize: '8px', 
-                                color: '#475569',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                marginTop: '2px'
-                            }}>
-                                <span title="Laning">L:{champion.opRating.breakdown.laning}</span>
-                                <span title="Teamfighting">T:{champion.opRating.breakdown.teamfighting}</span>
-                                <span title="Carrying">C:{champion.opRating.breakdown.carrying}</span>
-                            </div>
+                            {champion.opRating ? (
+                                <>
+                                    <div style={{ 
+                                        color: champion.opRating.overall >= 70 ? '#22c55e' : 
+                                               champion.opRating.overall >= 50 ? '#eab308' : '#ef4444',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {champion.opRating.overall}
+                                    </div>
+                                    <div style={{ fontSize: '9px', color: '#64748b' }}>
+                                        {champion.opRating.trend === 'IMPROVING' ? '📈' : 
+                                         champion.opRating.trend === 'DECLINING' ? '📉' : '➡️'}
+                                        {champion.opRating.recent}
+                                    </div>
+                                    <div style={{ 
+                                        fontSize: '8px', 
+                                        color: '#475569',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        marginTop: '2px'
+                                    }}>
+                                        <span title="Laning">L:{champion.opRating.breakdown?.laning || 0}</span>
+                                        <span title="Teamfighting">T:{champion.opRating.breakdown?.teamfighting || 0}</span>
+                                        <span title="Carrying">C:{champion.opRating.breakdown?.carrying || 0}</span>
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ color: '#64748b', fontSize: '12px' }}>
+                                    N/A
+                                </div>
+                            )}
                         </div>
                         
                         {/* VS Opponent Column */}
