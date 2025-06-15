@@ -16,8 +16,8 @@ class ApiService {
   private baseURL: string;
 
   constructor() {
-    // In development, use local backend. In production, use the deployed backend
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    // Use the deployed Railway backend URL or fallback to localhost for development
+    this.baseURL = process.env.REACT_APP_API_URL || 'https://smurfgaurd-production.up.railway.app/api';
     
     this.api = axios.create({
       baseURL: this.baseURL,
@@ -58,11 +58,20 @@ class ApiService {
       const { status, data } = error.response;
       
       switch (status) {
+        case 403:
+          return {
+            type: 'API_ACCESS_FORBIDDEN',
+            message: data.message || 'Access forbidden. Development API key restrictions.',
+            code: status,
+            details: data.details,
+            suggestions: data.suggestions || []
+          };
         case 404:
           return {
             type: 'PLAYER_NOT_FOUND',
-            message: data.error?.message || 'Player not found',
+            message: data.message || 'Player not found',
             code: status,
+            suggestions: data.suggestions || []
           };
         case 429:
           return {
@@ -72,6 +81,20 @@ class ApiService {
             retryAfter: parseInt(error.response.headers['retry-after']) || 60,
           };
         case 500:
+          // Handle backend analysis errors
+          if (data.error === 'ANALYSIS_ERROR') {
+            return {
+              type: 'ANALYSIS_FAILED',
+              message: `Unable to analyze this player.`,
+              code: status,
+              details: `Backend analysis error: ${data.details || data.message}`,
+              suggestions: [
+                'This player may have restricted data access',
+                'Try a different Riot ID',
+                'The player may not have recent game data'
+              ]
+            };
+          }
           return {
             type: 'API_ERROR',
             message: 'Internal server error. Please try again later.',
@@ -80,7 +103,7 @@ class ApiService {
         default:
           return {
             type: 'API_ERROR',
-            message: data.error?.message || 'An unexpected error occurred',
+            message: data.error?.message || data.message || 'An unexpected error occurred',
             code: status,
             details: data,
           };
@@ -103,20 +126,113 @@ class ApiService {
   }
 
   /**
-   * Analyze a player for smurf detection
+   * Health check endpoint
    */
-  async analyzePlayer(request: AnalysisRequest): Promise<SmurfAnalysis> {
+  async healthCheck(): Promise<{ success: boolean; message: string; version: string; features: string[] }> {
     try {
-      const response = await this.api.post<ApiResponse<SmurfAnalysis>>('/analyze', request);
-      
-      if (!response.data.success || !response.data.data) {
-        throw new Error(response.data.error?.message || 'Analysis failed');
-      }
-
-      return response.data.data;
+      const response = await this.api.get('/health');
+      return response.data;
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Get integration status
+   */
+  async getIntegrationStatus(): Promise<any> {
+    try {
+      const response = await this.api.get('/integration/status');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Basic smurf analysis
+   */
+  async analyzeBasic(summonerName: string, region: string = 'na1'): Promise<any> {
+    try {
+      const response = await this.api.get(`/analyze/basic/${encodeURIComponent(summonerName)}`, {
+        params: { region }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Enhanced OP.GG style analysis
+   */
+  async analyzeEnhanced(summonerName: string, region: string = 'na1'): Promise<any> {
+    try {
+      const response = await this.api.get(`/analyze/opgg-enhanced/${encodeURIComponent(summonerName)}`, {
+        params: { region }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Comprehensive analysis (supports both Riot IDs and legacy summoner names)
+   */
+  async analyzeComprehensive(identifier: string, region: string = 'na1'): Promise<any> {
+    try {
+      const response = await this.api.get(`/analyze/comprehensive/${encodeURIComponent(identifier)}`, {
+        params: { region }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Try multiple analysis methods in order of preference
+   */
+  async analyzePlayer(playerName: string, region: string = 'na1'): Promise<any> {
+    // Prioritize comprehensive analysis first since it's working best
+    const analysisOrder = [
+      () => this.analyzeComprehensive(playerName, region),  // This works great according to debug logs
+      () => this.analyzeEnhanced(playerName, region),      // Fallback 1
+      () => this.analyzeBasic(playerName, region)          // Fallback 2 (known to have 403 issues for famous players)
+    ];
+
+    let lastError;
+    let attemptCount = 0;
+    
+    for (const analysisMethod of analysisOrder) {
+      try {
+        attemptCount++;
+        console.log(`🔍 Attempting analysis method ${attemptCount}/3...`);
+        
+        const result = await analysisMethod();
+        
+        if (result && result.success) {
+          console.log(`✅ Analysis successful with method ${attemptCount}!`);
+          return result;
+        } else {
+          throw new Error(result?.error?.message || result?.message || 'Analysis method returned unsuccessful result');
+        }
+      } catch (error) {
+        lastError = error;
+        console.warn(`❌ Analysis method ${attemptCount} failed:`, error);
+        
+        // Don't continue trying other methods for 404 errors (player not found)
+        if (error instanceof Error && error.message.includes('404')) {
+          console.log(`🚫 Player not found (404), stopping attempts`);
+          break;
+        }
+      }
+    }
+
+    // If all methods failed, provide helpful error message
+    console.error('❌ All analysis methods failed. Last error:', lastError);
+    throw lastError || new Error('All analysis methods failed');
   }
 
   /**
@@ -190,19 +306,7 @@ class ApiService {
   }
 
   /**
-   * Health check endpoint
-   */
-  async healthCheck(): Promise<boolean> {
-    try {
-      const response = await this.api.get<ApiResponse<{ status: string }>>('/health');
-      return response.data.success && response.data.data?.status === 'ok';
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Get available regions
+   * Get available regions for analysis
    */
   getAvailableRegions(): { value: Region; label: string }[] {
     return [
@@ -210,32 +314,30 @@ class ApiService {
       { value: 'euw1', label: 'Europe West' },
       { value: 'eun1', label: 'Europe Nordic & East' },
       { value: 'kr', label: 'Korea' },
+      { value: 'jp1', label: 'Japan' },
       { value: 'br1', label: 'Brazil' },
       { value: 'la1', label: 'Latin America North' },
       { value: 'la2', label: 'Latin America South' },
       { value: 'oc1', label: 'Oceania' },
       { value: 'tr1', label: 'Turkey' },
       { value: 'ru', label: 'Russia' },
-      { value: 'jp1', label: 'Japan' },
     ];
   }
 
   /**
-   * Parse player name to handle Riot ID format (Name#TAG)
+   * Parse player name to handle both Riot ID format (GameName#TAG) and legacy names
    */
   parsePlayerName(input: string): { name: string; tag: string } {
-    const parts = input.split('#');
-    if (parts.length === 2) {
+    if (input.includes('#')) {
+      const parts = input.split('#');
       return {
         name: parts[0].trim(),
-        tag: parts[1].trim(),
+        tag: parts[1].trim()
       };
     }
-    
-    // Fallback for old summoner names without tags
     return {
       name: input.trim(),
-      tag: '',
+      tag: ''
     };
   }
 
@@ -249,244 +351,43 @@ class ApiService {
 
     const trimmed = input.trim();
     
-    // Check for Riot ID format (Name#TAG)
+    if (trimmed.length < 3) {
+      return { isValid: false, error: 'Player name must be at least 3 characters long' };
+    }
+
+    if (trimmed.length > 30) {
+      return { isValid: false, error: 'Player name cannot exceed 30 characters' };
+    }
+
+    // Check for Riot ID format
     if (trimmed.includes('#')) {
       const parts = trimmed.split('#');
       if (parts.length !== 2) {
-        return { isValid: false, error: 'Invalid Riot ID format. Use: PlayerName#TAG' };
+        return { isValid: false, error: 'Invalid Riot ID format. Use: GameName#TAG' };
       }
       
-      const [name, tag] = parts;
-      if (!name || name.length === 0) {
-        return { isValid: false, error: 'Player name cannot be empty' };
+      const [gameName, tagLine] = parts;
+      if (!gameName.trim() || !tagLine.trim()) {
+        return { isValid: false, error: 'Both game name and tag are required for Riot ID' };
       }
       
-      if (!tag || tag.length === 0) {
-        return { isValid: false, error: 'Tag cannot be empty in Riot ID format' };
-      }
-      
-      if (name.length > 16) {
-        return { isValid: false, error: 'Player name cannot be longer than 16 characters' };
-      }
-      
-      if (tag.length > 5) {
-        return { isValid: false, error: 'Tag cannot be longer than 5 characters' };
-      }
-    } else {
-      // Legacy summoner name
-      if (trimmed.length > 16) {
-        return { isValid: false, error: 'Player name cannot be longer than 16 characters' };
+      if (tagLine.length < 3 || tagLine.length > 5) {
+        return { isValid: false, error: 'Tag must be 3-5 characters long' };
       }
     }
 
-    // Check for invalid characters
-    const validPattern = /^[a-zA-Z0-9\s\-_#]+$/;
-    if (!validPattern.test(trimmed)) {
+    // Basic character validation
+    const validChars = /^[a-zA-Z0-9\s#]+$/;
+    if (!validChars.test(trimmed)) {
       return { isValid: false, error: 'Player name contains invalid characters' };
     }
 
     return { isValid: true };
   }
 
-  /**
-   * Mock analysis for development (when API is not available)
-   */
-  async mockAnalyzePlayer(playerName: string): Promise<SmurfAnalysis> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const mockAnalysis: SmurfAnalysis = {
-      playerName,
-      puuid: 'mock-puuid-' + Date.now(),
-      smurfProbability: Math.random() * 100,
-      confidenceLevel: 75 + Math.random() * 25,
-      reasons: [
-        {
-          type: 'CHAMPION_PERFORMANCE',
-          severity: 'HIGH',
-          description: 'Exceptional performance on recently played champions',
-          confidence: 85,
-          evidence: ['90% win rate on Yasuo with only 8 games', 'KDA of 4.2 significantly above average']
-        },
-        {
-          type: 'PLAYTIME_GAP',
-          severity: 'MEDIUM',
-          description: 'Suspicious gaps in gameplay activity',
-          confidence: 70,
-          evidence: ['21-day gap between game sessions', 'Pattern suggests account sharing or boosting']
-        }
-      ],
-      championStats: [
-        {
-          championId: 157,
-          championName: 'Yasuo',
-          winRate: 90,
-          kda: 4.2,
-          csPerMinute: 8.5,
-          gamesPlayed: 8,
-          averageDamage: 28500,
-          visionScore: 15,
-          masteryLevel: 4,
-          masteryPoints: 12500,
-          recentPerformance: []
-        },
-        {
-          championId: 238,
-          championName: 'Zed',
-          winRate: 85,
-          kda: 3.8,
-          csPerMinute: 9.2,
-          gamesPlayed: 12,
-          averageDamage: 32000,
-          visionScore: 12,
-          masteryLevel: 5,
-          masteryPoints: 18500,
-          recentPerformance: []
-        }
-      ],
-      playtimeGaps: [7, 14, 21],
-      accountAge: 45,
-      totalGamesAnalyzed: 50,
-      analysisDate: new Date().toISOString(),
-      detectionCriteria: {
-        championPerformanceThreshold: {
-          winRateThreshold: 70,
-          kdaThreshold: 3.0,
-          csPerMinuteThreshold: 8.0,
-          minimumGames: 5
-        },
-        playtimeGapThreshold: {
-          suspiciousGapDays: 7,
-          maximumGapCount: 3
-        },
-        summonerSpellAnalysis: {
-          trackKeyBindings: true,
-          patternChangeThreshold: 3
-        },
-        playerAssociation: {
-          highEloThreshold: 'DIAMOND',
-          associationCount: 5
-        }
-      }
-    };
-
-    return mockAnalysis;
-  }
-
-  /**
-   * OP.GG Enhanced Player Analysis - Real Data Integration
-   */
-  async analyzePlayerWithOpgg(playerName: string, region: Region = 'na1'): Promise<any> {
-    try {
-      const response = await this.api.get<ApiResponse<any>>(
-        `/analyze/opgg-enhanced/${encodeURIComponent(playerName)}?region=${region}`
-      );
-      
-      if (!response.data.success || !response.data.data) {
-        throw new Error(response.data.error?.message || 'OP.GG enhanced analysis failed');
-      }
-
-      return response.data.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Get OP.GG Integration Status
-   */
-  async getOpggIntegrationStatus(): Promise<any> {
-    try {
-      const response = await this.api.get<any>('/integration/status');
-      
-      if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to get integration status');
-      }
-
-      // Handle different response structures
-      return response.data.integration || response.data.data || response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Get Analysis Capabilities
-   */
-  async getAnalysisCapabilities(): Promise<any> {
-    try {
-      const response = await this.api.get<any>('/analysis/capabilities');
-      
-      if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to get analysis capabilities');
-      }
-
-      return response.data.capabilities || response.data.data || response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Refresh Player Data (OP.GG)
-   */
-  async refreshPlayerData(playerName: string, region: Region = 'na1'): Promise<boolean> {
-    try {
-      const response = await this.api.post<ApiResponse<any>>(
-        `/refresh/${encodeURIComponent(playerName)}`,
-        { region }
-      );
-      
-      return response.data.success;
-    } catch (error) {
-      console.warn('Failed to refresh player data:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Clear Cache
-   */
-  async clearCache(): Promise<boolean> {
-    try {
-      const response = await this.api.delete<ApiResponse<any>>('/cache/clear');
-      return response.data.success;
-    } catch (error) {
-      console.warn('Failed to clear cache:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Enhanced Analysis with Fallback
-   * Tries OP.GG first, falls back to basic analysis
-   */
-  async analyzePlayerEnhanced(playerName: string, region: Region = 'na1'): Promise<any> {
-    try {
-      // First try OP.GG enhanced analysis
-      return await this.analyzePlayerWithOpgg(playerName, region);
-    } catch (opggError) {
-      console.warn('OP.GG analysis failed, falling back to basic analysis:', opggError);
-      
-      try {
-        // Fallback to basic analysis
-        return await this.analyzePlayer({
-          playerName,
-          region,
-          gameCount: 20,
-          includeRanked: true,
-          includeNormal: false
-        });
-      } catch (basicError) {
-        console.warn('Basic analysis also failed, using mock data:', basicError);
-        
-        // Final fallback to mock data
-        return await this.mockAnalyzePlayer(playerName);
-      }
-    }
-  }
 }
 
 // Export singleton instance
 export const apiService = new ApiService();
-export default apiService; 
+export { ApiService }; 

@@ -13,6 +13,7 @@ class RiotApi {
         this.requestQueue = [];
         this.processingQueue = false;
         this.apiKey = apiKey;
+        this.region = region;
         this.api = axios_1.default.create({
             baseURL: `https://${region}.api.riotgames.com`,
             headers: {
@@ -65,11 +66,90 @@ class RiotApi {
             this.processQueue();
         });
     }
+    // Modern Riot ID method - get account by Riot ID (gameName#tagLine)
+    async getAccountByRiotId(gameName, tagLine) {
+        const routingValue = this.getRoutingValue(this.region);
+        const url = `https://${routingValue}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+        try {
+            const response = await axios_1.default.get(url, {
+                headers: { 'X-Riot-Token': this.apiKey }
+            });
+            return response.data;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    // Get summoner by PUUID (modern approach)
+    async getSummonerByPuuid(puuid) {
+        return this.makeRequest(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
+    }
+    // Legacy method maintained for backward compatibility
     async getSummonerByName(name) {
         return this.makeRequest(`/lol/summoner/v4/summoners/by-name/${encodeURIComponent(name)}`);
     }
+    // Modern Riot ID workflow - get full summoner data from Riot ID
+    async getSummonerByRiotId(gameName, tagLine) {
+        try {
+            // Step 1: Get account info (PUUID) from Riot ID
+            const account = await this.getAccountByRiotId(gameName, tagLine);
+            // Step 2: Get summoner info using PUUID
+            const summoner = await this.getSummonerByPuuid(account.puuid);
+            // Return combined data
+            return {
+                ...summoner,
+                puuid: account.puuid,
+                gameName: account.gameName,
+                tagLine: account.tagLine
+            };
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async getMatchHistory(puuid, startTime, endTime) {
-        // Match history is on a different server (region.api.riotgames.com)
+        const routingValue = this.getRoutingValue(this.region);
+        const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20`;
+        const params = {};
+        if (startTime)
+            params.startTime = startTime.toString();
+        if (endTime)
+            params.endTime = endTime.toString();
+        try {
+            const response = await axios_1.default.get(url, {
+                headers: { 'X-Riot-Token': this.apiKey },
+                params
+            });
+            return response.data;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async getMatchDetails(matchId) {
+        const routingValue = this.getRoutingValue(this.region);
+        const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
+        try {
+            const response = await axios_1.default.get(url, {
+                headers: { 'X-Riot-Token': this.apiKey }
+            });
+            return response.data;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async getChampionMastery(puuid, championId) {
+        const endpoint = championId
+            ? `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/by-champion/${championId}`
+            : `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}`;
+        return this.makeRequest(endpoint);
+    }
+    async getLeagueEntries(puuid) {
+        return this.makeRequest(`/lol/league/v4/entries/by-puuid/${puuid}`);
+    }
+    // Helper method to get regional routing values
+    getRoutingValue(region) {
         const regionMapping = {
             'br1': 'americas',
             'eun1': 'europe',
@@ -88,36 +168,18 @@ class RiotApi {
             'tw2': 'sea',
             'vn2': 'sea'
         };
-        const region = this.api.defaults.baseURL?.split('.')[0].replace('https://', '') || 'na1';
-        const routingValue = regionMapping[region] || 'americas';
-        // Use a different base URL for match endpoints
-        const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20`;
-        // Append parameters if provided
-        const params = {};
-        if (startTime)
-            params.startTime = startTime.toString();
-        if (endTime)
-            params.endTime = endTime.toString();
-        // Make a direct axios request instead of using this.makeRequest
-        const headers = {
-            'X-Riot-Token': this.api.defaults.headers['X-Riot-Token']
+        return regionMapping[region] || 'americas';
+    }
+    // Utility method to parse Riot ID from string
+    static parseRiotId(riotIdString) {
+        const parts = riotIdString.split('#');
+        if (parts.length !== 2) {
+            return null;
+        }
+        return {
+            gameName: parts[0].trim(),
+            tagLine: parts[1].trim()
         };
-        try {
-            const response = await axios_1.default.get(url, { headers, params });
-            return response.data;
-        }
-        catch (error) {
-            throw error;
-        }
-    }
-    async getMatchDetails(matchId) {
-        return this.makeRequest(`/lol/match/v5/matches/${matchId}`);
-    }
-    async getChampionMastery(puuid, championId) {
-        return this.makeRequest(`/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/by-champion/${championId}`);
-    }
-    async getLeagueEntries(summonerId) {
-        return this.makeRequest(`/lol/league/v4/entries/by-summoner/${summonerId}`);
     }
     clearCache() {
         this.cache.clear();

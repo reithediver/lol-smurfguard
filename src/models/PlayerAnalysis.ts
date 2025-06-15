@@ -12,6 +12,10 @@ export interface PlayerAnalysis {
         playerAssociations: PlayerAssociationAnalysis;
     };
     lastUpdated: Date;
+    // Optional modern Riot ID fields
+    leagueData?: any[]; // League entries data
+    championMasteryData?: any[]; // Champion mastery data
+    region?: string; // Player region
 }
 
 export interface PlaytimeGapAnalysis {

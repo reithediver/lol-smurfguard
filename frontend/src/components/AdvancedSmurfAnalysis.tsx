@@ -1,46 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-
-interface PlayerComparison {
-  metric: string;
-  playerValue: number;
-  rankAverage: number;
-  percentile: number;
-  deviation: number;
-  status: 'far_below' | 'below_average' | 'average' | 'above_average' | 'exceptional';
-  suspiciousLevel: number;
-}
-
-interface PlaystyleShift {
-  timestamp: Date;
-  type: 'gradual' | 'sudden' | 'dramatic';
-  confidence: number;
-  description: string;
-  suspicionScore: number;
-}
-
-interface ChampionEvolution {
-  championName: string;
-  suspicionFlags: {
-    tooGoodTooFast: boolean;
-    suddenExpertise: boolean;
-    metaShift: boolean;
-    complexityJump: boolean;
-  };
-}
-
-interface AdvancedAnalysisData {
-  performanceOutliers: PlayerComparison[];
-  playstyleShifts: PlaystyleShift[];
-  championMasteryAnomalies: ChampionEvolution[];
-  summary: {
-    totalChampionsAnalyzed: number;
-    suspiciousPerformanceCount: number;
-    outlierPerformanceCount: number;
-    dramaticShiftsDetected: number;
-    overallSuspicionScore: number;
-  };
-}
+import { apiService } from '../services/api';
+import { SmurfAnalysis } from '../types';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -238,106 +199,47 @@ const StatusBadge = styled.span<{ status: string }>`
   font-weight: 600;
   background: ${props => {
     switch (props.status) {
-      case 'exceptional': return 'rgba(239, 68, 68, 0.2)';
-      case 'above_average': return 'rgba(245, 158, 11, 0.2)';
-      case 'average': return 'rgba(52, 211, 153, 0.2)';
-      case 'below_average': return 'rgba(100, 116, 139, 0.2)';
+      case 'critical': return 'rgba(239, 68, 68, 0.2)';
+      case 'high': return 'rgba(245, 158, 11, 0.2)';
+      case 'medium': return 'rgba(52, 211, 153, 0.2)';
+      case 'low': return 'rgba(100, 116, 139, 0.2)';
       default: return 'rgba(100, 116, 139, 0.2)';
     }
   }};
   color: ${props => {
     switch (props.status) {
-      case 'exceptional': return '#ef4444';
-      case 'above_average': return '#f59e0b';
-      case 'average': return '#34d399';
-      case 'below_average': return '#64748b';
+      case 'critical': return '#ef4444';
+      case 'high': return '#f59e0b';
+      case 'medium': return '#34d399';
+      case 'low': return '#64748b';
       default: return '#64748b';
     }
   }};
 `;
 
-const SuspicionBar = styled.div<{ level: number }>`
-  width: 100%;
-  height: 8px;
-  background: #334155;
-  border-radius: 4px;
-  overflow: hidden;
-
-  &::after {
-    content: '';
-    display: block;
-    width: ${props => props.level}%;
-    height: 100%;
-    background: ${props => 
-      props.level > 80 ? '#ef4444' :
-      props.level > 60 ? '#f59e0b' :
-      props.level > 40 ? '#eab308' :
-      '#34d399'
-    };
-    transition: width 0.3s;
-  }
+const ErrorMessage = styled.div`
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+  color: #ef4444;
+  font-size: 0.9rem;
+  line-height: 1.5;
 `;
 
 const LoadingSpinner = styled.div`
   text-align: center;
   padding: 40px;
-  color: #60a5fa;
-  font-size: 1.2rem;
-  animation: pulse 2s infinite;
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-`;
-
-const ErrorMessage = styled.div`
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  color: #fef2f2;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  border: 1px solid #f87171;
-  white-space: pre-line;
-  line-height: 1.6;
-  
-  strong {
-    color: #fecaca;
-  }
-`;
-
-const ChampionFlag = styled.span<{ flag: string }>`
-  display: inline-block;
-  padding: 2px 6px;
-  margin: 2px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  background: ${props => {
-    switch (props.flag) {
-      case 'tooGoodTooFast': return 'rgba(239, 68, 68, 0.2)';
-      case 'suddenExpertise': return 'rgba(245, 158, 11, 0.2)';
-      case 'metaShift': return 'rgba(168, 85, 247, 0.2)';
-      case 'complexityJump': return 'rgba(239, 68, 68, 0.2)';
-      default: return 'rgba(100, 116, 139, 0.2)';
-    }
-  }};
-  color: ${props => {
-    switch (props.flag) {
-      case 'tooGoodTooFast': return '#ef4444';
-      case 'suddenExpertise': return '#f59e0b';
-      case 'metaShift': return '#a855f7';
-      case 'complexityJump': return '#ef4444';
-      default: return '#64748b';
-    }
-  }};
+  color: #94a3b8;
+  font-size: 1.1rem;
 `;
 
 export const AdvancedSmurfAnalysis: React.FC = () => {
   const [playerName, setPlayerName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [analysisData, setAnalysisData] = useState<AdvancedAnalysisData | null>(null);
+  const [analysisData, setAnalysisData] = useState<SmurfAnalysis | null>(null);
 
   const handleAnalyze = async () => {
     if (!playerName.trim()) {
@@ -350,91 +252,13 @@ export const AdvancedSmurfAnalysis: React.FC = () => {
     setAnalysisData(null);
 
     try {
-      // Use the Railway backend URL consistently
-      const baseURL = 'https://smurfgaurd-production.up.railway.app';
-      const endpoints = [
-        `${baseURL}/api/analyze/champion-outliers/${encodeURIComponent(playerName)}`,
-        `${baseURL}/api/analyze/advanced-smurf/${encodeURIComponent(playerName)}`,
-        `${baseURL}/api/analyze/basic/${encodeURIComponent(playerName)}`
-      ];
-
-      let response = null;
-      let lastError = null;
+      const result = await apiService.analyzePlayer(playerName, 'na1');
       
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`Trying endpoint: ${endpoint}`);
-          response = await fetch(endpoint, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            console.log(`Success with endpoint: ${endpoint}`);
-            break;
-          } else {
-            console.log(`Failed with status ${response.status}: ${endpoint}`);
-            
-            // Handle specific error cases
-            if (response.status === 403) {
-              lastError = `API Access Forbidden (403): The Development API key cannot access data for famous players like "${playerName}". Try a less well-known summoner name, or check our Demo tab for working examples with challenger data.`;
-            } else if (response.status === 404) {
-              lastError = `Player "${playerName}" not found. Please check the spelling and make sure the player exists in the NA region.`;
-            } else if (response.status === 429) {
-              lastError = `Rate limit exceeded. Please wait a moment and try again.`;
-            } else if (response.status === 500) {
-              // Try to get the error details from the response
-              try {
-                const errorData = await response.json();
-                if (errorData.details && errorData.details.includes('403')) {
-                  lastError = `API Access Restricted: The Development API key cannot access data for "${playerName}". This is a Riot Games API limitation for famous players. Try a different summoner name or check our Demo tab for working examples.`;
-                } else {
-                  lastError = `Server Error (500): ${errorData.message || 'Internal server error'}`;
-                }
-              } catch {
-                lastError = `Server Error (500): Internal server error`;
-              }
-            } else {
-              lastError = `HTTP ${response.status}: ${response.statusText}`;
-            }
-          }
-        } catch (e) {
-          console.log(`Network error with endpoint: ${endpoint}`, e);
-          lastError = e instanceof Error ? e.message : 'Network error';
-          continue; // Try next endpoint
-        }
-      }
-
-      if (!response || !response.ok) {
-        throw new Error(lastError || 'All endpoints failed to respond');
-      }
-
-      // Verify we got JSON, not HTML
-      const contentType = response.headers.get('Content-Type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Received non-JSON response:', text.substring(0, 200));
-        throw new Error('Server returned HTML instead of JSON. Backend may be down.');
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setAnalysisData(result.data);
+      if (result) {
+        setAnalysisData(result);
       } else {
-        // Handle API-specific error messages
-        let errorMessage = result.message || result.error || 'Analysis failed';
-        
-        if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
-          errorMessage = `API Access Restricted: The Development API key cannot analyze "${playerName}". This is a Riot Games limitation for famous players. Try a different summoner name or check our Demo tab for working examples with challenger data.`;
-        }
-        
-        throw new Error(errorMessage);
+        throw new Error('No analysis data received');
       }
-
     } catch (error) {
       console.error('Analysis error:', error);
       let errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -456,15 +280,6 @@ export const AdvancedSmurfAnalysis: React.FC = () => {
     if (event.key === 'Enter') {
       handleAnalyze();
     }
-  };
-
-  const getChampionFlags = (champion: ChampionEvolution) => {
-    const flags = [];
-    if (champion.suspicionFlags.tooGoodTooFast) flags.push('tooGoodTooFast');
-    if (champion.suspicionFlags.suddenExpertise) flags.push('suddenExpertise');
-    if (champion.suspicionFlags.metaShift) flags.push('metaShift');
-    if (champion.suspicionFlags.complexityJump) flags.push('complexityJump');
-    return flags;
   };
 
   return (
@@ -519,150 +334,78 @@ export const AdvancedSmurfAnalysis: React.FC = () => {
             <SectionTitle>Analysis Summary</SectionTitle>
             <SummaryGrid>
               <SummaryItem>
-                <SummaryValue>{analysisData.summary.totalChampionsAnalyzed}</SummaryValue>
+                <SummaryValue>{analysisData.totalGamesAnalyzed}</SummaryValue>
+                <SummaryLabel>Games Analyzed</SummaryLabel>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryValue suspicious={analysisData.smurfProbability > 0.7}>
+                  {(analysisData.smurfProbability * 100).toFixed(1)}%
+                </SummaryValue>
+                <SummaryLabel>Smurf Probability</SummaryLabel>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryValue>{analysisData.reasons.length}</SummaryValue>
+                <SummaryLabel>Suspicious Indicators</SummaryLabel>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryValue>{analysisData.championStats.length}</SummaryValue>
                 <SummaryLabel>Champions Analyzed</SummaryLabel>
-              </SummaryItem>
-              <SummaryItem>
-                <SummaryValue suspicious={analysisData.summary.outlierPerformanceCount > 0}>
-                  {analysisData.summary.outlierPerformanceCount}
-                </SummaryValue>
-                <SummaryLabel>Performance Outliers (95th+ percentile)</SummaryLabel>
-              </SummaryItem>
-              <SummaryItem>
-                <SummaryValue suspicious={analysisData.summary.dramaticShiftsDetected > 0}>
-                  {analysisData.summary.dramaticShiftsDetected}
-                </SummaryValue>
-                <SummaryLabel>Dramatic Playstyle Shifts</SummaryLabel>
-              </SummaryItem>
-              <SummaryItem>
-                <SummaryValue suspicious={analysisData.summary.overallSuspicionScore > 50}>
-                  {analysisData.summary.overallSuspicionScore.toFixed(0)}%
-                </SummaryValue>
-                <SummaryLabel>Overall Suspicion Score</SummaryLabel>
               </SummaryItem>
             </SummaryGrid>
           </SummaryCard>
 
-          {analysisData.performanceOutliers.length > 0 && (
-            <>
-              <SectionTitle>Performance vs Rank Benchmarks</SectionTitle>
-              <DataTable>
-                <thead>
-                  <tr>
-                    <TableHeader>Metric</TableHeader>
-                    <TableHeader>Player Value</TableHeader>
-                    <TableHeader>Rank Average</TableHeader>
-                    <TableHeader>Percentile</TableHeader>
-                    <TableHeader>Deviation</TableHeader>
-                    <TableHeader>Status</TableHeader>
-                    <TableHeader>Suspicion Level</TableHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analysisData.performanceOutliers.map((comparison, index) => (
-                    <TableRow key={index} highlighted={comparison.percentile > 95}>
-                      <TableCell>{comparison.metric}</TableCell>
-                      <TableCell>{comparison.playerValue.toFixed(2)}</TableCell>
-                      <TableCell>{comparison.rankAverage.toFixed(2)}</TableCell>
-                      <TableCell status={comparison.status}>
-                        {comparison.percentile.toFixed(1)}th
-                      </TableCell>
-                      <TableCell>{(comparison.deviation * 100).toFixed(1)}%</TableCell>
-                      <TableCell>
-                        <StatusBadge status={comparison.status}>
-                          {comparison.status.replace('_', ' ')}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>
-                        <SuspicionBar level={comparison.suspiciousLevel} />
-                        <span style={{ fontSize: '0.8rem', marginLeft: '8px' }}>
-                          {comparison.suspiciousLevel.toFixed(0)}/100
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </tbody>
-              </DataTable>
-            </>
+          {analysisData.reasons.length > 0 && (
+            <DataTable>
+              <thead>
+                <tr>
+                  <TableHeader>Type</TableHeader>
+                  <TableHeader>Severity</TableHeader>
+                  <TableHeader>Description</TableHeader>
+                  <TableHeader>Confidence</TableHeader>
+                </tr>
+              </thead>
+              <tbody>
+                {analysisData.reasons.map((reason, index) => (
+                  <TableRow key={index} highlighted={reason.severity === 'CRITICAL'}>
+                    <TableCell>{reason.type}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={reason.severity.toLowerCase()}>
+                        {reason.severity}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell>{reason.description}</TableCell>
+                    <TableCell>{(reason.confidence * 100).toFixed(1)}%</TableCell>
+                  </TableRow>
+                ))}
+              </tbody>
+            </DataTable>
           )}
 
-          {analysisData.playstyleShifts.length > 0 && (
-            <>
-              <SectionTitle>Dramatic Playstyle Changes</SectionTitle>
-              <DataTable>
-                <thead>
-                  <tr>
-                    <TableHeader>Date</TableHeader>
-                    <TableHeader>Change Type</TableHeader>
-                    <TableHeader>Description</TableHeader>
-                    <TableHeader>Confidence</TableHeader>
-                    <TableHeader>Suspicion Score</TableHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analysisData.playstyleShifts.map((shift, index) => (
-                    <TableRow key={index} highlighted={shift.type === 'dramatic'}>
-                      <TableCell>{new Date(shift.timestamp).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={shift.type === 'dramatic' ? 'exceptional' : 'above_average'}>
-                          {shift.type}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>{shift.description}</TableCell>
-                      <TableCell>{(shift.confidence * 100).toFixed(1)}%</TableCell>
-                      <TableCell>
-                        <SuspicionBar level={shift.suspicionScore} />
-                        <span style={{ fontSize: '0.8rem', marginLeft: '8px' }}>
-                          {shift.suspicionScore.toFixed(0)}/100
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </tbody>
-              </DataTable>
-            </>
-          )}
-
-          {analysisData.championMasteryAnomalies.length > 0 && (
-            <>
-              <SectionTitle>Champion Mastery Anomalies</SectionTitle>
-              <DataTable>
-                <thead>
-                  <tr>
-                    <TableHeader>Champion</TableHeader>
-                    <TableHeader>Suspicious Indicators</TableHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analysisData.championMasteryAnomalies.map((champion, index) => (
-                    <TableRow key={index} highlighted={true}>
-                      <TableCell>{champion.championName}</TableCell>
-                      <TableCell>
-                        {getChampionFlags(champion).map(flag => (
-                          <ChampionFlag key={flag} flag={flag}>
-                            {flag === 'tooGoodTooFast' && '🔴 Too Good Too Fast'}
-                            {flag === 'suddenExpertise' && '🟠 Sudden Expertise'}
-                            {flag === 'metaShift' && '🟣 Meta Shift'}
-                            {flag === 'complexityJump' && '🔴 Complexity Jump'}
-                          </ChampionFlag>
-                        ))}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </tbody>
-              </DataTable>
-            </>
-          )}
-
-          {!analysisData.performanceOutliers.length && 
-           !analysisData.playstyleShifts.length && 
-           !analysisData.championMasteryAnomalies.length && (
-            <SummaryCard>
-              <SectionTitle>No Suspicious Activity Detected</SectionTitle>
-              <p style={{ color: '#64748b', textAlign: 'center', fontSize: '1.1rem' }}>
-                This player shows normal progression patterns and performance within expected ranges for their rank.
-              </p>
-            </SummaryCard>
+          {analysisData.championStats.length > 0 && (
+            <DataTable>
+              <thead>
+                <tr>
+                  <TableHeader>Champion</TableHeader>
+                  <TableHeader>Win Rate</TableHeader>
+                  <TableHeader>KDA</TableHeader>
+                  <TableHeader>CS/min</TableHeader>
+                  <TableHeader>Games</TableHeader>
+                  <TableHeader>Mastery</TableHeader>
+                </tr>
+              </thead>
+              <tbody>
+                {analysisData.championStats.map((champ, index) => (
+                  <TableRow key={index} highlighted={champ.winRate > 0.6}>
+                    <TableCell>{champ.championName}</TableCell>
+                    <TableCell>{(champ.winRate * 100).toFixed(1)}%</TableCell>
+                    <TableCell>{champ.kda.toFixed(2)}</TableCell>
+                    <TableCell>{champ.csPerMinute.toFixed(1)}</TableCell>
+                    <TableCell>{champ.gamesPlayed}</TableCell>
+                    <TableCell>Level {champ.masteryLevel}</TableCell>
+                  </TableRow>
+                ))}
+              </tbody>
+            </DataTable>
           )}
         </>
       )}

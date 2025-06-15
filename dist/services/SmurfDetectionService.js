@@ -96,6 +96,62 @@ class SmurfDetectionService {
             }
         }
     }
+    // New method for analyzing by PUUID (modern Riot ID workflow)
+    async analyzeSmurf(puuid, region = 'na1') {
+        try {
+            // Get summoner data using PUUID
+            const summoner = await this.riotApi.getSummonerByPuuid(puuid);
+            // Get match history
+            const matchHistory = await this.riotApi.getMatchHistory(puuid);
+            const matchDetails = await Promise.all(matchHistory.slice(0, 10).map(matchId => this.riotApi.getMatchDetails(matchId)));
+            // Get additional data
+            const leagueEntries = await this.riotApi.getLeagueEntries(puuid);
+            const championMastery = await this.riotApi.getChampionMastery(puuid);
+            const analysis = {
+                summonerId: summoner.id,
+                accountId: summoner.accountId || 'N/A',
+                puuid: puuid,
+                name: summoner.name,
+                level: summoner.summonerLevel,
+                smurfProbability: 0,
+                analysisFactors: {
+                    playtimeGaps: await this.analyzePlaytimeGaps(matchDetails),
+                    championPerformance: await this.analyzeChampionPerformance(matchDetails, puuid),
+                    summonerSpellUsage: await this.analyzeSummonerSpells(matchDetails, puuid),
+                    playerAssociations: await this.analyzePlayerAssociations(matchDetails, puuid)
+                },
+                lastUpdated: new Date(),
+                // Additional modern data
+                leagueData: leagueEntries,
+                championMasteryData: championMastery.slice(0, 5), // Top 5 masteries
+                region: region
+            };
+            analysis.smurfProbability = this.calculateSmurfProbability(analysis.analysisFactors);
+            return analysis;
+        }
+        catch (error) {
+            loggerService_1.logger.error('Error analyzing smurf by PUUID:', error);
+            // Handle specific Riot API errors
+            if (error.response?.status === 403) {
+                throw (0, errorHandler_1.createError)(403, `API access forbidden for PUUID. The API key may have restrictions.`);
+            }
+            else if (error.response?.status === 404) {
+                throw (0, errorHandler_1.createError)(404, `Player data not found for the given PUUID. The account may not exist.`);
+            }
+            else if (error.response?.status === 429) {
+                throw (0, errorHandler_1.createError)(429, 'Rate limit exceeded. Please wait a moment and try again.');
+            }
+            else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+                throw (0, errorHandler_1.createError)(503, 'Unable to connect to Riot API. Please try again later.');
+            }
+            else {
+                // For other errors, preserve the original message if available
+                const errorMessage = error.message || 'Failed to analyze player by PUUID';
+                const statusCode = error.response?.status || error.statusCode || 500;
+                throw (0, errorHandler_1.createError)(statusCode, errorMessage);
+            }
+        }
+    }
     async analyzePlaytimeGaps(matches) {
         const sortedMatches = matches.sort((a, b) => new Date(a.gameCreation).getTime() - new Date(b.gameCreation).getTime());
         const gaps = [];
@@ -121,6 +177,11 @@ class SmurfDetectionService {
     async analyzeChampionPerformance(matches, targetPuuid) {
         const championStats = new Map();
         matches.forEach(match => {
+            // Add null checks for match data structure
+            if (!match || !match.participants || !Array.isArray(match.participants)) {
+                loggerService_1.logger.warn('Invalid match data structure:', match);
+                return;
+            }
             const player = match.participants.find(p => p.puuid === targetPuuid);
             if (!player)
                 return;
@@ -205,6 +266,11 @@ class SmurfDetectionService {
         let positionEstablishmentGames = 0;
         for (let i = 0; i < sortedMatches.length; i++) {
             const currentMatch = sortedMatches[i];
+            // Add null checks for match data structure
+            if (!currentMatch || !currentMatch.participants || !Array.isArray(currentMatch.participants)) {
+                loggerService_1.logger.warn('Invalid match data structure in summoner spell analysis:', currentMatch);
+                continue;
+            }
             const currentPlayer = currentMatch.participants.find(p => p.puuid === targetPuuid);
             if (!currentPlayer)
                 continue;
@@ -267,6 +333,11 @@ class SmurfDetectionService {
         const highEloAssociations = [];
         const playerEncounters = new Map();
         for (const match of matches) {
+            // Add null checks for match data structure
+            if (!match || !match.participants || !Array.isArray(match.participants)) {
+                loggerService_1.logger.warn('Invalid match data structure in player associations analysis:', match);
+                continue;
+            }
             const targetPlayer = match.participants.find(p => p.puuid === targetPuuid);
             if (!targetPlayer)
                 continue;
