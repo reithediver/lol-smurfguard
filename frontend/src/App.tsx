@@ -440,7 +440,172 @@ Technical details: ${error.stack || 'No stack trace available'}`);
         )}
 
         {analysisData && (
-          <DetailedAnalysis analysis={analysisData} />
+          <div style={{ 
+            background: '#1e293b', 
+            borderRadius: '12px', 
+            padding: '24px', 
+            margin: '20px 0',
+            color: '#f1f5f9'
+          }}>
+            <h2 style={{ 
+              color: '#60a5fa', 
+              marginBottom: '20px',
+              fontSize: '1.5rem',
+              fontWeight: '600'
+            }}>
+              📊 Player Analysis Results (OP.GG Style)
+            </h2>
+            
+            <div style={{
+              display: 'grid',
+              gap: '20px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+            }}>
+              {/* Raw Data Display */}
+              <div style={{
+                background: '#334155',
+                borderRadius: '8px',
+                padding: '16px'
+              }}>
+                <h3 style={{ color: '#60a5fa', marginBottom: '12px' }}>🔍 Raw Backend Data</h3>
+                <pre style={{
+                  background: '#1e293b',
+                  padding: '12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  overflow: 'auto',
+                  maxHeight: '300px',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {JSON.stringify(analysisData, null, 2)}
+                </pre>
+              </div>
+
+              {/* Champion Performance - OP.GG Style */}
+              <div style={{
+                background: '#334155',
+                borderRadius: '8px',
+                padding: '16px'
+              }}>
+                <h3 style={{ color: '#60a5fa', marginBottom: '12px' }}>🏆 Champion Performance</h3>
+                {analysisData.championPerformance?.firstTimeChampions?.length > 0 ? (
+                  <div>
+                    <p style={{ marginBottom: '12px', color: '#94a3b8' }}>
+                      Found {analysisData.championPerformance.firstTimeChampions.length} champions
+                    </p>
+                                         {analysisData.championPerformance.firstTimeChampions.slice(0, 5).map((champ: any, index: number) => (
+                      <div key={index} style={{
+                        background: '#1e293b',
+                        padding: '8px 12px',
+                        margin: '6px 0',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <span style={{ fontWeight: '500' }}>{champ.championName}</span>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                          {Math.round(champ.winRate * 100)}% WR | {champ.kda?.toFixed(1)} KDA
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                    No champion performance data available
+                  </p>
+                )}
+              </div>
+
+              {/* Player Stats - OP.GG Style */}
+              <div style={{
+                background: '#334155',
+                borderRadius: '8px',
+                padding: '16px'
+              }}>
+                <h3 style={{ color: '#60a5fa', marginBottom: '12px' }}>📈 Player Statistics</h3>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px'
+                }}>
+                  <div style={{
+                    background: '#1e293b',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#34d399' }}>
+                      {Math.round((analysisData.championPerformance?.overallPerformanceScore || 0) * 100)}%
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>Performance Score</div>
+                  </div>
+                  
+                  <div style={{
+                    background: '#1e293b',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#f59e0b' }}>
+                      {analysisData.playtimeGaps?.gaps?.length || 0}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>Playtime Gaps</div>
+                  </div>
+                  
+                  <div style={{
+                    background: '#1e293b',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#8b5cf6' }}>
+                      {analysisData.summonerSpellUsage?.spellPlacementChanges?.length || 0}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>Spell Changes</div>
+                  </div>
+                  
+                  <div style={{
+                    background: '#1e293b',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#ef4444' }}>
+                      {Math.round((analysisData.playtimeGaps?.totalGapScore || 0) * 100)}%
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>Suspicion Level</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Summary - OP.GG Style */}
+            <div style={{
+              background: '#334155',
+              borderRadius: '8px',
+              padding: '16px',
+              marginTop: '20px',
+              border: '1px solid #475569'
+            }}>
+              <h3 style={{ color: '#60a5fa', marginBottom: '12px' }}>📋 Analysis Summary</h3>
+              <div style={{ color: '#94a3b8', lineHeight: '1.6' }}>
+                <p><strong>Player:</strong> {playerName}</p>
+                <p><strong>Data Status:</strong> {
+                  Object.keys(analysisData).length > 0 
+                    ? '✅ Data received from backend' 
+                    : '❌ No data received'
+                }</p>
+                <p><strong>Analysis Factors:</strong> {
+                  [
+                    analysisData.championPerformance && '🏆 Champion Performance',
+                    analysisData.playtimeGaps && '⏰ Playtime Gaps', 
+                    analysisData.summonerSpellUsage && '🔧 Summoner Spells'
+                  ].filter(Boolean).join(', ') || 'None detected'
+                }</p>
+              </div>
+            </div>
+          </div>
         )}
       </AppContainer>
     </ErrorBoundary>
