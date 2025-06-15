@@ -411,10 +411,15 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
       }
     });
     
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error in comprehensive stats endpoint:', error);
     
-    if (error.response?.status === 404) {
+    // Type guard for axios-like error
+    const isAxiosError = (err: unknown): err is { response?: { status?: number } } => {
+      return typeof err === 'object' && err !== null && 'response' in err;
+    };
+    
+    if (isAxiosError(error) && error.response?.status === 404) {
       return res.status(404).json({
         success: false,
         error: 'SUMMONER_NOT_FOUND',
@@ -422,7 +427,7 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
       });
     }
     
-    if (error.response?.status === 403) {
+    if (isAxiosError(error) && error.response?.status === 403) {
       return res.status(403).json({
         success: false,
         error: 'API_ACCESS_FORBIDDEN',
@@ -434,7 +439,7 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
       success: false,
       error: 'INTERNAL_ERROR',
       message: 'Failed to fetch comprehensive player statistics',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
     });
   }
 });

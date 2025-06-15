@@ -107,10 +107,13 @@ class RiotApi {
             throw error;
         }
     }
-    async getMatchHistory(puuid, startTime, endTime) {
+    async getMatchHistory(puuid, startTime, endTime, count = 100) {
         const routingValue = this.getRoutingValue(this.region);
-        const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20`;
-        const params = {};
+        const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids`;
+        const params = {
+            start: '0',
+            count: Math.min(count, 100).toString() // Riot API max is 100 per request
+        };
         if (startTime)
             params.startTime = startTime.toString();
         if (endTime)
@@ -126,6 +129,43 @@ class RiotApi {
             throw error;
         }
     }
+    // Get extended match history with multiple requests if needed
+    async getExtendedMatchHistory(puuid, totalCount = 200, queueId) {
+        const allMatches = [];
+        const batchSize = 100; // Riot API limit per request
+        let start = 0;
+        while (allMatches.length < totalCount && start < 1000) { // Riot API has a 1000 match limit
+            const params = {
+                start: start.toString(),
+                count: Math.min(batchSize, totalCount - allMatches.length).toString()
+            };
+            if (queueId) {
+                params.queue = queueId.toString(); // Filter by queue type (e.g., 420 for Ranked Solo)
+            }
+            try {
+                const routingValue = this.getRoutingValue(this.region);
+                const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids`;
+                const response = await axios_1.default.get(url, {
+                    headers: { 'X-Riot-Token': this.apiKey },
+                    params
+                });
+                const matches = response.data;
+                if (matches.length === 0)
+                    break; // No more matches available
+                allMatches.push(...matches);
+                start += batchSize;
+                // Rate limiting - wait between requests
+                if (start < totalCount) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            catch (error) {
+                console.error(`Error fetching matches starting at ${start}:`, error);
+                break;
+            }
+        }
+        return allMatches.slice(0, totalCount);
+    }
     async getMatchDetails(matchId) {
         const routingValue = this.getRoutingValue(this.region);
         const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
@@ -133,7 +173,80 @@ class RiotApi {
             const response = await axios_1.default.get(url, {
                 headers: { 'X-Riot-Token': this.apiKey }
             });
-            return response.data;
+            // Transform Riot API v5 response to our MatchHistory interface
+            const riotMatch = response.data;
+            const transformedMatch = {
+                matchId: riotMatch.metadata.matchId,
+                gameCreation: new Date(riotMatch.info.gameCreation),
+                gameDuration: riotMatch.info.gameDuration,
+                gameMode: riotMatch.info.gameMode,
+                gameType: riotMatch.info.gameType,
+                participants: riotMatch.info.participants.map((participant) => ({
+                    puuid: participant.puuid,
+                    summonerId: participant.summonerId || '',
+                    summonerName: participant.summonerName || participant.riotIdGameName || '',
+                    championId: participant.championId,
+                    championName: participant.championName,
+                    teamId: participant.teamId,
+                    stats: {
+                        kills: participant.kills,
+                        deaths: participant.deaths,
+                        assists: participant.assists,
+                        totalDamageDealt: participant.totalDamageDealtToChampions,
+                        totalDamageTaken: participant.totalDamageTaken,
+                        goldEarned: participant.goldEarned,
+                        visionScore: participant.visionScore,
+                        cs: participant.totalMinionsKilled + participant.neutralMinionsKilled,
+                        csPerMinute: (participant.totalMinionsKilled + participant.neutralMinionsKilled) / (riotMatch.info.gameDuration / 60),
+                        win: participant.win
+                    },
+                    runes: participant.perks?.styles?.map((style) => style.selections?.map((selection) => ({
+                        runeId: selection.perk,
+                        rank: selection.var1 || 0
+                    })) || []).flat() || [],
+                    items: [
+                        participant.item0,
+                        participant.item1,
+                        participant.item2,
+                        participant.item3,
+                        participant.item4,
+                        participant.item5,
+                        participant.item6
+                    ].filter(item => item > 0),
+                    summonerSpells: {
+                        spell1Id: participant.summoner1Id,
+                        spell2Id: participant.summoner2Id
+                    },
+                    position: participant.teamPosition || participant.individualPosition || '',
+                    lane: participant.lane || ''
+                })),
+                teams: riotMatch.info.teams.map((team) => ({
+                    teamId: team.teamId,
+                    win: team.win,
+                    objectives: {
+                        baron: {
+                            first: team.objectives?.baron?.first || false,
+                            kills: team.objectives?.baron?.kills || 0
+                        },
+                        dragon: {
+                            first: team.objectives?.dragon?.first || false,
+                            kills: team.objectives?.dragon?.kills || 0
+                        },
+                        herald: {
+                            first: team.objectives?.riftHerald?.first || false,
+                            kills: team.objectives?.riftHerald?.kills || 0
+                        },
+                        tower: {
+                            first: team.objectives?.tower?.first || false,
+                            kills: team.objectives?.tower?.kills || 0
+                        }
+                    }
+                })),
+                platformId: riotMatch.info.platformId,
+                queueId: riotMatch.info.queueId,
+                seasonId: riotMatch.info.gameVersion?.split('.')[0] || '13' // Extract season from game version
+            };
+            return transformedMatch;
         }
         catch (error) {
             throw error;
