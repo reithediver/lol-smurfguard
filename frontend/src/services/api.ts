@@ -1,7 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import {
-  SmurfAnalysis,
-  AnalysisRequest,
   ApiResponse,
   SmurfDetectionError,
   Region,

@@ -46,9 +46,12 @@ class UnifiedAnalysisService {
             else {
                 throw new Error('Riot ID is required for unified analysis');
             }
+            // Get extensive match history (5 years worth - approximately 1000+ matches)
+            const matchCount = options.matchCount || 1000; // Default to 1000 matches for 5 years
+            loggerService_1.logger.info(`🔍 Fetching ${matchCount} matches for comprehensive analysis`);
             // Run comprehensive analysis in parallel
             const [comprehensiveStats, smurfAnalysis] = await Promise.all([
-                this.championStatsService.getComprehensiveStats(puuid, options.matchCount),
+                this.championStatsService.getComprehensiveStats(puuid, matchCount),
                 this.smurfDetectionService.analyzeSmurf(puuid, region)
             ]);
             // Enhance champion stats with suspicion analysis
@@ -156,6 +159,10 @@ class UnifiedAnalysisService {
                 });
                 suspicionScore += 10;
             }
+            // Calculate OP Rating (OP.GG style performance rating)
+            const opRating = this.calculateOPRating(champion, benchmarks);
+            // Calculate lane performance if this is a laning role
+            const lanePerformance = this.calculateLanePerformance(champion);
             enhanced.push({
                 ...champion,
                 suspiciousIndicators,
@@ -167,10 +174,72 @@ class UnifiedAnalysisService {
                     damageSharePercentile: damageShareBenchmark?.percentile || 50,
                     isOutlier: (csPerMinBenchmark?.percentile || 0) > 90 || (kdaBenchmark?.percentile || 0) > 90
                 },
-                firstGamePerformance: firstGamePerf
+                firstGamePerformance: firstGamePerf,
+                opRating,
+                lanePerformance
             });
         }
         return enhanced.sort((a, b) => b.suspicionScore - a.suspicionScore);
+    }
+    calculateOPRating(champion, benchmarks) {
+        // Calculate OP.GG style rating based on multiple performance factors
+        const csPerMinBenchmark = benchmarks.find(b => b.metric === 'CS per Minute');
+        const kdaBenchmark = benchmarks.find(b => b.metric === 'KDA');
+        const damageShareBenchmark = benchmarks.find(b => b.metric === 'Damage Share');
+        // Performance factors (0-100 scale)
+        const laning = Math.min(100, (csPerMinBenchmark?.percentile || 50));
+        const teamfighting = Math.min(100, (kdaBenchmark?.percentile || 50) * 0.7 + (champion.avgAssists * 2) * 0.3);
+        const carrying = Math.min(100, (damageShareBenchmark?.percentile || 50) * 0.6 + champion.winRate * 40);
+        const consistency = Math.min(100, 100 - (Math.abs(champion.winRate - champion.recentWinRate) * 200));
+        // Overall rating (weighted average)
+        const overall = Math.round(laning * 0.25 +
+            teamfighting * 0.3 +
+            carrying * 0.3 +
+            consistency * 0.15);
+        // Recent games rating (based on last 10 games performance)
+        const recent = Math.min(100, champion.recentWinRate * 60 + (champion.avgKDA - 1) * 15);
+        // Determine trend
+        let trend;
+        const trendDiff = champion.recentWinRate - champion.winRate;
+        if (trendDiff > 0.1)
+            trend = 'IMPROVING';
+        else if (trendDiff < -0.1)
+            trend = 'DECLINING';
+        else
+            trend = 'STABLE';
+        return {
+            overall: Math.max(0, Math.min(100, overall)),
+            recent: Math.max(0, Math.min(100, Math.round(recent))),
+            trend,
+            breakdown: {
+                laning: Math.max(0, Math.min(100, Math.round(laning))),
+                teamfighting: Math.max(0, Math.min(100, Math.round(teamfighting))),
+                carrying: Math.max(0, Math.min(100, Math.round(carrying))),
+                consistency: Math.max(0, Math.min(100, Math.round(consistency)))
+            }
+        };
+    }
+    calculateLanePerformance(champion) {
+        // Only calculate for roles that lane (not jungle)
+        if (champion.mostPlayedPosition === 'JUNGLE') {
+            return undefined;
+        }
+        // Estimate lane performance metrics (in real implementation, would use detailed match data)
+        const csAdvantage = champion.avgCSPerMin > 7 ? (champion.avgCSPerMin - 7) * 10 :
+            champion.avgCSPerMin < 5 ? (champion.avgCSPerMin - 5) * 10 : 0;
+        const killPressure = Math.min(100, (champion.avgKills + champion.avgAssists * 0.5) * 20);
+        const vsOpponentRating = Math.min(100, (champion.avgKDA - 1) * 25 +
+            champion.winRate * 30 +
+            (champion.avgCSPerMin - 5) * 8);
+        const roamingImpact = Math.min(100, champion.avgAssists * 15);
+        const laneWinRate = Math.min(1, champion.winRate + (champion.avgKDA > 2 ? 0.1 : 0));
+        return {
+            vsOpponentRating: Math.max(0, Math.min(100, Math.round(vsOpponentRating))),
+            csAdvantage: Math.round(csAdvantage * 10) / 10,
+            killPressure: Math.max(0, Math.min(100, Math.round(killPressure))),
+            roamingImpact: Math.max(0, Math.min(100, Math.round(roamingImpact))),
+            laneWinRate: Math.max(0, Math.min(1, Math.round(laneWinRate * 1000) / 1000))
+        };
     }
     analyzeFirstGamePerformance(champion) {
         // Estimate first game performance based on overall stats

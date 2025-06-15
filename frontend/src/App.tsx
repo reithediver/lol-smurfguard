@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { DetailedAnalysis } from './components/DetailedAnalysis';
-import ComprehensiveStats from './components/ComprehensiveStats';
 import UnifiedSmurfAnalysis from './components/UnifiedSmurfAnalysis';
 import { apiService } from './services/api';
 import styled from 'styled-components';
@@ -182,11 +180,11 @@ class ErrorBoundary extends React.Component<
 function App() {
   const [playerName, setPlayerName] = useState('');
   const [analysisData, setAnalysisData] = useState<any>(null);
-  const [comprehensiveData, setComprehensiveData] = useState<any>(null);
+  // Removed comprehensiveData - only using unified analysis
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'smurf' | 'comprehensive' | 'unified'>('unified');
+  // Removed viewMode - always use unified analysis
   const [unifiedData, setUnifiedData] = useState<any>(null);
 
   const handleAnalyze = async () => {
@@ -222,155 +220,20 @@ You can find your Riot ID in your League client profile.`);
       
       let result;
       
-      if (viewMode === 'unified') {
-        // NEW: Use the unified analysis endpoint
-        console.log('🎯 Using unified analysis endpoint...');
-        result = await apiService.getUnifiedAnalysis(playerName, { 
-          region: 'na1', 
-          matches: 200 
-        });
-        console.log('🎯 Unified analysis completed, result:', result);
-        
-        if (result && result.success && result.data) {
-          console.log(`✅ Unified analysis data received for: ${playerName}`);
-          setUnifiedData(result.data);
-          return; // Exit early for unified mode
-        } else {
-          throw new Error(result?.error?.message || 'Unified analysis failed');
-        }
-      } else if (viewMode === 'comprehensive') {
-        // Temporary: Use existing comprehensive analysis endpoint until new endpoint is deployed
-        console.log('📡 Using existing comprehensive analysis endpoint...');
-        result = await apiService.analyzeComprehensive(playerName, 'na1');
-        console.log('📡 Comprehensive analysis completed, result:', result);
-        
-        if (result && result.success && result.data) {
-          console.log(`✅ Analysis data received, creating mock comprehensive stats for: ${playerName}`);
-          
-          // Create mock comprehensive data structure for now
-          const mockComprehensiveData = {
-            summoner: {
-              gameName: playerName.split('#')[0],
-              tagLine: playerName.split('#')[1],
-              summonerLevel: 215,
-              profileIconId: 1,
-              region: 'na1'
-            },
-            leagueData: [
-              {
-                queueType: 'RANKED_SOLO_5x5',
-                tier: 'GOLD',
-                rank: 'IV',
-                leaguePoints: 45,
-                wins: 111,
-                losses: 102
-              }
-            ],
-            championMastery: [],
-            comprehensiveStats: {
-              totalGames: 50,
-              totalWins: 28,
-              overallWinRate: 0.56,
-              overallKDA: 2.1,
-              uniqueChampions: 15,
-              mostPlayedChampions: result.data.analysisFactors?.championPerformance?.firstTimeChampions?.map((champ: any) => ({
-                championId: champ.championId,
-                championName: champ.championName,
-                gamesPlayed: Math.floor(Math.random() * 20) + 5,
-                wins: Math.floor(Math.random() * 15) + 3,
-                winRate: champ.winRate || 0.5,
-                avgKDA: champ.kda || 2.0,
-                avgCSPerMin: champ.csPerMinute || 6.5,
-                avgDamageDealt: Math.floor(Math.random() * 20000) + 15000,
-                avgVisionScore: Math.floor(Math.random() * 30) + 20,
-                mostPlayedPosition: 'MID'
-              })) || [
-                {
-                  championId: 910,
-                  championName: 'Hwei',
-                  gamesPlayed: 15,
-                  wins: 9,
-                  winRate: 0.6,
-                  avgKDA: 2.3,
-                  avgCSPerMin: 7.2,
-                  avgDamageDealt: 18500,
-                  avgVisionScore: 25,
-                  mostPlayedPosition: 'MID'
-                },
-                {
-                  championId: 92,
-                  championName: 'Riven',
-                  gamesPlayed: 12,
-                  wins: 6,
-                  winRate: 0.5,
-                  avgKDA: 1.8,
-                  avgCSPerMin: 6.8,
-                  avgDamageDealt: 16200,
-                  avgVisionScore: 18,
-                  mostPlayedPosition: 'TOP'
-                }
-              ],
-              last10Games: [
-                { championId: 910, championName: 'Hwei', win: true, kda: 2.5, gameDate: new Date().toISOString(), position: 'MID' },
-                { championId: 92, championName: 'Riven', win: false, kda: 1.2, gameDate: new Date().toISOString(), position: 'TOP' },
-                { championId: 910, championName: 'Hwei', win: true, kda: 3.1, gameDate: new Date().toISOString(), position: 'MID' },
-                { championId: 39, championName: 'Irelia', win: true, kda: 2.8, gameDate: new Date().toISOString(), position: 'MID' },
-                { championId: 92, championName: 'Riven', win: false, kda: 0.9, gameDate: new Date().toISOString(), position: 'TOP' }
-              ],
-              rankedSoloStats: {
-                games: 213,
-                wins: 111,
-                winRate: 0.52,
-                avgKDA: 2.1
-              }
-            }
-          };
-          
-          setComprehensiveData(mockComprehensiveData);
-          return; // Exit early for comprehensive mode
-        } else {
-          throw new Error(result?.error?.message || 'Comprehensive analysis failed');
-        }
-      } else {
-        // Try smurf analysis (existing logic)
-        console.log('📡 Calling apiService.analyzeComprehensive...');
-        result = await apiService.analyzeComprehensive(playerName, 'na1');
-        console.log('📡 API call completed, result:', result);
-      }
+      // Always use unified analysis with 5 years of data (1000+ matches)
+      console.log('🎯 Using unified analysis endpoint with extensive match history...');
+      result = await apiService.getUnifiedAnalysis(playerName, { 
+        region: 'na1', 
+        matches: 1000 // 5 years worth of matches
+      });
+      console.log('🎯 Unified analysis completed, result:', result);
       
       if (result && result.success && result.data) {
-        console.log(`✅ Player found: ${playerName}`);
-        console.log('📊 Backend response data structure:', result.data);
-        
-        try {
-          // Transform backend data to match DetailedAnalysis component expectations
-          console.log('🔄 Starting data transformation...');
-          const transformedData = {
-            championPerformance: result.data.analysisFactors?.championPerformance || {
-              firstTimeChampions: [],
-              overallPerformanceScore: 0
-            },
-            summonerSpellUsage: result.data.analysisFactors?.summonerSpellUsage || {
-              spellPlacementChanges: [],
-              patternChangeScore: 0
-            },
-            playtimeGaps: result.data.analysisFactors?.playtimeGaps || {
-              gaps: [],
-              totalGapScore: 0
-            }
-          };
-          
-          console.log('🔄 Transformed data for component:', transformedData);
-          console.log('🎯 Setting analysis data...');
-          setAnalysisData(transformedData);
-          console.log('✅ Analysis data set successfully');
-        } catch (transformError: any) {
-          console.error('❌ Error during data transformation:', transformError);
-          throw new Error(`Data transformation failed: ${transformError.message}`);
-        }
+        console.log(`✅ Unified analysis data received for: ${playerName}`);
+        setUnifiedData(result.data);
+        return; // Exit early
       } else {
-        console.log('❌ API result indicates failure:', result);
-        throw new Error(result?.error?.message || 'Analysis failed - no success flag or data');
+        throw new Error(result?.error?.message || 'Unified analysis failed');
       }
       
     } catch (error: any) {
@@ -504,40 +367,7 @@ Technical details: ${error.stack || 'No stack trace available'}`);
           <Subtitle>Advanced League of Legends Smurf Detection</Subtitle>
           
           <SearchSection>
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '16px' }}>
-                <button
-                  onClick={() => setViewMode('comprehensive')}
-                  style={{
-                    background: viewMode === 'comprehensive' ? '#3b82f6' : '#374151',
-                    color: '#f1f5f9',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}
-                >
-                  📊 Player Stats (OP.GG Style)
-                </button>
-                <button
-                  onClick={() => setViewMode('smurf')}
-                  style={{
-                    background: viewMode === 'smurf' ? '#3b82f6' : '#374151',
-                    color: '#f1f5f9',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}
-                >
-                  🔍 Smurf Detection
-                </button>
-              </div>
-            </div>
+
             <SearchContainer>
               <PlayerInput
                 type="text"
@@ -760,9 +590,7 @@ Technical details: ${error.stack || 'No stack trace available'}`);
           </div>
         )}
 
-        {comprehensiveData && (
-          <ComprehensiveStats data={comprehensiveData} />
-        )}
+
 
         {unifiedData && (
           <UnifiedSmurfAnalysis data={unifiedData} />

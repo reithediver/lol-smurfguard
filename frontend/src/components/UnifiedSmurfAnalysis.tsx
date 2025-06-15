@@ -44,6 +44,24 @@ interface EnhancedChampionStats {
         damageSharePercentile: number;
         isOutlier: boolean;
     };
+    opRating: {
+        overall: number;
+        recent: number;
+        trend: 'IMPROVING' | 'DECLINING' | 'STABLE';
+        breakdown: {
+            laning: number;
+            teamfighting: number;
+            carrying: number;
+            consistency: number;
+        };
+    };
+    lanePerformance?: {
+        vsOpponentRating: number;
+        csAdvantage: number;
+        killPressure: number;
+        roamingImpact: number;
+        laneWinRate: number;
+    };
 }
 
 interface UnifiedAnalysisData {
@@ -394,7 +412,7 @@ interface UnifiedSmurfAnalysisProps {
 
 const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => {
     const [filter, setFilter] = useState<'all' | 'suspicious' | 'high-risk'>('all');
-    const [sortBy, setSortBy] = useState<'suspicion' | 'winrate' | 'games'>('suspicion');
+    const [sortBy, setSortBy] = useState<'suspicion' | 'winrate' | 'games' | 'oprating'>('suspicion');
 
     // Filter and sort champions
     const filteredChampions = data.championAnalysis
@@ -408,6 +426,7 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
                 case 'suspicion': return b.suspicionScore - a.suspicionScore;
                 case 'winrate': return b.winRate - a.winRate;
                 case 'games': return b.gamesPlayed - a.gamesPlayed;
+                case 'oprating': return b.opRating.overall - a.opRating.overall;
                 default: return 0;
             }
         });
@@ -525,6 +544,12 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
                     >
                         Sort by Games
                     </FilterButton>
+                    <FilterButton 
+                        active={sortBy === 'oprating'} 
+                        onClick={() => setSortBy('oprating')}
+                    >
+                        Sort by OP Rating
+                    </FilterButton>
                 </div>
             </FilterControls>
 
@@ -538,6 +563,8 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
                     <div>Gold/min</div>
                     <div>Damage</div>
                     <div>Vision</div>
+                    <div>OP Rating</div>
+                    <div>VS Opponent</div>
                     <div>Risk</div>
                 </TableHeader>
                 
@@ -590,6 +617,58 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
                         
                         <div style={{ textAlign: 'center', color: '#e2e8f0' }}>
                             {champion.avgVisionScore.toFixed(0)}
+                        </div>
+                        
+                        {/* OP Rating Column */}
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ 
+                                color: champion.opRating.overall >= 70 ? '#22c55e' : 
+                                       champion.opRating.overall >= 50 ? '#eab308' : '#ef4444',
+                                fontWeight: 'bold'
+                            }}>
+                                {champion.opRating.overall}
+                            </div>
+                            <div style={{ fontSize: '9px', color: '#64748b' }}>
+                                {champion.opRating.trend === 'IMPROVING' ? '📈' : 
+                                 champion.opRating.trend === 'DECLINING' ? '📉' : '➡️'}
+                                {champion.opRating.recent}
+                            </div>
+                            <div style={{ 
+                                fontSize: '8px', 
+                                color: '#475569',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                marginTop: '2px'
+                            }}>
+                                <span title="Laning">L:{champion.opRating.breakdown.laning}</span>
+                                <span title="Teamfighting">T:{champion.opRating.breakdown.teamfighting}</span>
+                                <span title="Carrying">C:{champion.opRating.breakdown.carrying}</span>
+                            </div>
+                        </div>
+                        
+                        {/* VS Opponent Column */}
+                        <div style={{ textAlign: 'center' }}>
+                            {champion.lanePerformance ? (
+                                <>
+                                    <div style={{ 
+                                        color: champion.lanePerformance.vsOpponentRating >= 70 ? '#22c55e' : 
+                                               champion.lanePerformance.vsOpponentRating >= 50 ? '#eab308' : '#ef4444',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {champion.lanePerformance.vsOpponentRating}%
+                                    </div>
+                                    <div style={{ fontSize: '9px', color: '#64748b' }}>
+                                        CS: {champion.lanePerformance.csAdvantage > 0 ? '+' : ''}{champion.lanePerformance.csAdvantage.toFixed(1)}
+                                    </div>
+                                    <div style={{ fontSize: '9px', color: '#64748b' }}>
+                                        Lane: {(champion.lanePerformance.laneWinRate * 100).toFixed(0)}%
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ color: '#64748b', fontSize: '12px' }}>
+                                    N/A
+                                </div>
+                            )}
                         </div>
                         
                         <div style={{ textAlign: 'center' }}>
