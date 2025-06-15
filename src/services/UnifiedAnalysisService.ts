@@ -116,18 +116,25 @@ export class UnifiedAnalysisService {
         
         try {
             // Get basic summoner info
-            const summoner = await this.riotApi.getSummonerByPuuid(puuid);
             const region = options.region || 'na1';
             
-            // Parse Riot ID if provided
-            let gameName = summoner.name;
+            // Parse Riot ID if provided (required for summoner lookup)
+            let gameName = 'Unknown';
             let tagLine = 'NA1';
+            let summoner: any;
+            
             if (options.riotId) {
                 const parsed = RiotApi.parseRiotId(options.riotId);
                 if (parsed) {
                     gameName = parsed.gameName;
                     tagLine = parsed.tagLine;
+                    // Get summoner using Riot ID
+                    summoner = await this.riotApi.getSummonerByRiotId(gameName, tagLine);
+                } else {
+                    throw new Error('Invalid Riot ID format provided');
                 }
+            } else {
+                throw new Error('Riot ID is required for unified analysis');
             }
             
             // Run comprehensive analysis in parallel
@@ -154,10 +161,10 @@ export class UnifiedAnalysisService {
                 summoner: {
                     gameName,
                     tagLine,
-                    summonerLevel: summoner.summonerLevel,
-                    profileIconId: summoner.profileIconId,
+                    summonerLevel: summoner.summonerLevel || 1,
+                    profileIconId: summoner.profileIconId || 1,
                     region,
-                    puuid
+                    puuid: summoner.puuid || puuid
                 },
                 overallStats: comprehensiveStats,
                 championAnalysis: enhancedChampions,
