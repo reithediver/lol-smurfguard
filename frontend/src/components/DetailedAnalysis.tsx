@@ -395,7 +395,7 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
     }));
   };
 
-  // Provide default values for missing data
+  // Provide safe defaults for missing data
   const defaultChampionPerformance = {
     firstTimeChampions: [],
     overallPerformanceScore: 0
@@ -411,9 +411,27 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
     totalGapScore: 0
   };
 
-  const championPerformance = analysis.championPerformance || defaultChampionPerformance;
-  const summonerSpellUsage = analysis.summonerSpellUsage || defaultSummonerSpellUsage;
-  const playtimeGaps = analysis.playtimeGaps || defaultPlaytimeGaps;
+  // Safely extract data with proper null checks
+  const championPerformance = {
+    firstTimeChampions: Array.isArray(analysis.championPerformance?.firstTimeChampions) 
+      ? analysis.championPerformance.firstTimeChampions 
+      : defaultChampionPerformance.firstTimeChampions,
+    overallPerformanceScore: analysis.championPerformance?.overallPerformanceScore || defaultChampionPerformance.overallPerformanceScore
+  };
+
+  const summonerSpellUsage = {
+    spellPlacementChanges: Array.isArray(analysis.summonerSpellUsage?.spellPlacementChanges)
+      ? analysis.summonerSpellUsage.spellPlacementChanges
+      : defaultSummonerSpellUsage.spellPlacementChanges,
+    patternChangeScore: analysis.summonerSpellUsage?.patternChangeScore || defaultSummonerSpellUsage.patternChangeScore
+  };
+
+  const playtimeGaps = {
+    gaps: Array.isArray(analysis.playtimeGaps?.gaps)
+      ? analysis.playtimeGaps.gaps
+      : defaultPlaytimeGaps.gaps,
+    totalGapScore: analysis.playtimeGaps?.totalGapScore || defaultPlaytimeGaps.totalGapScore
+  };
 
   const chartOptions = {
     responsive: true,
