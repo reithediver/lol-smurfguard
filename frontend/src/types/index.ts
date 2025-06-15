@@ -321,11 +321,12 @@ export interface RateLimitInfo {
 
 // Error Types
 export interface SmurfDetectionError {
-  type: 'PLAYER_NOT_FOUND' | 'RATE_LIMIT_EXCEEDED' | 'API_ERROR' | 'ANALYSIS_FAILED' | 'INVALID_REQUEST';
+  type: 'PLAYER_NOT_FOUND' | 'RATE_LIMIT_EXCEEDED' | 'API_ERROR' | 'ANALYSIS_FAILED' | 'INVALID_REQUEST' | 'API_ACCESS_FORBIDDEN';
   message: string;
   code: number;
   retryAfter?: number;
   details?: any;
+  suggestions?: string[];
 }
 
 // Regional Configuration

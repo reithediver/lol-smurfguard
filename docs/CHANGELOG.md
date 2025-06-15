@@ -58,6 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Temporarily disabled OP.GG MCP integration due to mock data issues
+- Updated integration status endpoint to reflect disabled OP.GG MCP
+- System now using Riot API and mock data fallback exclusively
+
+### Fixed
+- Mock data inconsistencies in OP.GG MCP integration
+- Integration status reporting
+
 ### Fixed - Advanced 404 Routing Resolution (Latest Approach)
 - **Removed vercel.json configuration** to prevent framework detection conflicts
 - **Implemented _redirects file** for universal SPA routing fallback

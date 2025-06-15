@@ -46,18 +46,14 @@ app.get('/api/integration/status', async (req, res) => {
     res.json({
       success: true,
       integration: {
-        opggEnabled: integrationStatus.opggMcp.enabled && integrationStatus.opggMcp.connected,
-        serviceName: integrationStatus.opggMcp.connected 
-          ? 'OP.GG MCP + Riot API Fallback' 
-          : 'Riot API + Mock Data Fallback',
-        features: integrationStatus.opggMcp.connected 
-          ? ['Real OP.GG Data', 'Enhanced Analysis', 'Champion Statistics', 'Match History', 'Summoner Search']
-          : ['Basic Analysis', 'Mock Data', 'Riot API Integration'],
-        mcpTools: integrationStatus.opggMcp.tools,
-        dataQuality: integrationStatus.opggMcp.connected ? 'High' : 'Limited',
-        limitations: integrationStatus.opggMcp.connected ? [] : [
-          'OP.GG MCP server not available',
-          'Using fallback data sources'
+        opggEnabled: false, // OP.GG MCP is disabled
+        serviceName: 'Riot API + Mock Data Fallback',
+        features: ['Basic Analysis', 'Mock Data', 'Riot API Integration'],
+        mcpTools: [],
+        dataQuality: 'Limited',
+        limitations: [
+          'OP.GG MCP integration disabled',
+          'Using Riot API and fallback data sources'
         ]
       }
     });
@@ -142,51 +138,174 @@ app.get('/api/analyze/basic/:summonerName', async (req, res) => {
   }
 });
 
-// Comprehensive analysis endpoint
-app.get('/api/analyze/comprehensive/:summonerName', async (req, res) => {
+// Comprehensive analysis endpoint (updated to handle Riot IDs)
+app.get('/api/analyze/comprehensive/:identifier', async (req, res) => {
   try {
-    const { summonerName } = req.params;
+    const { identifier } = req.params;
     const region = req.query.region as string || 'na1';
 
-    logger.info(`Comprehensive analysis request for ${summonerName} in ${region}`);
+    logger.info(`Comprehensive analysis request for ${identifier} in ${region}`);
 
-    // Try enhanced analysis first, fall back to basic
-    try {
-      const enhancedAnalysis = await dataFetchingService.getEnhancedPlayerAnalysis(summonerName, region);
-      res.json({
-        success: true,
-        data: enhancedAnalysis,
-        metadata: {
-          analysisType: 'comprehensive_enhanced',
-          requestTimestamp: new Date().toISOString()
-        }
-      });
-    } catch (enhancedError) {
-      logger.warn('Enhanced analysis failed, falling back to basic:', enhancedError);
-      const basicAnalysis = await dataFetchingService.fetchPlayerAnalysis(summonerName);
-      res.json({
-        success: true,
-        data: basicAnalysis,
-        metadata: {
-          analysisType: 'comprehensive_basic_fallback',
-          requestTimestamp: new Date().toISOString(),
-          fallbackReason: 'Enhanced analysis unavailable'
-        }
-      });
+    // Check if identifier is a Riot ID (contains #) or legacy summoner name
+    const riotIdParts = RiotApi.parseRiotId(identifier);
+    let analysis;
+
+    if (riotIdParts) {
+      // Modern Riot ID format (gameName#tagLine)
+      logger.info(`Using modern Riot ID format: ${riotIdParts.gameName}#${riotIdParts.tagLine}`);
+      
+      try {
+        // Try to get summoner data using Riot ID
+        const summonerData = await riotApi.getSummonerByRiotId(riotIdParts.gameName, riotIdParts.tagLine);
+        
+        // Perform smurf analysis using PUUID
+        analysis = await smurfDetectionService.analyzeSmurf(summonerData.puuid, region);
+        
+        res.json({
+          success: true,
+          data: {
+            ...analysis,
+            summonerInfo: summonerData,
+            riotId: `${riotIdParts.gameName}#${riotIdParts.tagLine}`
+          },
+          metadata: {
+            analysisType: 'comprehensive_riotid',
+            requestTimestamp: new Date().toISOString(),
+            inputFormat: 'riot_id'
+          }
+        });
+      } catch (riotIdError) {
+        logger.warn('Riot ID analysis failed, trying fallback methods:', riotIdError);
+        throw riotIdError;
+      }
+    } else {
+      // Legacy summoner name format
+      logger.info(`Using legacy summoner name format: ${identifier}`);
+      
+      try {
+        const enhancedAnalysis = await dataFetchingService.getEnhancedPlayerAnalysis(identifier, region);
+        res.json({
+          success: true,
+          data: enhancedAnalysis,
+          metadata: {
+            analysisType: 'comprehensive_enhanced',
+            requestTimestamp: new Date().toISOString(),
+            inputFormat: 'summoner_name'
+          }
+        });
+      } catch (enhancedError) {
+        logger.warn('Enhanced analysis failed, falling back to basic:', enhancedError);
+        const basicAnalysis = await dataFetchingService.fetchPlayerAnalysis(identifier);
+        res.json({
+          success: true,
+          data: basicAnalysis,
+          metadata: {
+            analysisType: 'comprehensive_basic_fallback',
+            requestTimestamp: new Date().toISOString(),
+            inputFormat: 'summoner_name',
+            fallbackReason: 'Enhanced analysis unavailable'
+          }
+        });
+      }
     }
 
-  } catch (error) {
-    logger.error(`Comprehensive analysis error for ${req.params.summonerName}:`, error);
-    res.status(403).json({
+  } catch (error: unknown) {
+    logger.error(`Comprehensive analysis error for ${req.params.identifier}:`, error);
+    
+    // Type guard for axios errors
+    const isAxiosError = (err: unknown): err is { response?: { status?: number } } => {
+      return Boolean(err && typeof err === 'object' && err !== null && 'response' in err);
+    };
+
+    if (isAxiosError(error) && error.response?.status === 404) {
+      res.status(404).json({
+        success: false,
+        error: 'PLAYER_NOT_FOUND',
+        message: `Player "${req.params.identifier}" not found.`,
+        details: 'The player may not exist or the Riot ID format may be incorrect.',
+        suggestions: [
+          'Check the spelling of the Riot ID (format: gameName#tagLine)',
+          'Ensure the player exists in the specified region',
+          'Try using the exact capitalization shown in-game'
+        ]
+      });
+    } else if (isAxiosError(error) && error.response?.status === 403) {
+      res.status(403).json({
+        success: false,
+        error: 'API_ACCESS_FORBIDDEN',
+        message: `Cannot access player data for "${req.params.identifier}".`,
+        details: 'Request failed with status code 403',
+        suggestions: [
+          'Try searching for a different player',
+          'Visit the Demo tab to see working examples',
+          'Use the OP.GG Enhanced analysis for better results'
+        ]
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'ANALYSIS_ERROR',
+        message: 'Failed to analyze player data',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    }
+  }
+});
+
+// New dedicated Riot ID endpoint
+app.get('/api/analyze/riot-id/:gameName/:tagLine', async (req, res) => {
+  try {
+    const { gameName, tagLine } = req.params;
+    const region = req.query.region as string || 'na1';
+
+    logger.info(`Riot ID analysis request for ${gameName}#${tagLine} in ${region}`);
+
+    // Get summoner data using Riot ID
+    const summonerData = await riotApi.getSummonerByRiotId(gameName, tagLine);
+    
+    // Perform comprehensive smurf analysis
+    const analysis = await smurfDetectionService.analyzeSmurf(summonerData.puuid, region);
+    
+    res.json({
+      success: true,
+      data: {
+        ...analysis,
+        summonerInfo: summonerData,
+        riotId: `${gameName}#${tagLine}`
+      },
+      metadata: {
+        analysisType: 'riot_id_dedicated',
+        requestTimestamp: new Date().toISOString(),
+        inputFormat: 'riot_id_params'
+      }
+    });
+
+  } catch (error: unknown) {
+    logger.error(`Riot ID analysis error for ${req.params.gameName}#${req.params.tagLine}:`, error);
+    
+    if (error && typeof error === 'object' && 'response' in error) {
+      const apiError = error as { response?: { status?: number } };
+      if (apiError.response?.status === 404) {
+        res.status(404).json({
+          success: false,
+          error: 'RIOT_ID_NOT_FOUND',
+          message: `Riot ID "${req.params.gameName}#${req.params.tagLine}" not found.`,
+          details: 'The Riot ID may not exist or may be in a different region.',
+          suggestions: [
+            'Check the spelling and capitalization',
+            'Verify the tagline (part after #)',
+            'Ensure the account exists in the specified region'
+          ]
+        });
+        return;
+      }
+    }
+    
+    res.status(500).json({
       success: false,
-      error: 'API_ACCESS_FORBIDDEN',
-      message: `Cannot access player data for "${req.params.summonerName}". This is likely due to API restrictions on famous players.`,
-      details: 'Request failed with status code 403',
-      suggestions: [
-        'Try searching for a less well-known summoner name',
-        'Visit the Demo tab to see working examples with challenger data',
-        'Use the OP.GG Enhanced analysis for better results'
-      ]
+      error: 'RIOT_ID_ANALYSIS_ERROR',
+      message: 'Failed to analyze Riot ID',
+      details: error instanceof Error ? error.message : 'Unknown error occurred'
     });
   }
 });
@@ -294,7 +413,7 @@ app.use('*', (req, res) => {
         'GET /api/health',
         'GET /api/integration/status', 
         'GET /api/analyze/opgg-enhanced/:summonerName',
-        'GET /api/analyze/comprehensive/:summonerName',
+        'GET /api/analyze/comprehensive/:identifier',
         'GET /api/analyze/basic/:summonerName',
         'GET /api/mock/challenger-demo',
         'GET /api/analysis/capabilities'

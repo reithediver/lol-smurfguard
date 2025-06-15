@@ -30,8 +30,8 @@ export class DataFetchingService {
     
     // Configuration based on environment variables
     this.config = {
-      useOpggMcp: process.env.USE_OPGG_DATA === 'true',
-      useRiotApi: process.env.USE_RIOT_API !== 'false',
+      useOpggMcp: false,
+      useRiotApi: true,
       fallbackToMock: process.env.ALLOW_MOCK_DATA !== 'false'
     };
 

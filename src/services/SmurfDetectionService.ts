@@ -101,6 +101,65 @@ export class SmurfDetectionService {
         }
     }
 
+    // New method for analyzing by PUUID (modern Riot ID workflow)
+    async analyzeSmurf(puuid: string, region: string = 'na1'): Promise<PlayerAnalysis> {
+        try {
+            // Get summoner data using PUUID
+            const summoner = await this.riotApi.getSummonerByPuuid(puuid);
+            
+            // Get match history
+            const matchHistory = await this.riotApi.getMatchHistory(puuid);
+            const matchDetails = await Promise.all(
+                matchHistory.slice(0, 10).map(matchId => this.riotApi.getMatchDetails(matchId))
+            );
+
+            // Get additional data
+            const leagueEntries = await this.riotApi.getLeagueEntries(puuid);
+            const championMastery = await this.riotApi.getChampionMastery(puuid);
+
+            const analysis: PlayerAnalysis = {
+                summonerId: summoner.id,
+                accountId: summoner.accountId || 'N/A',
+                puuid: puuid,
+                name: summoner.name,
+                level: summoner.summonerLevel,
+                smurfProbability: 0,
+                analysisFactors: {
+                    playtimeGaps: await this.analyzePlaytimeGaps(matchDetails),
+                    championPerformance: await this.analyzeChampionPerformance(matchDetails, puuid),
+                    summonerSpellUsage: await this.analyzeSummonerSpells(matchDetails, puuid),
+                    playerAssociations: await this.analyzePlayerAssociations(matchDetails, puuid)
+                },
+                lastUpdated: new Date(),
+                // Additional modern data
+                leagueData: leagueEntries,
+                championMasteryData: championMastery.slice(0, 5), // Top 5 masteries
+                region: region
+            };
+
+            analysis.smurfProbability = this.calculateSmurfProbability(analysis.analysisFactors);
+            return analysis;
+        } catch (error: any) {
+            logger.error('Error analyzing smurf by PUUID:', error);
+            
+            // Handle specific Riot API errors
+            if (error.response?.status === 403) {
+                throw createError(403, `API access forbidden for PUUID. The API key may have restrictions.`);
+            } else if (error.response?.status === 404) {
+                throw createError(404, `Player data not found for the given PUUID. The account may not exist.`);
+            } else if (error.response?.status === 429) {
+                throw createError(429, 'Rate limit exceeded. Please wait a moment and try again.');
+            } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+                throw createError(503, 'Unable to connect to Riot API. Please try again later.');
+            } else {
+                // For other errors, preserve the original message if available
+                const errorMessage = error.message || 'Failed to analyze player by PUUID';
+                const statusCode = error.response?.status || error.statusCode || 500;
+                throw createError(statusCode, errorMessage);
+            }
+        }
+    }
+
     private async analyzePlaytimeGaps(matches: MatchHistory[]): Promise<PlaytimeGapAnalysis> {
         const sortedMatches = matches.sort((a, b) => 
             new Date(a.gameCreation).getTime() - new Date(b.gameCreation).getTime()

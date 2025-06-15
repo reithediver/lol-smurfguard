@@ -16,8 +16,8 @@ class ApiService {
   private baseURL: string;
 
   constructor() {
-    // In development, use local backend. In production, use the deployed backend
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    // Use the deployed Railway backend URL or fallback to localhost for development
+    this.baseURL = process.env.REACT_APP_API_URL || 'https://smurfgaurd-production.up.railway.app/api';
     
     this.api = axios.create({
       baseURL: this.baseURL,
@@ -58,6 +58,14 @@ class ApiService {
       const { status, data } = error.response;
       
       switch (status) {
+        case 403:
+          return {
+            type: 'API_ACCESS_FORBIDDEN',
+            message: data.message || 'Access forbidden. Development API key restrictions.',
+            code: status,
+            details: data.details,
+            suggestions: data.suggestions || []
+          };
         case 404:
           return {
             type: 'PLAYER_NOT_FOUND',
@@ -80,7 +88,7 @@ class ApiService {
         default:
           return {
             type: 'API_ERROR',
-            message: data.error?.message || 'An unexpected error occurred',
+            message: data.error?.message || data.message || 'An unexpected error occurred',
             code: status,
             details: data,
           };
@@ -103,20 +111,113 @@ class ApiService {
   }
 
   /**
-   * Analyze a player for smurf detection
+   * Health check endpoint
    */
-  async analyzePlayer(request: AnalysisRequest): Promise<SmurfAnalysis> {
+  async healthCheck(): Promise<{ success: boolean; message: string; version: string; features: string[] }> {
     try {
-      const response = await this.api.post<ApiResponse<SmurfAnalysis>>('/analyze', request);
-      
-      if (!response.data.success || !response.data.data) {
-        throw new Error(response.data.error?.message || 'Analysis failed');
-      }
-
-      return response.data.data;
+      const response = await this.api.get('/health');
+      return response.data;
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Get integration status
+   */
+  async getIntegrationStatus(): Promise<any> {
+    try {
+      const response = await this.api.get('/integration/status');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Basic smurf analysis
+   */
+  async analyzeBasic(summonerName: string, region: string = 'na1'): Promise<any> {
+    try {
+      const response = await this.api.get(`/analyze/basic/${encodeURIComponent(summonerName)}`, {
+        params: { region }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Enhanced OP.GG style analysis
+   */
+  async analyzeEnhanced(summonerName: string, region: string = 'na1'): Promise<any> {
+    try {
+      const response = await this.api.get(`/analyze/opgg-enhanced/${encodeURIComponent(summonerName)}`, {
+        params: { region }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Comprehensive analysis (supports both Riot IDs and legacy summoner names)
+   */
+  async analyzeComprehensive(identifier: string, region: string = 'na1'): Promise<any> {
+    try {
+      const response = await this.api.get(`/analyze/comprehensive/${encodeURIComponent(identifier)}`, {
+        params: { region }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Try multiple analysis methods in order of preference
+   */
+  async analyzePlayer(playerName: string, region: string = 'na1'): Promise<any> {
+    // Prioritize comprehensive analysis first since it's working best
+    const analysisOrder = [
+      () => this.analyzeComprehensive(playerName, region),  // This works great according to debug logs
+      () => this.analyzeEnhanced(playerName, region),      // Fallback 1
+      () => this.analyzeBasic(playerName, region)          // Fallback 2 (known to have 403 issues for famous players)
+    ];
+
+    let lastError;
+    let attemptCount = 0;
+    
+    for (const analysisMethod of analysisOrder) {
+      try {
+        attemptCount++;
+        console.log(`🔍 Attempting analysis method ${attemptCount}/3...`);
+        
+        const result = await analysisMethod();
+        
+        if (result && result.success) {
+          console.log(`✅ Analysis successful with method ${attemptCount}!`);
+          return result;
+        } else {
+          throw new Error(result?.error?.message || result?.message || 'Analysis method returned unsuccessful result');
+        }
+      } catch (error) {
+        lastError = error;
+        console.warn(`❌ Analysis method ${attemptCount} failed:`, error);
+        
+        // If it's a 403 error and we still have other methods to try, continue
+        if (error instanceof Error && (error.message.includes('403') || error.message.includes('Forbidden'))) {
+          console.log(`⚠️ 403 error detected, trying next method...`);
+          continue;
+        }
+      }
+    }
+
+    // If all methods failed, provide helpful error message
+    console.error('❌ All analysis methods failed. Last error:', lastError);
+    throw lastError || new Error('All analysis methods failed');
   }
 
   /**
@@ -190,19 +291,7 @@ class ApiService {
   }
 
   /**
-   * Health check endpoint
-   */
-  async healthCheck(): Promise<boolean> {
-    try {
-      const response = await this.api.get<ApiResponse<{ status: string }>>('/health');
-      return response.data.success && response.data.data?.status === 'ok';
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Get available regions
+   * Get available regions for analysis
    */
   getAvailableRegions(): { value: Region; label: string }[] {
     return [
@@ -210,32 +299,30 @@ class ApiService {
       { value: 'euw1', label: 'Europe West' },
       { value: 'eun1', label: 'Europe Nordic & East' },
       { value: 'kr', label: 'Korea' },
+      { value: 'jp1', label: 'Japan' },
       { value: 'br1', label: 'Brazil' },
       { value: 'la1', label: 'Latin America North' },
       { value: 'la2', label: 'Latin America South' },
       { value: 'oc1', label: 'Oceania' },
       { value: 'tr1', label: 'Turkey' },
       { value: 'ru', label: 'Russia' },
-      { value: 'jp1', label: 'Japan' },
     ];
   }
 
   /**
-   * Parse player name to handle Riot ID format (Name#TAG)
+   * Parse player name to handle both Riot ID format (GameName#TAG) and legacy names
    */
   parsePlayerName(input: string): { name: string; tag: string } {
-    const parts = input.split('#');
-    if (parts.length === 2) {
+    if (input.includes('#')) {
+      const parts = input.split('#');
       return {
         name: parts[0].trim(),
-        tag: parts[1].trim(),
+        tag: parts[1].trim()
       };
     }
-    
-    // Fallback for old summoner names without tags
     return {
       name: input.trim(),
-      tag: '',
+      tag: ''
     };
   }
 
@@ -249,39 +336,34 @@ class ApiService {
 
     const trimmed = input.trim();
     
-    // Check for Riot ID format (Name#TAG)
+    if (trimmed.length < 3) {
+      return { isValid: false, error: 'Player name must be at least 3 characters long' };
+    }
+
+    if (trimmed.length > 30) {
+      return { isValid: false, error: 'Player name cannot exceed 30 characters' };
+    }
+
+    // Check for Riot ID format
     if (trimmed.includes('#')) {
       const parts = trimmed.split('#');
       if (parts.length !== 2) {
-        return { isValid: false, error: 'Invalid Riot ID format. Use: PlayerName#TAG' };
+        return { isValid: false, error: 'Invalid Riot ID format. Use: GameName#TAG' };
       }
       
-      const [name, tag] = parts;
-      if (!name || name.length === 0) {
-        return { isValid: false, error: 'Player name cannot be empty' };
+      const [gameName, tagLine] = parts;
+      if (!gameName.trim() || !tagLine.trim()) {
+        return { isValid: false, error: 'Both game name and tag are required for Riot ID' };
       }
       
-      if (!tag || tag.length === 0) {
-        return { isValid: false, error: 'Tag cannot be empty in Riot ID format' };
-      }
-      
-      if (name.length > 16) {
-        return { isValid: false, error: 'Player name cannot be longer than 16 characters' };
-      }
-      
-      if (tag.length > 5) {
-        return { isValid: false, error: 'Tag cannot be longer than 5 characters' };
-      }
-    } else {
-      // Legacy summoner name
-      if (trimmed.length > 16) {
-        return { isValid: false, error: 'Player name cannot be longer than 16 characters' };
+      if (tagLine.length < 3 || tagLine.length > 5) {
+        return { isValid: false, error: 'Tag must be 3-5 characters long' };
       }
     }
 
-    // Check for invalid characters
-    const validPattern = /^[a-zA-Z0-9\s\-_#]+$/;
-    if (!validPattern.test(trimmed)) {
+    // Basic character validation
+    const validChars = /^[a-zA-Z0-9\s#]+$/;
+    if (!validChars.test(trimmed)) {
       return { isValid: false, error: 'Player name contains invalid characters' };
     }
 
@@ -376,4 +458,4 @@ class ApiService {
 
 // Export singleton instance
 export const apiService = new ApiService();
-export default apiService; 
+export { ApiService }; 

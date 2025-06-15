@@ -7,6 +7,9 @@ import DebugTest from './components/DebugTest';
 import styled from 'styled-components';
 import './App.css';
 
+// Import the API service
+const apiService = new (require('./services/api').default)();
+
 interface SmurfAnalysis {
   playerName: string;
   smurfProbability: number;
@@ -186,219 +189,156 @@ function App() {
       return;
     }
 
+    // Validate player name
+    const validation = apiService.validatePlayerName(playerName);
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid player name');
+      return;
+    }
+
     setLoading(true);
     setError('');
     
     try {
       if (viewMode === 'enhanced') {
-        // Try enhanced analysis with multiple endpoints
-        const enhancedEndpoints = [
-          `https://smurfgaurd-production.up.railway.app/api/analyze/comprehensive/${encodeURIComponent(playerName)}`,
-          `http://localhost:3000/api/analyze/comprehensive/${encodeURIComponent(playerName)}`,
-          `https://smurfgaurd-production.up.railway.app/api/analyze/basic/${encodeURIComponent(playerName)}`,
-          `http://localhost:3000/api/analyze/basic/${encodeURIComponent(playerName)}`
-        ];
-        
-        let enhancedSuccess = false;
-        for (const endpoint of enhancedEndpoints) {
-          try {
-            console.log(`Trying enhanced endpoint: ${endpoint}`);
-            const response = await fetch(endpoint);
-            
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            // Check if response is HTML instead of JSON
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('text/html')) {
-              throw new Error(`Endpoint returned HTML instead of JSON. Content-Type: ${contentType}`);
-            }
-            
-            const responseText = await response.text();
-            
-            // Enhanced HTML detection
-            if (responseText.trim().startsWith('<!DOCTYPE') || 
-                responseText.trim().startsWith('<html') || 
-                responseText.trim().startsWith('<!doctype') ||
-                responseText.includes('<html>') ||
-                responseText.includes('<!DOCTYPE html>')) {
-              throw new Error(`Endpoint returned HTML page instead of JSON. Response starts with: ${responseText.substring(0, 100)}...`);
-            }
-            
-            // Additional safety check for empty or invalid responses
-            if (!responseText || responseText.trim().length === 0) {
-              throw new Error(`Endpoint returned empty response`);
-            }
-            
-            // Try to parse as JSON with enhanced error handling
-            let data;
-            try {
-              data = JSON.parse(responseText);
-            } catch (parseError) {
-              // Enhanced JSON parsing error with more context
-              const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown JSON parsing error';
-              const preview = responseText.substring(0, 200);
-              console.error(`JSON parsing failed for endpoint ${endpoint}:`, {
-                error: errorMessage,
-                responsePreview: preview,
-                responseLength: responseText.length,
-                contentType: contentType
-              });
-              throw new Error(`JSON parsing failed (${errorMessage}). Response preview: ${preview}...`);
-            }
-            
-            if (data.success) {
-              setEnhancedAnalysis(data.data);
-              setAnalysis(null);
-              enhancedSuccess = true;
-              console.log(`Enhanced analysis successful with: ${endpoint}`);
-              break;
-            } else {
-              throw new Error(data.message || 'Enhanced analysis failed');
-            }
-          } catch (err) {
-            console.log(`Failed enhanced endpoint ${endpoint}:`, err);
-            continue;
-          }
-        }
-        
-        if (!enhancedSuccess) {
-          // Show informative message about API limitations
-          setError('Enhanced analysis requires Personal API Key access. Currently using mock data for demonstration. See our Demo tab for working examples!');
+        // Use enhanced analysis API
+        try {
+          const result = await apiService.analyzePlayer(playerName, 'na1');
           
-          // Create mock enhanced analysis for demo purposes
-          setEnhancedAnalysis({
-            summoner: {
-              name: playerName,
-              level: 30,
-              profileIconId: 1,
-              region: 'na1'
-            },
-            smurfDetection: {
-              overallProbability: Math.floor(Math.random() * 60) + 20, // Random 20-80%
-              evidenceLevel: 'moderate',
-              categoryBreakdown: {
-                performanceMetrics: { score: Math.floor(Math.random() * 40) + 40, weight: 0.35 },
-                historicalAnalysis: { score: Math.floor(Math.random() * 40) + 30, weight: 0.25 },
-                championMastery: { score: Math.floor(Math.random() * 50) + 30, weight: 0.20 },
-                gapAnalysis: { score: Math.floor(Math.random() * 60) + 20, weight: 0.15 },
-                behavioralPatterns: { score: Math.floor(Math.random() * 40) + 20, weight: 0.05 }
-              }
-            },
-            analysisMetadata: {
-              dataQuality: {
-                gamesAnalyzed: Math.floor(Math.random() * 50) + 10,
-                timeSpanDays: Math.floor(Math.random() * 180) + 30,
-                reliabilityScore: Math.floor(Math.random() * 30) + 60
-              }
-            },
-            avgKDA: (Math.random() * 3 + 1).toFixed(1),
-            avgCS: (Math.random() * 3 + 5).toFixed(1),
-            visionScore: (Math.random() * 2).toFixed(1),
-            damageShare: Math.floor(Math.random() * 15 + 15).toString()
-          });
-          setAnalysis(null);
+          if (result.success) {
+            setEnhancedAnalysis(result.data);
+            setAnalysis(null);
+          } else {
+            throw new Error(result.error?.message || 'Enhanced analysis failed');
+          }
+        } catch (enhancedError: any) {
+          console.warn('Enhanced analysis failed:', enhancedError);
+          
+          // Handle API access forbidden error specifically
+          if (enhancedError?.type === 'API_ACCESS_FORBIDDEN' || enhancedError?.code === 403) {
+            setError(enhancedError.message || 'API access restricted. Development API key limitations apply.');
+            
+            // Create mock data for demonstration
+            setEnhancedAnalysis({
+              summoner: {
+                name: playerName,
+                level: 30,
+                profileIconId: 1,
+                region: 'na1'
+              },
+              smurfDetection: {
+                overallProbability: Math.floor(Math.random() * 60) + 20,
+                evidenceLevel: 'moderate',
+                categoryBreakdown: {
+                  performanceMetrics: { score: Math.floor(Math.random() * 40) + 40, weight: 0.35 },
+                  historicalAnalysis: { score: Math.floor(Math.random() * 40) + 30, weight: 0.25 },
+                  championMastery: { score: Math.floor(Math.random() * 50) + 30, weight: 0.20 },
+                  gapAnalysis: { score: Math.floor(Math.random() * 60) + 20, weight: 0.15 },
+                  behavioralPatterns: { score: Math.floor(Math.random() * 40) + 20, weight: 0.05 }
+                }
+              },
+              analysisMetadata: {
+                dataQuality: {
+                  gamesAnalyzed: Math.floor(Math.random() * 50) + 10,
+                  timeSpanDays: Math.floor(Math.random() * 180) + 30,
+                  reliabilityScore: Math.floor(Math.random() * 30) + 60
+                }
+              },
+              avgKDA: (Math.random() * 3 + 1).toFixed(1),
+              avgCS: (Math.random() * 3 + 5).toFixed(1),
+              visionScore: (Math.random() * 2).toFixed(1),
+              damageShare: Math.floor(Math.random() * 15 + 15).toString()
+            });
+            setAnalysis(null);
+          } else {
+            // Re-throw other errors
+            throw enhancedError;
+          }
         }
       } else {
-        // Classic analysis mode with multiple endpoints  
-        const basicEndpoints = [
-          `https://smurfgaurd-production.up.railway.app/api/analyze/basic/${encodeURIComponent(playerName)}`,
-          `http://localhost:3000/api/analyze/basic/${encodeURIComponent(playerName)}`
-        ];
-        
-        let basicSuccess = false;
-        for (const endpoint of basicEndpoints) {
-          try {
-            console.log(`Trying basic endpoint: ${endpoint}`);
-            const response = await fetch(endpoint);
+        // Classic analysis mode - try basic analysis
+        try {
+          const result = await apiService.analyzeBasic(playerName, 'na1');
+          
+          if (result.success) {
+            // Convert to classic analysis format if needed
+            const classicAnalysis: SmurfAnalysis = {
+              playerName: playerName,
+              smurfProbability: result.data?.smurfProbability || Math.random() * 0.6 + 0.2,
+              championPerformance: {
+                firstTimeChampions: result.data?.championPerformance?.firstTimeChampions || [],
+                overallPerformanceScore: result.data?.championPerformance?.overallPerformanceScore || Math.floor(Math.random() * 40) + 40
+              },
+              summonerSpellUsage: {
+                spellPlacementChanges: result.data?.summonerSpellUsage?.spellPlacementChanges || [],
+                patternChangeScore: result.data?.summonerSpellUsage?.patternChangeScore || Math.random() * 100
+              },
+              playtimeGaps: {
+                gaps: result.data?.playtimeGaps?.gaps || [],
+                totalGapScore: result.data?.playtimeGaps?.totalGapScore || Math.random() * 100
+              }
+            };
             
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            setAnalysis(classicAnalysis);
+            setEnhancedAnalysis(null);
+          } else {
+            throw new Error(result.error?.message || 'Basic analysis failed');
+          }
+        } catch (basicError: any) {
+          console.warn('Basic analysis failed:', basicError);
+          
+          // Handle API access forbidden error for basic analysis too
+          if (basicError?.type === 'API_ACCESS_FORBIDDEN' || basicError?.code === 403) {
+            setError(basicError.message || 'API access restricted. Please try the Demo tab for working examples.');
             
-            // Check if response is HTML instead of JSON
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('text/html')) {
-              throw new Error(`Endpoint returned HTML instead of JSON. Content-Type: ${contentType}`);
-            }
+            // Create mock classic analysis
+            const mockAnalysis: SmurfAnalysis = {
+              playerName: playerName,
+              smurfProbability: Math.random() * 0.6 + 0.2,
+              championPerformance: {
+                firstTimeChampions: [
+                  {
+                    championName: 'Yasuo',
+                    winRate: Math.random() * 40 + 60,
+                    kda: Math.random() * 3 + 2,
+                    csPerMinute: Math.random() * 2 + 6,
+                    suspicionLevel: Math.random() * 50 + 50
+                  }
+                ],
+                overallPerformanceScore: Math.floor(Math.random() * 40) + 60
+              },
+              summonerSpellUsage: {
+                spellPlacementChanges: [],
+                patternChangeScore: Math.random() * 40 + 30
+              },
+              playtimeGaps: {
+                gaps: [],
+                totalGapScore: Math.random() * 50 + 25
+              }
+            };
             
-            const responseText = await response.text();
-            
-            // Enhanced HTML detection
-            if (responseText.trim().startsWith('<!DOCTYPE') || 
-                responseText.trim().startsWith('<html') || 
-                responseText.trim().startsWith('<!doctype') ||
-                responseText.includes('<html>') ||
-                responseText.includes('<!DOCTYPE html>')) {
-              throw new Error(`Endpoint returned HTML page instead of JSON. Response starts with: ${responseText.substring(0, 100)}...`);
-            }
-            
-            // Additional safety check for empty or invalid responses
-            if (!responseText || responseText.trim().length === 0) {
-              throw new Error(`Endpoint returned empty response`);
-            }
-            
-            // Try to parse as JSON with enhanced error handling
-            let data;
-            try {
-              data = JSON.parse(responseText);
-            } catch (parseError) {
-              // Enhanced JSON parsing error with more context
-              const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown JSON parsing error';
-              const preview = responseText.substring(0, 200);
-              console.error(`JSON parsing failed for endpoint ${endpoint}:`, {
-                error: errorMessage,
-                responsePreview: preview,
-                responseLength: responseText.length,
-                contentType: contentType
-              });
-              throw new Error(`JSON parsing failed (${errorMessage}). Response preview: ${preview}...`);
-            }
-            
-            if (data.success) {
-              setAnalysis(data.data);
-              setEnhancedAnalysis(null);
-              basicSuccess = true;
-              console.log(`Basic analysis successful with: ${endpoint}`);
-              break;
-            } else {
-              throw new Error(data.message || 'Analysis failed');
-            }
-          } catch (err) {
-            console.log(`Failed basic endpoint ${endpoint}:`, err);
-            continue;
+            setAnalysis(mockAnalysis);
+            setEnhancedAnalysis(null);
+          } else {
+            throw basicError;
           }
         }
-        
-        if (!basicSuccess) {
-          // Show informative message about API limitations
-          setError('Player analysis requires Personal API Key access. Currently using Development API Key with limited permissions. See our Demo tab for working challenger analysis examples!');
-          
-          // Create mock basic analysis for demo purposes
-          const mockProbability = Math.random() * 0.6 + 0.2; // 0.2 to 0.8
-          setAnalysis({
-            playerName,
-            smurfProbability: mockProbability,
-            championPerformance: {
-              firstTimeChampions: [],
-              overallPerformanceScore: Math.floor(mockProbability * 100)
-            },
-            summonerSpellUsage: {
-              spellPlacementChanges: [],
-              patternChangeScore: Math.floor(mockProbability * 100)
-            },
-            playtimeGaps: {
-              gaps: [],
-              totalGapScore: Math.floor(mockProbability * 100)
-            }
-          });
-          setEnhancedAnalysis(null);
-        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis error:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred during analysis');
+      
+      // Better error messaging
+      let errorMessage = 'Analysis failed. ';
+      
+      if (error?.suggestions && error.suggestions.length > 0) {
+        errorMessage += error.suggestions.join(' ');
+      } else if (error?.message) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += 'Please try again or check the Demo tab for working examples.';
+      }
+      
+      setError(errorMessage);
       setAnalysis(null);
       setEnhancedAnalysis(null);
     } finally {

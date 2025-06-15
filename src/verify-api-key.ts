@@ -13,47 +13,61 @@ if (!apiKey) {
 
 async function checkApiKeyType() {
   logger.info('====================================================');
-  logger.info('API Key Verification Tool');
+  logger.info('API Key Verification Tool - Enhanced Version');
   logger.info('====================================================');
   logger.info(`Current API Key: ${apiKey!.substring(0, 10)}...${apiKey!.substring(apiKey!.length - 4)}`);
   
   try {
-    // First, check if we can access basic endpoints
-    logger.info('\nChecking Platform Status endpoint (should work with any key)...');
-    await axios.get('https://na1.api.riotgames.com/lol/status/v4/platform-data', {
+    // Check basic endpoint and analyze rate limits
+    logger.info('\nChecking Platform Status endpoint and rate limits...');
+    const response = await axios.get('https://na1.api.riotgames.com/lol/status/v4/platform-data', {
       headers: { 'X-Riot-Token': apiKey }
     });
+    
     logger.info('✅ Platform Status: Working');
     
-    try {
-      // Now check if we can access summoner data (requires Personal API Key)
-      logger.info('\nChecking Summoner endpoint (requires Personal API Key)...');
-      await axios.get('https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/Doublelift', {
-        headers: { 'X-Riot-Token': apiKey }
-      });
-      logger.info('✅ Summoner Data: Working');
-      logger.info('\n✅✅✅ SUCCESS: You are using a Personal API Key! ✅✅✅');
+    // Analyze rate limits to determine key type
+    const appLimit = response.headers['x-app-rate-limit'];
+    const methodLimit = response.headers['x-method-rate-limit'];
+    
+    logger.info('\n📊 Rate Limit Analysis:');
+    logger.info(`App Rate Limit: ${appLimit}`);
+    logger.info(`Method Rate Limit: ${methodLimit}`);
+    
+    // Personal keys have higher rate limits
+    if (appLimit && appLimit.includes('100:120')) {
+      logger.info('\n✅✅✅ PERSONAL API KEY CONFIRMED! ✅✅✅');
+      logger.info('🚀 You have access to all endpoints with high rate limits!');
       
+      // Test modern account endpoint (Riot ID format)
       try {
-        // Try match history which also requires Personal API Key
-        logger.info('\nChecking Match History endpoint (requires Personal API Key)...');
-        const knownPuuid = "O7JD9TRWpWwS8TYnBKNPz9sE-FE6ZTGPZXBYnNypYfGfL8c7_HNAslnYKCIW5Yf56DXmcOu_N8yw8g";
-        await axios.get(`https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/${knownPuuid}/ids?start=0&count=1`, {
+        logger.info('\nTesting modern account lookup (Riot ID format)...');
+        const accountResponse = await axios.get('https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/Faker/T1', {
           headers: { 'X-Riot-Token': apiKey }
         });
-        logger.info('✅ Match History: Working');
-      } catch (error) {
-        logger.warn('⚠️ Match History: Not working, but Summoner data works');
-        logger.warn('This is unusual for a Personal API Key. You might have specific endpoint restrictions.');
+        logger.info(`✅ Account Lookup: Success - ${accountResponse.data.gameName}#${accountResponse.data.tagLine}`);
+        logger.info('🎯 Your API key is fully functional for real player analysis!');
+      } catch (error: any) {
+        if (error.response?.status === 404) {
+          logger.info('✅ Account endpoint accessible (test account not found, but endpoint works)');
+        } else {
+          logger.warn('⚠️ Account lookup had issues, but this is normal for some regions/players');
+        }
       }
-    } catch (error) {
-      logger.error('❌ Summoner Data: Not working');
-      logger.error('\n❌❌❌ ALERT: You are using a Development API Key! ❌❌❌');
-      logger.error('Development Keys expire after 24 hours and cannot access summoner or match data.');
-      logger.error('Apply for a Personal API Key at: https://developer.riotgames.com/');
+      
+    } else if (appLimit && appLimit.includes('20:1')) {
+      logger.warn('\n⚠️⚠️⚠️ DEVELOPMENT API KEY DETECTED ⚠️⚠️⚠️');
+      logger.warn('Development Keys expire after 24 hours and have limited access.');
+      logger.warn('Apply for a Personal API Key at: https://developer.riotgames.com/');
+    } else {
+      logger.info('\n❓ Unable to determine key type from rate limits');
+      logger.info(`Rate limit string: ${appLimit}`);
+      logger.info('Your key appears to be working, but rate limit format is unexpected.');
     }
-  } catch (error) {
+    
+  } catch (error: any) {
     logger.error('❌ Platform Status: Not working');
+    logger.error(`Error: ${error.response?.status} ${error.response?.statusText}`);
     logger.error('\n⚠️⚠️⚠️ CRITICAL ERROR: Your API key is invalid or has expired! ⚠️⚠️⚠️');
     logger.error('Get a new API key at: https://developer.riotgames.com/');
   }
