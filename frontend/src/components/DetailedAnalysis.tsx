@@ -414,21 +414,21 @@ export const DetailedAnalysis: React.FC<DetailedAnalysisProps> = ({ analysis }) 
   // Safely extract data with proper null checks
   const championPerformance = {
     firstTimeChampions: Array.isArray(analysis.championPerformance?.firstTimeChampions) 
-      ? analysis.championPerformance.firstTimeChampions 
+      ? analysis.championPerformance!.firstTimeChampions 
       : defaultChampionPerformance.firstTimeChampions,
     overallPerformanceScore: analysis.championPerformance?.overallPerformanceScore || defaultChampionPerformance.overallPerformanceScore
   };
 
   const summonerSpellUsage = {
     spellPlacementChanges: Array.isArray(analysis.summonerSpellUsage?.spellPlacementChanges)
-      ? analysis.summonerSpellUsage.spellPlacementChanges
+      ? analysis.summonerSpellUsage!.spellPlacementChanges
       : defaultSummonerSpellUsage.spellPlacementChanges,
     patternChangeScore: analysis.summonerSpellUsage?.patternChangeScore || defaultSummonerSpellUsage.patternChangeScore
   };
 
   const playtimeGaps = {
     gaps: Array.isArray(analysis.playtimeGaps?.gaps)
-      ? analysis.playtimeGaps.gaps
+      ? analysis.playtimeGaps!.gaps
       : defaultPlaytimeGaps.gaps,
     totalGapScore: analysis.playtimeGaps?.totalGapScore || defaultPlaytimeGaps.totalGapScore
   };
