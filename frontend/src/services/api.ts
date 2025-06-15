@@ -16,13 +16,23 @@ class ApiService {
   private baseURL: string;
 
   constructor() {
-    // Use the deployed Railway backend URL or fallback to localhost for development
-    this.baseURL = process.env.REACT_APP_API_URL || 'https://smurfgaurd-production.up.railway.app/api';
+    // Force Railway backend URL for production deployments
+    // Only use localhost in actual development environment
+    const isLocalDevelopment = process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost';
+    
+    if (isLocalDevelopment) {
+      this.baseURL = 'http://localhost:3001/api';
+    } else {
+      // Always use Railway backend for deployed versions
+      this.baseURL = 'https://smurfgaurd-production.up.railway.app/api';
+    }
     
     console.log('🌐 ApiService initialized with baseURL:', this.baseURL);
-    console.log('🔧 Environment variables:', {
-      REACT_APP_API_URL: process.env.REACT_APP_API_URL,
-      NODE_ENV: process.env.NODE_ENV
+    console.log('🔧 Environment info:', {
+      NODE_ENV: process.env.NODE_ENV,
+      hostname: window.location.hostname,
+      isLocalDevelopment,
+      REACT_APP_API_URL: process.env.REACT_APP_API_URL // Just for debugging
     });
     
     this.api = axios.create({

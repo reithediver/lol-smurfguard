@@ -234,14 +234,33 @@ ${error.message || 'Please try again or verify the Riot ID format.'}`);
   const testBackendConnection = async () => {
     try {
       const health = await apiService.healthCheck();
+      
+      // Use the same logic as ApiService
+      const isLocalDevelopment = process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost';
+      const apiUrl = isLocalDevelopment 
+        ? 'http://localhost:3001/api'
+        : 'https://smurfgaurd-production.up.railway.app/api';
+      
       setDebugInfo({
-        apiUrl: process.env.REACT_APP_API_URL || 'https://smurfgaurd-production.up.railway.app/api',
+        apiUrl,
+        isLocalDevelopment,
+        hostname: window.location.hostname,
+        NODE_ENV: process.env.NODE_ENV,
         healthCheck: health,
         timestamp: new Date().toISOString()
       });
     } catch (error: any) {
+      // Use the same logic as ApiService
+      const isLocalDevelopment = process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost';
+      const apiUrl = isLocalDevelopment 
+        ? 'http://localhost:3001/api'
+        : 'https://smurfgaurd-production.up.railway.app/api';
+      
       setDebugInfo({
-        apiUrl: process.env.REACT_APP_API_URL || 'https://smurfgaurd-production.up.railway.app/api',
+        apiUrl,
+        isLocalDevelopment,
+        hostname: window.location.hostname,
+        NODE_ENV: process.env.NODE_ENV,
         error: error.message,
         type: error.type,
         timestamp: new Date().toISOString()
