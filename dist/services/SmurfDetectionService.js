@@ -177,6 +177,11 @@ class SmurfDetectionService {
     async analyzeChampionPerformance(matches, targetPuuid) {
         const championStats = new Map();
         matches.forEach(match => {
+            // Add null checks for match data structure
+            if (!match || !match.participants || !Array.isArray(match.participants)) {
+                loggerService_1.logger.warn('Invalid match data structure:', match);
+                return;
+            }
             const player = match.participants.find(p => p.puuid === targetPuuid);
             if (!player)
                 return;
@@ -261,6 +266,11 @@ class SmurfDetectionService {
         let positionEstablishmentGames = 0;
         for (let i = 0; i < sortedMatches.length; i++) {
             const currentMatch = sortedMatches[i];
+            // Add null checks for match data structure
+            if (!currentMatch || !currentMatch.participants || !Array.isArray(currentMatch.participants)) {
+                loggerService_1.logger.warn('Invalid match data structure in summoner spell analysis:', currentMatch);
+                continue;
+            }
             const currentPlayer = currentMatch.participants.find(p => p.puuid === targetPuuid);
             if (!currentPlayer)
                 continue;
@@ -323,6 +333,11 @@ class SmurfDetectionService {
         const highEloAssociations = [];
         const playerEncounters = new Map();
         for (const match of matches) {
+            // Add null checks for match data structure
+            if (!match || !match.participants || !Array.isArray(match.participants)) {
+                loggerService_1.logger.warn('Invalid match data structure in player associations analysis:', match);
+                continue;
+            }
             const targetPlayer = match.participants.find(p => p.puuid === targetPuuid);
             if (!targetPlayer)
                 continue;

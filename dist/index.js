@@ -43,18 +43,14 @@ app.get('/api/integration/status', async (req, res) => {
         res.json({
             success: true,
             integration: {
-                opggEnabled: integrationStatus.opggMcp.enabled && integrationStatus.opggMcp.connected,
-                serviceName: integrationStatus.opggMcp.connected
-                    ? 'OP.GG MCP + Riot API Fallback'
-                    : 'Riot API + Mock Data Fallback',
-                features: integrationStatus.opggMcp.connected
-                    ? ['Real OP.GG Data', 'Enhanced Analysis', 'Champion Statistics', 'Match History', 'Summoner Search']
-                    : ['Basic Analysis', 'Mock Data', 'Riot API Integration'],
-                mcpTools: integrationStatus.opggMcp.tools,
-                dataQuality: integrationStatus.opggMcp.connected ? 'High' : 'Limited',
-                limitations: integrationStatus.opggMcp.connected ? [] : [
-                    'OP.GG MCP server not available',
-                    'Using fallback data sources'
+                opggEnabled: false, // OP.GG MCP is disabled
+                serviceName: 'Riot API + Mock Data Fallback',
+                features: ['Basic Analysis', 'Mock Data', 'Riot API Integration'],
+                mcpTools: [],
+                dataQuality: 'Limited',
+                limitations: [
+                    'OP.GG MCP integration disabled',
+                    'Using Riot API and fallback data sources'
                 ]
             }
         });

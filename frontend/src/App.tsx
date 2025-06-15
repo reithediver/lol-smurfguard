@@ -140,7 +140,26 @@ You can find your Riot ID in your League client profile.`);
       
       if (result.success && result.data) {
         console.log(`✅ Player found: ${playerName}`);
-        setAnalysisData(result.data);
+        console.log('📊 Backend response data structure:', result.data);
+        
+        // Transform backend data to match DetailedAnalysis component expectations
+        const transformedData = {
+          championPerformance: result.data.analysisFactors?.championPerformance || {
+            firstTimeChampions: [],
+            overallPerformanceScore: 0
+          },
+          summonerSpellUsage: result.data.analysisFactors?.summonerSpellUsage || {
+            spellPlacementChanges: [],
+            patternChangeScore: 0
+          },
+          playtimeGaps: result.data.analysisFactors?.playtimeGaps || {
+            gaps: [],
+            totalGapScore: 0
+          }
+        };
+        
+        console.log('🔄 Transformed data for component:', transformedData);
+        setAnalysisData(transformedData);
       } else {
         throw new Error(result.error?.message || 'Analysis failed');
       }
