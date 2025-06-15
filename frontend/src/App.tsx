@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DetailedAnalysis } from './components/DetailedAnalysis';
+import ComprehensiveStats from './components/ComprehensiveStats';
 import { apiService } from './services/api';
 import styled from 'styled-components';
 import './App.css';
@@ -180,9 +181,11 @@ class ErrorBoundary extends React.Component<
 function App() {
   const [playerName, setPlayerName] = useState('');
   const [analysisData, setAnalysisData] = useState<any>(null);
+  const [comprehensiveData, setComprehensiveData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'smurf' | 'comprehensive'>('comprehensive');
 
   const handleAnalyze = async () => {
     try {
@@ -215,10 +218,27 @@ You can find your Riot ID in your League client profile.`);
       
       console.log(`🔍 Searching for player: ${playerName}`);
       
-      // Try comprehensive analysis first (best endpoint)
-      console.log('📡 Calling apiService.analyzeComprehensive...');
-      const result = await apiService.analyzeComprehensive(playerName, 'na1');
-      console.log('📡 API call completed, result:', result);
+      let result;
+      
+      if (viewMode === 'comprehensive') {
+        // Get comprehensive stats (OP.GG style)
+        console.log('📡 Calling apiService.getComprehensiveStats...');
+        result = await apiService.getComprehensiveStats(playerName, 'na1', 100);
+        console.log('📡 Comprehensive stats completed, result:', result);
+        
+        if (result && result.success && result.data) {
+          console.log(`✅ Comprehensive stats loaded for: ${playerName}`);
+          setComprehensiveData(result.data);
+          return; // Exit early for comprehensive mode
+        } else {
+          throw new Error(result?.error?.message || 'Comprehensive stats failed');
+        }
+      } else {
+        // Try smurf analysis (existing logic)
+        console.log('📡 Calling apiService.analyzeComprehensive...');
+        result = await apiService.analyzeComprehensive(playerName, 'na1');
+        console.log('📡 API call completed, result:', result);
+      }
       
       if (result && result.success && result.data) {
         console.log(`✅ Player found: ${playerName}`);
@@ -386,6 +406,40 @@ Technical details: ${error.stack || 'No stack trace available'}`);
           <Subtitle>Advanced League of Legends Smurf Detection</Subtitle>
           
           <SearchSection>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '16px' }}>
+                <button
+                  onClick={() => setViewMode('comprehensive')}
+                  style={{
+                    background: viewMode === 'comprehensive' ? '#3b82f6' : '#374151',
+                    color: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  📊 Player Stats (OP.GG Style)
+                </button>
+                <button
+                  onClick={() => setViewMode('smurf')}
+                  style={{
+                    background: viewMode === 'smurf' ? '#3b82f6' : '#374151',
+                    color: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  🔍 Smurf Detection
+                </button>
+              </div>
+            </div>
             <SearchContainer>
               <PlayerInput
                 type="text"
@@ -606,6 +660,10 @@ Technical details: ${error.stack || 'No stack trace available'}`);
               </div>
             </div>
           </div>
+        )}
+
+        {comprehensiveData && (
+          <ComprehensiveStats data={comprehensiveData} />
         )}
       </AppContainer>
     </ErrorBoundary>

@@ -239,6 +239,20 @@ class ApiService {
   }
 
   /**
+   * Get comprehensive player statistics (OP.GG style)
+   */
+  async getComprehensiveStats(riotId: string, region: string = 'na1', matches: number = 100): Promise<any> {
+    try {
+      const response = await this.api.get(`/player/comprehensive/${encodeURIComponent(riotId)}`, {
+        params: { region, matches }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * Try multiple analysis methods in order of preference
    */
   async analyzePlayer(playerName: string, region: string = 'na1'): Promise<any> {

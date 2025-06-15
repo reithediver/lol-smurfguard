@@ -6,6 +6,7 @@ import { DataFetchingService } from './services/DataFetchingService';
 import { SmurfDetectionService } from './services/SmurfDetectionService';
 import { logger } from './utils/loggerService';
 import { createError } from './utils/errorHandler';
+import { ChampionStatsService } from './services/ChampionStatsService';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,7 @@ console.log('🔗 CORS origins:', [
 const riotApi = new RiotApi(process.env.RIOT_API_KEY || 'demo-key');
 const dataFetchingService = new DataFetchingService();
 const smurfDetectionService = new SmurfDetectionService(riotApi);
+const championStatsService = new ChampionStatsService(riotApi);
 
 // Middleware
 app.use(cors({
@@ -359,7 +361,83 @@ app.get('/api/analyze/riot-id/:gameName/:tagLine', async (req, res) => {
   }
 });
 
-
+// Comprehensive player statistics endpoint (OP.GG style)
+app.get('/api/player/comprehensive/:riotId', async (req, res) => {
+  const { riotId } = req.params;
+  const region = (req.query.region as string) || 'na1';
+  const matchCount = parseInt(req.query.matches as string) || 100;
+  
+  logger.info(`🔍 Comprehensive stats request for: ${riotId} (${region})`);
+  
+  try {
+    // Parse Riot ID
+    const riotIdParts = RiotApi.parseRiotId(riotId);
+    if (!riotIdParts) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_RIOT_ID',
+        message: 'Please provide a valid Riot ID in format: GameName#TAG'
+      });
+    }
+    
+    // Initialize services
+    const riotApi = new RiotApi(process.env.RIOT_API_KEY!, region);
+    const championStatsService = new ChampionStatsService(riotApi);
+    
+    // Get summoner data
+    const summoner = await riotApi.getSummonerByRiotId(riotIdParts.gameName, riotIdParts.tagLine);
+    const leagueData = await riotApi.getLeagueEntries(summoner.puuid);
+    const championMastery = await riotApi.getChampionMastery(summoner.puuid);
+    
+    // Get comprehensive statistics
+    const comprehensiveStats = await championStatsService.getComprehensiveStats(summoner.puuid, matchCount);
+    
+    res.json({
+      success: true,
+      source: 'Riot API + Comprehensive Analysis',
+      timestamp: new Date().toISOString(),
+      data: {
+        summoner: {
+          puuid: summoner.puuid,
+          gameName: summoner.gameName,
+          tagLine: summoner.tagLine,
+          summonerLevel: summoner.summonerLevel,
+          profileIconId: summoner.profileIconId,
+          region: region
+        },
+        leagueData,
+        championMastery: championMastery.slice(0, 10), // Top 10 mastery
+        comprehensiveStats
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error in comprehensive stats endpoint:', error);
+    
+    if (error.response?.status === 404) {
+      return res.status(404).json({
+        success: false,
+        error: 'SUMMONER_NOT_FOUND',
+        message: 'Summoner not found. Please check the Riot ID and region.'
+      });
+    }
+    
+    if (error.response?.status === 403) {
+      return res.status(403).json({
+        success: false,
+        error: 'API_ACCESS_FORBIDDEN',
+        message: 'API access forbidden. Please check API key configuration.'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: 'Failed to fetch comprehensive player statistics',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 
 // Analysis capabilities endpoint
 app.get('/api/analysis/capabilities', async (req, res) => {

@@ -121,11 +121,14 @@ export class RiotApi {
         }
     }
 
-    async getMatchHistory(puuid: string, startTime?: number, endTime?: number): Promise<string[]> {
+    async getMatchHistory(puuid: string, startTime?: number, endTime?: number, count: number = 100): Promise<string[]> {
         const routingValue = this.getRoutingValue(this.region);
-        const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20`;
+        const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids`;
         
-        const params: Record<string, string> = {};
+        const params: Record<string, string> = {
+            start: '0',
+            count: Math.min(count, 100).toString() // Riot API max is 100 per request
+        };
         if (startTime) params.startTime = startTime.toString();
         if (endTime) params.endTime = endTime.toString();
         
@@ -138,6 +141,50 @@ export class RiotApi {
         } catch (error) {
             throw error;
         }
+    }
+
+    // Get extended match history with multiple requests if needed
+    async getExtendedMatchHistory(puuid: string, totalCount: number = 200, queueId?: number): Promise<string[]> {
+        const allMatches: string[] = [];
+        const batchSize = 100; // Riot API limit per request
+        let start = 0;
+        
+        while (allMatches.length < totalCount && start < 1000) { // Riot API has a 1000 match limit
+            const params: Record<string, string> = {
+                start: start.toString(),
+                count: Math.min(batchSize, totalCount - allMatches.length).toString()
+            };
+            
+            if (queueId) {
+                params.queue = queueId.toString(); // Filter by queue type (e.g., 420 for Ranked Solo)
+            }
+            
+            try {
+                const routingValue = this.getRoutingValue(this.region);
+                const url = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids`;
+                
+                const response = await axios.get(url, { 
+                    headers: { 'X-Riot-Token': this.apiKey },
+                    params 
+                });
+                
+                const matches = response.data;
+                if (matches.length === 0) break; // No more matches available
+                
+                allMatches.push(...matches);
+                start += batchSize;
+                
+                // Rate limiting - wait between requests
+                if (start < totalCount) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            } catch (error) {
+                console.error(`Error fetching matches starting at ${start}:`, error);
+                break;
+            }
+        }
+        
+        return allMatches.slice(0, totalCount);
     }
 
     async getMatchDetails(matchId: string): Promise<MatchHistory> {
