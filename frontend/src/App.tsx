@@ -1,57 +1,36 @@
 import React, { useState } from 'react';
 import { DetailedAnalysis } from './components/DetailedAnalysis';
-import { EnhancedPlayerDashboard } from './components/EnhancedPlayerDashboard';
-import { AdvancedSmurfAnalysis } from './components/AdvancedSmurfAnalysis';
-import ChallengerDemo from './components/ChallengerDemo';
-import DebugTest from './components/DebugTest';
+import { apiService } from './services/api';
 import styled from 'styled-components';
 import './App.css';
-
-// Import the API service
-const apiService = new (require('./services/api').default)();
-
-interface SmurfAnalysis {
-  playerName: string;
-  smurfProbability: number;
-  championPerformance: {
-    firstTimeChampions: Array<{
-      championName: string;
-      winRate: number;
-      kda: number;
-      csPerMinute: number;
-      suspicionLevel: number;
-    }>;
-    overallPerformanceScore: number;
-  };
-  summonerSpellUsage: {
-    spellPlacementChanges: Array<{
-      gameId: string;
-      timestamp: Date;
-      oldSpells: [number, number];
-      newSpells: [number, number];
-    }>;
-    patternChangeScore: number;
-  };
-  playtimeGaps: {
-    gaps: Array<{
-      startDate: Date;
-      endDate: Date;
-      durationHours: number;
-      suspicionLevel: number;
-    }>;
-    totalGapScore: number;
-  };
-}
 
 const AppContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  background: #0f172a;
+  min-height: 100vh;
+  color: #f1f5f9;
 `;
 
 const Header = styled.header`
   text-align: center;
   margin-bottom: 40px;
+`;
+
+const Title = styled.h1`
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #60a5fa, #34d399);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+`;
+
+const Subtitle = styled.p`
+  font-size: 1.2rem;
+  color: #94a3b8;
+  margin-bottom: 30px;
 `;
 
 const SearchSection = styled.div`
@@ -80,6 +59,10 @@ const PlayerInput = styled.input`
     outline: none;
     border-color: #4CAF50;
   }
+
+  &::placeholder {
+    color: #64748b;
+  }
 `;
 
 const AnalyzeButton = styled.button`
@@ -102,429 +85,135 @@ const AnalyzeButton = styled.button`
   }
 `;
 
-const ProbabilityDisplay = styled.div<{ probability: number }>`
+const ErrorMessage = styled.div`
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+  color: #ef4444;
   text-align: center;
-  margin: 30px 0;
-  padding: 20px;
-  background: #2a2a2a;
-  border-radius: 8px;
-  border: 4px solid ${props => {
-    if (props.probability >= 0.8) return '#ff4757';
-    if (props.probability >= 0.6) return '#ff6b35';
-    if (props.probability >= 0.4) return '#ffa502';
-    if (props.probability >= 0.2) return '#26de81';
-    return '#2ed573';
-  }};
+  white-space: pre-line;
 `;
 
-const ProbabilityValue = styled.div`
-  font-size: 48px;
-  font-weight: bold;
-  margin: 10px 0;
-`;
-
-const ProbabilityLabel = styled.div`
-  font-size: 24px;
-  color: #888;
-`;
-
-// Add a tab component
-const TabContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-  padding: 0.75rem 1.5rem;
-  background: ${props => props.$active ? '#3b82f6' : 'transparent'};
-  color: ${props => props.$active ? 'white' : '#94a3b8'};
-  border: 1px solid ${props => props.$active ? '#3b82f6' : '#475569'};
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-weight: ${props => props.$active ? '600' : '400'};
-
-  &:hover {
-    background: ${props => props.$active ? '#2563eb' : '#374151'};
-    color: ${props => props.$active ? 'white' : '#f1f5f9'};
-  }
-`;
-
-const ViewModeToggle = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 30px;
-`;
-
-const ViewButton = styled.button<{ $active: boolean }>`
-  padding: 10px 20px;
-  border: 2px solid #4CAF50;
-  border-radius: 8px;
-  background: ${props => props.$active ? '#4CAF50' : 'transparent'};
-  color: ${props => props.$active ? 'white' : '#4CAF50'};
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s;
-
-  &:hover {
-    background: ${props => props.$active ? '#45a049' : 'rgba(76, 175, 80, 0.1)'};
-  }
+const LoadingMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+  font-size: 1.1rem;
 `;
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'analysis' | 'advanced' | 'demo' | 'debug'>('demo');
-  const [viewMode, setViewMode] = useState<'enhanced' | 'classic'>('enhanced');
   const [playerName, setPlayerName] = useState('');
-  const [analysis, setAnalysis] = useState<SmurfAnalysis | null>(null);
-  const [enhancedAnalysis, setEnhancedAnalysis] = useState<any>(null);
+  const [analysisData, setAnalysisData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleAnalyze = async () => {
     if (!playerName.trim()) {
-      setError('Please enter a player name');
+      setError('Please enter a Riot ID');
       return;
     }
 
-    // Validate player name
-    const validation = apiService.validatePlayerName(playerName);
-    if (!validation.isValid) {
-      setError(validation.error || 'Invalid player name');
-      return;
-    }
-
-    // Check if it's a Riot ID format and provide helpful guidance
+    // Check if it's a Riot ID format
     if (!playerName.includes('#')) {
-      setError(`⚠️ Modern League of Legends uses Riot IDs in the format "GameName#TAG"
-      
+      setError(`Please enter a valid Riot ID in the format: GameName#TAG
+
 Examples:
-• Reinegade#Rei
-• FakerKR#123
+• Reinegade#Rei  
 • YourName#NA1
+• Player#123
 
-Please enter your full Riot ID with the # and tag.
-
-Note: Old summoner names like "Faker" are being phased out. You can find your Riot ID in your League client profile.`);
+You can find your Riot ID in your League client profile.`);
       return;
     }
 
     setLoading(true);
     setError('');
+    setAnalysisData(null);
     
     try {
-      if (viewMode === 'enhanced') {
-        // Use enhanced analysis API
-        try {
-          const result = await apiService.analyzePlayer(playerName, 'na1');
-          
-          if (result.success) {
-            setEnhancedAnalysis(result.data);
-            setAnalysis(null);
-          } else {
-            throw new Error(result.error?.message || 'Enhanced analysis failed');
-          }
-        } catch (enhancedError: any) {
-          console.warn('Enhanced analysis failed:', enhancedError);
-          
-          // Handle API access forbidden error specifically
-          if (enhancedError?.type === 'API_ACCESS_FORBIDDEN' || enhancedError?.code === 403) {
-            setError(`🔒 API Access Restricted
-
-The Development API key cannot access data for this player due to Riot Games restrictions.
-
-💡 What you can do:
-• Try a different Riot ID (format: GameName#TAG)
-• Visit the Demo tab to see working examples with challenger data
-• The system works great with most players, just some have restricted access
-
-Your Riot ID format looks correct: ${playerName}`);
-            
-            // Create mock data for demonstration
-            setEnhancedAnalysis({
-              summoner: {
-                name: playerName.split('#')[0],
-                level: 30,
-                profileIconId: 1,
-                region: 'na1'
-              },
-              smurfDetection: {
-                overallProbability: Math.floor(Math.random() * 60) + 20,
-                evidenceLevel: 'moderate',
-                categoryBreakdown: {
-                  performanceMetrics: { score: Math.floor(Math.random() * 40) + 40, weight: 0.35 },
-                  historicalAnalysis: { score: Math.floor(Math.random() * 40) + 30, weight: 0.25 },
-                  championMastery: { score: Math.floor(Math.random() * 50) + 30, weight: 0.20 },
-                  gapAnalysis: { score: Math.floor(Math.random() * 60) + 20, weight: 0.15 },
-                  behavioralPatterns: { score: Math.floor(Math.random() * 40) + 20, weight: 0.05 }
-                }
-              },
-              analysisMetadata: {
-                dataQuality: {
-                  gamesAnalyzed: Math.floor(Math.random() * 50) + 10,
-                  timeSpanDays: Math.floor(Math.random() * 180) + 30,
-                  reliabilityScore: Math.floor(Math.random() * 30) + 60
-                }
-              },
-              avgKDA: (Math.random() * 3 + 1).toFixed(1),
-              avgCS: (Math.random() * 3 + 5).toFixed(1),
-              visionScore: (Math.random() * 2).toFixed(1),
-              damageShare: Math.floor(Math.random() * 15 + 15).toString()
-            });
-            setAnalysis(null);
-          } else {
-            // Re-throw other errors
-            throw enhancedError;
-          }
-        }
+      console.log(`🔍 Searching for player: ${playerName}`);
+      
+      // Try comprehensive analysis first (best endpoint)
+      const result = await apiService.analyzeComprehensive(playerName, 'na1');
+      
+      if (result.success && result.data) {
+        console.log(`✅ Player found: ${playerName}`);
+        setAnalysisData(result.data);
       } else {
-        // Classic analysis mode - try basic analysis
-        try {
-          const result = await apiService.analyzeBasic(playerName, 'na1');
-          
-          if (result.success) {
-            // Convert to classic analysis format if needed
-            const classicAnalysis: SmurfAnalysis = {
-              playerName: playerName,
-              smurfProbability: result.data?.smurfProbability || Math.random() * 0.6 + 0.2,
-              championPerformance: {
-                firstTimeChampions: result.data?.championPerformance?.firstTimeChampions || [],
-                overallPerformanceScore: result.data?.championPerformance?.overallPerformanceScore || Math.floor(Math.random() * 40) + 40
-              },
-              summonerSpellUsage: {
-                spellPlacementChanges: result.data?.summonerSpellUsage?.spellPlacementChanges || [],
-                patternChangeScore: result.data?.summonerSpellUsage?.patternChangeScore || Math.random() * 100
-              },
-              playtimeGaps: {
-                gaps: result.data?.playtimeGaps?.gaps || [],
-                totalGapScore: result.data?.playtimeGaps?.totalGapScore || Math.random() * 100
-              }
-            };
-            
-            setAnalysis(classicAnalysis);
-            setEnhancedAnalysis(null);
-          } else {
-            throw new Error(result.error?.message || 'Basic analysis failed');
-          }
-        } catch (basicError: any) {
-          console.warn('Basic analysis failed:', basicError);
-          
-          // Handle API access forbidden error for basic analysis too
-          if (basicError?.type === 'API_ACCESS_FORBIDDEN' || basicError?.code === 403) {
-            setError(`🔒 API Access Restricted - Please try the Demo tab for working examples.
-
-The Development API key has limitations on certain players. Your Riot ID format is correct: ${playerName}`);
-            
-            // Create mock classic analysis
-            const mockAnalysis: SmurfAnalysis = {
-              playerName: playerName,
-              smurfProbability: Math.random() * 0.6 + 0.2,
-              championPerformance: {
-                firstTimeChampions: [
-                  {
-                    championName: 'Yasuo',
-                    winRate: Math.random() * 40 + 60,
-                    kda: Math.random() * 3 + 2,
-                    csPerMinute: Math.random() * 2 + 6,
-                    suspicionLevel: Math.random() * 50 + 50
-                  }
-                ],
-                overallPerformanceScore: Math.floor(Math.random() * 40) + 60
-              },
-              summonerSpellUsage: {
-                spellPlacementChanges: [],
-                patternChangeScore: Math.random() * 40 + 30
-              },
-              playtimeGaps: {
-                gaps: [],
-                totalGapScore: Math.random() * 50 + 25
-              }
-            };
-            
-            setAnalysis(mockAnalysis);
-            setEnhancedAnalysis(null);
-          } else {
-            throw basicError;
-          }
-        }
+        throw new Error(result.error?.message || 'Analysis failed');
       }
+      
     } catch (error: any) {
-      console.error('Analysis error:', error);
+      console.error('❌ Analysis failed:', error);
       
-      // Better error messaging
-      let errorMessage = 'Analysis failed. ';
-      
-      if (error?.suggestions && error.suggestions.length > 0) {
-        errorMessage += error.suggestions.join(' ');
-      } else if (error?.message) {
-        errorMessage += error.message;
+      // Handle specific error types
+      if (error.message && error.message.includes('404')) {
+        setError(`Player "${playerName}" not found.
+
+Please check:
+• Spelling and capitalization
+• Include the # and tag (e.g., GameName#TAG)
+• Verify the player exists in NA region`);
+      } else if (error.message && error.message.includes('403')) {
+        setError(`Cannot access data for "${playerName}".
+
+This may be due to:
+• API access restrictions
+• Player privacy settings
+• Try a different player`);
       } else {
-        errorMessage += 'Please check your Riot ID format (GameName#TAG) and try again.';
+        setError(`Failed to analyze "${playerName}".
+
+${error.message || 'Please try again or verify the Riot ID format.'}`);
       }
-      
-      setError(errorMessage);
-      setAnalysis(null);
-      setEnhancedAnalysis(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const getProbabilityLabel = (probability: number) => {
-    if (probability >= 0.8) return 'Very High Smurf Probability';
-    if (probability >= 0.6) return 'High Smurf Probability';
-    if (probability >= 0.4) return 'Moderate Smurf Probability';
-    if (probability >= 0.2) return 'Low Smurf Probability';
-    return 'Very Low Smurf Probability';
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      handleAnalyze();
+    }
   };
 
   return (
-    <div className="App">
-      <AppContainer>
-        <Header>
-          <h1>🕵️ LoL SmurfGuard</h1>
-          <p>Advanced League of Legends Smurf Detection System</p>
-          <p style={{ color: '#888', fontSize: '14px' }}>
-            Professional-grade analysis with 5+ year historical data support
-          </p>
-        </Header>
+    <AppContainer>
+      <Header>
+        <Title>League of Legends Smurf Detection</Title>
+        <Subtitle>Analyze players for suspicious behavior and account boosting</Subtitle>
+        
+        <SearchSection>
+          <SearchContainer>
+            <PlayerInput
+              type="text"
+              placeholder="Enter Riot ID (GameName#TAG) - e.g., Reinegade#Rei"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={loading}
+            />
+            <AnalyzeButton onClick={handleAnalyze} disabled={loading}>
+              {loading ? 'Analyzing...' : 'Analyze'}
+            </AnalyzeButton>
+          </SearchContainer>
+        </SearchSection>
+      </Header>
 
-        {/* View Mode Toggle */}
-        <ViewModeToggle>
-          <ViewButton 
-            $active={viewMode === 'enhanced'} 
-            onClick={() => setViewMode('enhanced')}
-          >
-            🚀 Enhanced Dashboard
-          </ViewButton>
-          <ViewButton 
-            $active={viewMode === 'classic'} 
-            onClick={() => setViewMode('classic')}
-          >
-            📊 Classic Analysis
-          </ViewButton>
-        </ViewModeToggle>
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      
+      {loading && (
+        <LoadingMessage>
+          Analyzing player data for suspicious patterns...
+        </LoadingMessage>
+      )}
 
-        {/* Tab Navigation */}
-        <TabContainer>
-          <Tab $active={activeTab === 'demo'} onClick={() => setActiveTab('demo')}>
-            🏆 Demo
-          </Tab>
-          <Tab $active={activeTab === 'advanced'} onClick={() => setActiveTab('advanced')}>
-            🔍 Advanced Detection
-          </Tab>
-          <Tab $active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')}>
-            🔍 Analysis
-          </Tab>
-          <Tab $active={activeTab === 'debug'} onClick={() => setActiveTab('debug')}>
-            🐞 Debug
-          </Tab>
-        </TabContainer>
-
-        {activeTab === 'demo' && <ChallengerDemo />}
-
-        {activeTab === 'advanced' && <AdvancedSmurfAnalysis />}
-
-        {activeTab === 'analysis' && (
-          <>
-            <SearchSection>
-              <SearchContainer>
-                <PlayerInput
-                  type="text"
-                  placeholder="Enter Riot ID (format: GameName#TAG) - e.g., Reinegade#Rei"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAnalyze()}
-                />
-                <AnalyzeButton onClick={handleAnalyze} disabled={loading}>
-                  {loading ? '🔍 Analyzing...' : '🚀 Analyze'}
-                </AnalyzeButton>
-              </SearchContainer>
-            </SearchSection>
-
-            {error && (
-              <div style={{
-                background: '#ff4757',
-                color: 'white',
-                padding: '15px',
-                borderRadius: '8px',
-                marginBottom: '20px',
-                textAlign: 'center'
-              }}>
-                {error}
-              </div>
-            )}
-
-            {loading && (
-              <div style={{
-                background: '#2a2a2a',
-                padding: '40px',
-                borderRadius: '8px',
-                textAlign: 'center',
-                color: '#fff',
-                marginBottom: '20px'
-              }}>
-                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔍</div>
-                <div style={{ fontSize: '18px', marginBottom: '10px' }}>
-                  {viewMode === 'enhanced' ? 'Running comprehensive analysis...' : 'Analyzing player data...'}
-                </div>
-                <div style={{ color: '#888', fontSize: '14px' }}>
-                  {viewMode === 'enhanced' 
-                    ? 'Processing historical data, champion mastery, and behavioral patterns...'
-                    : 'This may take a few moments...'}
-                </div>
-              </div>
-            )}
-
-            {/* Enhanced Dashboard */}
-            {viewMode === 'enhanced' && enhancedAnalysis && !loading && (
-              <EnhancedPlayerDashboard 
-                playerData={enhancedAnalysis}
-                isLoading={loading}
-              />
-            )}
-
-            {/* Classic Analysis Display */}
-            {viewMode === 'classic' && analysis && !loading && (
-              <>
-                <ProbabilityDisplay probability={analysis.smurfProbability}>
-                  <ProbabilityValue>{Math.round(analysis.smurfProbability * 100)}%</ProbabilityValue>
-                  <ProbabilityLabel>{getProbabilityLabel(analysis.smurfProbability)}</ProbabilityLabel>
-                </ProbabilityDisplay>
-
-                <DetailedAnalysis analysis={analysis} />
-              </>
-            )}
-
-            {/* Help Text */}
-            {!analysis && !enhancedAnalysis && !loading && (
-              <div style={{
-                background: '#2a2a2a',
-                padding: '30px',
-                borderRadius: '8px',
-                textAlign: 'center',
-                color: '#888',
-                marginTop: '20px'
-              }}>
-                <div style={{ fontSize: '24px', marginBottom: '15px' }}>🎮</div>
-                <div style={{ fontSize: '16px', marginBottom: '10px' }}>
-                  Enter a summoner name to begin analysis
-                </div>
-                <div style={{ fontSize: '14px' }}>
-                  {viewMode === 'enhanced' 
-                    ? 'Enhanced mode provides comprehensive historical analysis with advanced smurf detection algorithms'
-                    : 'Classic mode provides basic smurf detection analysis'}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === 'debug' && <DebugTest />}
-      </AppContainer>
-    </div>
+      {analysisData && (
+        <DetailedAnalysis analysis={analysisData} />
+      )}
+    </AppContainer>
   );
 }
 

@@ -28,11 +28,11 @@ export class DataFetchingService {
     this.riotApi = new RiotApi(process.env.RIOT_API_KEY || 'demo-key');
     this.opggMcpClient = new OpggMcpClient();
     
-    // Configuration based on environment variables
+    // Configuration based on environment variables  
     this.config = {
       useOpggMcp: false,
       useRiotApi: true,
-      fallbackToMock: process.env.ALLOW_MOCK_DATA !== 'false'
+      fallbackToMock: false  // Disable mock data to get real error messages
     };
 
     logger.info('DataFetchingService initialized with config:', this.config);
@@ -186,11 +186,22 @@ export class DataFetchingService {
    * Enhanced analysis using Riot API data
    */
   private async getRiotApiEnhancedAnalysis(summonerName: string, region: string): Promise<EnhancedPlayerAnalysis> {
-    // This would use the existing Riot API integration
-    // For now, return enhanced mock data to maintain functionality
     logger.info('Creating enhanced analysis from Riot API data...');
     
-    return this.generateMockEnhancedAnalysis(summonerName, region, 'Riot API + Enhanced Processing');
+    try {
+      // Try to get real summoner data first
+      const summoner = await this.riotApi.getSummonerByName(summonerName);
+      
+      // If we get here, the player exists - we could do real analysis
+      // For now, throw an error to indicate this needs real implementation
+      throw new Error('Real Riot API enhanced analysis not yet implemented');
+      
+    } catch (error) {
+      logger.error('Riot API enhanced analysis failed:', error);
+      
+      // Re-throw the original error so we get proper error messages
+      throw error;
+    }
   }
 
   /**

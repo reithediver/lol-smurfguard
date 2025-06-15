@@ -207,10 +207,10 @@ class ApiService {
         lastError = error;
         console.warn(`❌ Analysis method ${attemptCount} failed:`, error);
         
-        // If it's a 403 error and we still have other methods to try, continue
-        if (error instanceof Error && (error.message.includes('403') || error.message.includes('Forbidden'))) {
-          console.log(`⚠️ 403 error detected, trying next method...`);
-          continue;
+        // Don't continue trying other methods for 404 errors (player not found)
+        if (error instanceof Error && error.message.includes('404')) {
+          console.log(`🚫 Player not found (404), stopping attempts`);
+          break;
         }
       }
     }
@@ -370,90 +370,7 @@ class ApiService {
     return { isValid: true };
   }
 
-  /**
-   * Mock analysis for development (when API is not available)
-   */
-  async mockAnalyzePlayer(playerName: string): Promise<SmurfAnalysis> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const mockAnalysis: SmurfAnalysis = {
-      playerName,
-      puuid: 'mock-puuid-' + Date.now(),
-      smurfProbability: Math.random() * 100,
-      confidenceLevel: 75 + Math.random() * 25,
-      reasons: [
-        {
-          type: 'CHAMPION_PERFORMANCE',
-          severity: 'HIGH',
-          description: 'Exceptional performance on recently played champions',
-          confidence: 85,
-          evidence: ['90% win rate on Yasuo with only 8 games', 'KDA of 4.2 significantly above average']
-        },
-        {
-          type: 'PLAYTIME_GAP',
-          severity: 'MEDIUM',
-          description: 'Suspicious gaps in gameplay activity',
-          confidence: 70,
-          evidence: ['21-day gap between game sessions', 'Pattern suggests account sharing or boosting']
-        }
-      ],
-      championStats: [
-        {
-          championId: 157,
-          championName: 'Yasuo',
-          winRate: 90,
-          kda: 4.2,
-          csPerMinute: 8.5,
-          gamesPlayed: 8,
-          averageDamage: 28500,
-          visionScore: 15,
-          masteryLevel: 4,
-          masteryPoints: 12500,
-          recentPerformance: []
-        },
-        {
-          championId: 238,
-          championName: 'Zed',
-          winRate: 85,
-          kda: 3.8,
-          csPerMinute: 9.2,
-          gamesPlayed: 12,
-          averageDamage: 32000,
-          visionScore: 12,
-          masteryLevel: 5,
-          masteryPoints: 18500,
-          recentPerformance: []
-        }
-      ],
-      playtimeGaps: [7, 14, 21],
-      accountAge: 45,
-      totalGamesAnalyzed: 50,
-      analysisDate: new Date().toISOString(),
-      detectionCriteria: {
-        championPerformanceThreshold: {
-          winRateThreshold: 70,
-          kdaThreshold: 3.0,
-          csPerMinuteThreshold: 8.0,
-          minimumGames: 5
-        },
-        playtimeGapThreshold: {
-          suspiciousGapDays: 7,
-          maximumGapCount: 3
-        },
-        summonerSpellAnalysis: {
-          trackKeyBindings: true,
-          patternChangeThreshold: 3
-        },
-        playerAssociation: {
-          highEloThreshold: 'DIAMOND',
-          associationCount: 5
-        }
-      }
-    };
-
-    return mockAnalysis;
-  }
 }
 
 // Export singleton instance
