@@ -69,8 +69,9 @@ class ApiService {
         case 404:
           return {
             type: 'PLAYER_NOT_FOUND',
-            message: data.error?.message || 'Player not found',
+            message: data.message || 'Player not found',
             code: status,
+            suggestions: data.suggestions || []
           };
         case 429:
           return {
@@ -80,6 +81,20 @@ class ApiService {
             retryAfter: parseInt(error.response.headers['retry-after']) || 60,
           };
         case 500:
+          // Handle backend analysis errors
+          if (data.error === 'ANALYSIS_ERROR') {
+            return {
+              type: 'ANALYSIS_FAILED',
+              message: `Unable to analyze this player.`,
+              code: status,
+              details: `Backend analysis error: ${data.details || data.message}`,
+              suggestions: [
+                'This player may have restricted data access',
+                'Try a different Riot ID',
+                'The player may not have recent game data'
+              ]
+            };
+          }
           return {
             type: 'API_ERROR',
             message: 'Internal server error. Please try again later.',

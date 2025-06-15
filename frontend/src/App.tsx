@@ -148,25 +148,40 @@ You can find your Riot ID in your League client profile.`);
     } catch (error: any) {
       console.error('❌ Analysis failed:', error);
       
-      // Handle specific error types
-      if (error.message && error.message.includes('404')) {
+      // Handle specific error types based on error object properties
+      if (error.type === 'PLAYER_NOT_FOUND') {
         setError(`Player "${playerName}" not found.
 
+${error.suggestions ? error.suggestions.join('\n• ') : 'Please check the spelling and format.'}`);
+      } else if (error.type === 'API_ACCESS_FORBIDDEN') { 
+        setError(`Cannot access data for "${playerName}".
+
+${error.suggestions ? error.suggestions.join('\n• ') : 'This may be due to API restrictions.'}`);
+      } else if (error.type === 'ANALYSIS_FAILED') {
+        setError(`Unable to analyze "${playerName}".
+
+${error.suggestions ? error.suggestions.join('\n• ') : 'Please try a different player.'}`);
+      } else {
+        // Fallback to checking message content for backward compatibility
+        if (error.message && error.message.includes('404')) {
+          setError(`Player "${playerName}" not found.
+
 Please check:
-• Spelling and capitalization
+• Spelling and capitalization  
 • Include the # and tag (e.g., GameName#TAG)
 • Verify the player exists in NA region`);
-      } else if (error.message && error.message.includes('403')) {
-        setError(`Cannot access data for "${playerName}".
+        } else if (error.message && error.message.includes('403')) {
+          setError(`Cannot access data for "${playerName}".
 
 This may be due to:
 • API access restrictions
-• Player privacy settings
+• Player privacy settings  
 • Try a different player`);
-      } else {
-        setError(`Failed to analyze "${playerName}".
+        } else {
+          setError(`Failed to analyze "${playerName}".
 
 ${error.message || 'Please try again or verify the Riot ID format.'}`);
+        }
       }
     } finally {
       setLoading(false);
