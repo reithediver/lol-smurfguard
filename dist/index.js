@@ -12,12 +12,58 @@ const SmurfDetectionService_1 = require("./services/SmurfDetectionService");
 const loggerService_1 = require("./utils/loggerService");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
+// Log startup configuration
+console.log('🚀 Starting SmurfGuard API Server...');
+console.log('📍 Port:', PORT);
+console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
+console.log('🔑 API Key present:', !!process.env.RIOT_API_KEY);
+console.log('🔗 CORS origins:', [
+    'http://localhost:3000',
+    'https://lol-smurfguard.vercel.app',
+    'https://lol-smurfguard-*.vercel.app',
+    'https://smurfgaurd-production.up.railway.app'
+]);
 // Initialize services
 const riotApi = new RiotApi_1.RiotApi(process.env.RIOT_API_KEY || 'demo-key');
 const dataFetchingService = new DataFetchingService_1.DataFetchingService();
 const smurfDetectionService = new SmurfDetectionService_1.SmurfDetectionService(riotApi);
 // Middleware
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: (origin, callback) => {
+        console.log('🔍 CORS Request from origin:', origin);
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'https://lol-smurfguard.vercel.app',
+            /^https:\/\/lol-smurfguard-.*\.vercel\.app$/, // Preview deployments
+            'https://smurfgaurd-production.up.railway.app'
+        ];
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) {
+            console.log('✅ CORS: Allowing request with no origin');
+            return callback(null, true);
+        }
+        // Check against allowed origins
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (typeof allowed === 'string') {
+                return allowed === origin;
+            }
+            else {
+                return allowed.test(origin);
+            }
+        });
+        if (isAllowed) {
+            console.log('✅ CORS: Allowing origin:', origin);
+            callback(null, true);
+        }
+        else {
+            console.log('❌ CORS: Blocking origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
+}));
 app.use(express_1.default.json());
 // Rate limiting
 const limiter = (0, express_rate_limit_1.default)({
