@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import UnifiedSmurfAnalysis from './components/UnifiedSmurfAnalysis';
 import { apiService } from './services/api';
 import styled from 'styled-components';
+import ProgressBar from './components/ProgressBar';
 import './App.css';
 
 const AppContainer = styled.div`
@@ -186,6 +187,7 @@ function App() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
   // Removed viewMode - always use unified analysis
   const [unifiedData, setUnifiedData] = useState<any>(null);
+  const [loadingStatus, setLoadingStatus] = useState('Initializing analysis...');
 
   const handleAnalyze = async () => {
     try {
@@ -217,23 +219,50 @@ You can find your Riot ID in your League client profile.`);
       setAnalysisData(null);
       
       console.log(`🔍 Searching for player: ${playerName}`);
+      setLoadingStatus('Fetching summoner information...');
       
       let result;
       
       // Always use unified analysis with 5 years of data (1000+ matches)
       console.log('🎯 Using unified analysis endpoint with extensive match history...');
-      result = await apiService.getUnifiedAnalysis(playerName, { 
-        region: 'na1', 
-        matches: 500 // 500+ games for comprehensive analysis
-      });
-      console.log('🎯 Unified analysis completed, result:', result);
       
-      if (result && result.success && result.data) {
-        console.log(`✅ Unified analysis data received for: ${playerName}`);
-        setUnifiedData(result.data);
-        return; // Exit early
-      } else {
-        throw new Error(result?.error?.message || 'Unified analysis failed');
+      try {
+        // Set loading status updates with a timer to simulate progress
+        const loadingMessages = [
+          'Fetching summoner information...',
+          'Retrieving match history...',
+          'Processing recent matches...',
+          'Analyzing performance metrics...',
+          'Detecting outlier games...',
+          'Calculating benchmarks...',
+          'Finalizing analysis...'
+        ];
+        
+        let messageIndex = 0;
+        const statusInterval = setInterval(() => {
+          if (messageIndex < loadingMessages.length - 1) {
+            setLoadingStatus(loadingMessages[++messageIndex]);
+          }
+        }, 4000);
+        
+        result = await apiService.getUnifiedAnalysis(playerName, { 
+          region: 'na1', 
+          matches: 500 // 500+ games for comprehensive analysis
+        });
+        
+        clearInterval(statusInterval);
+        console.log('🎯 Unified analysis completed, result:', result);
+        
+        if (result && result.success && result.data) {
+          console.log(`✅ Unified analysis data received for: ${playerName}`);
+          setUnifiedData(result.data);
+          return; // Exit early
+        } else {
+          throw new Error(result?.error?.message || 'Unified analysis failed');
+        }
+      } catch (analysisError) {
+        console.error('❌ Analysis request failed:', analysisError);
+        throw analysisError;
       }
       
     } catch (error: any) {
@@ -242,7 +271,19 @@ You can find your Riot ID in your League client profile.`);
       
       try {
         // Handle specific error types based on error object properties
-        if (error.type === 'PLAYER_NOT_FOUND') {
+        if (error.type === 'TIMEOUT_ERROR') {
+          setError(`Analysis timed out for "${playerName}".
+
+The server is taking too long to respond. This could be due to:
+• High server load
+• Complex analysis with many matches
+• Network connectivity issues
+
+You can try:
+• Refreshing the page and trying again
+• Trying at a different time
+• Checking your internet connection`);
+        } else if (error.type === 'PLAYER_NOT_FOUND') {
           setError(`Player "${playerName}" not found.
 
 ${error.suggestions ? error.suggestions.join('\n• ') : 'Please check the spelling and format.'}`);
@@ -279,9 +320,7 @@ Technical details: ${error.stack || 'No stack trace available'}`);
           }
         }
       } catch (setErrorError) {
-        console.error('❌ Error while setting error message:', setErrorError);
-        // Last resort - just show a generic error
-        setError('An unexpected error occurred. Please refresh the page and try again.');
+        // Last resort error handling
       }
     } finally {
       try {
@@ -413,7 +452,27 @@ Technical details: ${error.stack || 'No stack trace available'}`);
           )}
         </DebugSection>
 
-        {error && <ErrorMessage>{error}</ErrorMessage>}
+        {error && (
+          <ErrorMessage>
+            {error}
+            
+            <div style={{ marginTop: '20px' }}>
+              <button 
+                onClick={() => handleAnalyze()} 
+                style={{ 
+                  padding: '8px 16px', 
+                  background: 'rgba(255, 255, 255, 0.1)', 
+                  border: '1px solid rgba(255, 255, 255, 0.2)', 
+                  borderRadius: '4px',
+                  color: '#f1f5f9',
+                  cursor: 'pointer'
+                }}
+              >
+                Retry Analysis
+              </button>
+            </div>
+          </ErrorMessage>
+        )}
         
         {loading && (
           <LoadingMessage>
@@ -424,8 +483,15 @@ Technical details: ${error.stack || 'No stack trace available'}`);
             <div style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '600px', margin: '0 auto' }}>
               This comprehensive analysis may take 20-30 seconds as we process 500+ matches and compare against rank benchmarks.
             </div>
+            
+            <ProgressBar 
+              determinate={false} 
+              duration={30} 
+              status={loadingStatus}
+            />
+            
             <div style={{ marginTop: '20px', fontSize: '0.9rem', color: '#64748b' }}>
-              Fetching match history, calculating statistics, and detecting outlier performances...
+              {loadingStatus}
             </div>
           </LoadingMessage>
         )}

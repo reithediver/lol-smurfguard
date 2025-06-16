@@ -270,10 +270,22 @@ class ApiService {
       console.log('🎯 Calling unified analysis endpoint:', url);
       console.log('🌐 Full URL:', `${this.baseURL}${url}`);
       
+      // Create a timeout promise that rejects after 45 seconds
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Analysis request timed out after 45 seconds'));
+        }, 45000);
+      });
+      
       try {
-        const response = await this.api.get(url, {
-          timeout: 60000, // Increase timeout to 60 seconds
-        });
+        // Race between the actual request and the timeout
+        const response = await Promise.race([
+          this.api.get(url, {
+            timeout: 60000, // Increase timeout to 60 seconds
+          }),
+          timeoutPromise
+        ]) as any;
+        
         console.log('✅ Unified analysis response received:', response.status);
         return response.data;
       } catch (networkError: any) {
@@ -289,18 +301,50 @@ class ApiService {
           } : null
         });
         
+        // If it's a timeout error, provide a more specific message
+        if (networkError.message && networkError.message.includes('timeout')) {
+          throw {
+            type: 'TIMEOUT_ERROR',
+            message: 'The analysis request is taking longer than expected. Please try again or check your connection.',
+            code: 408
+          };
+        }
+        
         // Retry once with a direct fetch to bypass any axios issues
         console.log('🔄 Retrying with direct fetch...');
         const directUrl = `${this.baseURL}${url}`;
-        const directResponse = await fetch(directUrl);
         
-        if (!directResponse.ok) {
-          throw new Error(`Direct fetch failed with status: ${directResponse.status}`);
+        // Add a timeout to the fetch request as well
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
+        
+        try {
+          const directResponse = await fetch(directUrl, { 
+            signal: controller.signal 
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!directResponse.ok) {
+            throw new Error(`Direct fetch failed with status: ${directResponse.status}`);
+          }
+          
+          const data = await directResponse.json();
+          console.log('✅ Direct fetch successful');
+          return data;
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          
+          if (fetchError.name === 'AbortError') {
+            throw {
+              type: 'TIMEOUT_ERROR',
+              message: 'The analysis request was aborted due to timeout. Please try again later.',
+              code: 408
+            };
+          }
+          
+          throw fetchError;
         }
-        
-        const data = await directResponse.json();
-        console.log('✅ Direct fetch successful');
-        return data;
       }
     } catch (error) {
       console.error('❌ Unified analysis error:', error);
