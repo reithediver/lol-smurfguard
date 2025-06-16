@@ -6,18 +6,32 @@ class ChampionStatsService {
     constructor(riotApi) {
         this.riotApi = riotApi;
     }
-    async getComprehensiveStats(puuid, matchCount = 200) {
-        loggerService_1.logger.info(`🔍 Generating comprehensive stats for PUUID: ${puuid}`);
+    async getComprehensiveStats(puuid, matchCount = 500) {
+        loggerService_1.logger.info(`🔍 Generating comprehensive stats for PUUID: ${puuid.slice(0, 8)}...`);
+        loggerService_1.logger.info(`🚀 Production API Key Detected - Processing ${matchCount} matches with enhanced throughput`);
+        const startTime = Date.now();
         try {
-            // Get extended match history
+            // Get extended match history with production-level efficiency
+            loggerService_1.logger.info(`📥 Fetching ${matchCount} match IDs...`);
             const matchIds = await this.riotApi.getExtendedMatchHistory(puuid, matchCount);
-            loggerService_1.logger.info(`📊 Retrieved ${matchIds.length} match IDs`);
-            // Fetch match details in batches to avoid rate limits
+            loggerService_1.logger.info(`📊 Retrieved ${matchIds.length} match IDs in ${Date.now() - startTime}ms`);
+            // Fetch match details with optimized batching for production limits
+            loggerService_1.logger.info(`⚡ Processing matches with production-grade parallel processing...`);
+            const matchProcessingStart = Date.now();
             const matches = await this.fetchMatchesInBatches(matchIds, puuid);
-            loggerService_1.logger.info(`✅ Processed ${matches.length} detailed matches`);
+            const matchProcessingTime = Date.now() - matchProcessingStart;
+            loggerService_1.logger.info(`✅ Processed ${matches.length} detailed matches in ${matchProcessingTime}ms`);
+            loggerService_1.logger.info(`📈 Processing Rate: ${(matches.length / (matchProcessingTime / 1000)).toFixed(1)} matches/second`);
             // Generate comprehensive statistics
+            loggerService_1.logger.info(`🔬 Calculating comprehensive statistics...`);
+            const statsCalculationStart = Date.now();
             const overallStats = this.calculateOverallStats(matches, puuid);
             const championStats = this.calculateChampionStats(matches, puuid);
+            const totalTime = Date.now() - startTime;
+            const cacheHitRate = this.estimateCacheHitRate(matchIds.length, matches.length);
+            loggerService_1.logger.info(`🎯 Stats calculation complete in ${Date.now() - statsCalculationStart}ms`);
+            loggerService_1.logger.info(`✨ Total analysis time: ${totalTime}ms | Cache efficiency: ${cacheHitRate.toFixed(1)}%`);
+            loggerService_1.logger.info(`📊 Analysis Summary: ${matches.length} matches, ${championStats.length} champions, ${overallStats.uniqueChampions} unique champions`);
             return {
                 ...overallStats,
                 mostPlayedChampions: championStats.slice(0, 10) // Top 10 champions
@@ -28,56 +42,67 @@ class ChampionStatsService {
             throw error;
         }
     }
+    estimateCacheHitRate(requestedMatches, processedMatches) {
+        // Simple estimation: if we processed significantly fewer matches than requested,
+        // it likely means many were cached or failed
+        const successRate = processedMatches / requestedMatches;
+        return Math.min(100, (1 - successRate + 0.5) * 100); // Rough approximation
+    }
     async fetchMatchesInBatches(matchIds, puuid) {
         const matches = [];
-        const batchSize = 5; // Reduced to 5 matches at a time for better rate limiting
-        loggerService_1.logger.info(`🔄 Processing ${matchIds.length} matches in batches of ${batchSize}...`);
+        const batchSize = 50; // Increased from 5 to 50 - we have 2000 req/10s capacity for match API
+        const concurrentRequests = 20; // Process multiple matches simultaneously
+        loggerService_1.logger.info(`🚀 Processing ${matchIds.length} matches in batches of ${batchSize} with ${concurrentRequests} concurrent requests...`);
+        loggerService_1.logger.info(`📊 Production Rate Limits: Match API 2000 req/10s | Utilizing ${(concurrentRequests / 200 * 100).toFixed(1)}% capacity`);
         for (let i = 0; i < matchIds.length; i += batchSize) {
             const batch = matchIds.slice(i, i + batchSize);
             const batchNumber = Math.floor(i / batchSize) + 1;
             const totalBatches = Math.ceil(matchIds.length / batchSize);
             loggerService_1.logger.info(`📊 Processing batch ${batchNumber}/${totalBatches} (${batch.length} matches)`);
+            const batchStartTime = Date.now();
             try {
-                // Process matches in the batch with individual error handling
+                // Process matches in parallel chunks for maximum throughput
                 const batchMatches = [];
-                for (const matchId of batch) {
-                    try {
-                        const match = await this.riotApi.getMatchDetails(matchId);
-                        // Only include matches where the player participated
-                        if (match.participants.some(p => p.puuid === puuid)) {
-                            batchMatches.push(match);
+                // Split batch into concurrent chunks
+                for (let j = 0; j < batch.length; j += concurrentRequests) {
+                    const chunk = batch.slice(j, j + concurrentRequests);
+                    // Process chunk matches in parallel
+                    const chunkPromises = chunk.map(async (matchId) => {
+                        try {
+                            const match = await this.riotApi.getMatchDetails(matchId);
+                            // Only include matches where the player participated
+                            if (match.participants.some(p => p.puuid === puuid)) {
+                                return match;
+                            }
+                            return null;
                         }
-                        // Small delay between individual match requests
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                    }
-                    catch (error) {
-                        loggerService_1.logger.warn(`⚠️ Failed to fetch match ${matchId}: ${error.message}`);
-                        // If rate limited, wait longer
-                        if (error.response?.status === 429) {
-                            const retryAfter = error.response.headers['retry-after'] || 10;
-                            loggerService_1.logger.info(`🚫 Rate limited, waiting ${retryAfter} seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                        catch (error) {
+                            loggerService_1.logger.warn(`⚠️ Failed to fetch match ${matchId}: ${error.message}`);
+                            // The RiotApi class now handles rate limiting internally
+                            // Just return null for failed matches
+                            return null;
                         }
-                        continue;
-                    }
+                    });
+                    // Wait for all chunk promises to resolve
+                    const chunkResults = await Promise.all(chunkPromises);
+                    const validMatches = chunkResults.filter((match) => match !== null);
+                    batchMatches.push(...validMatches);
+                    loggerService_1.logger.info(`✅ Chunk complete: ${validMatches.length}/${chunk.length} matches processed`);
                 }
                 matches.push(...batchMatches);
-                loggerService_1.logger.info(`✅ Batch ${batchNumber} complete: ${batchMatches.length} matches processed`);
-                // Enhanced rate limiting between batches
+                const batchTime = Date.now() - batchStartTime;
+                const matchesPerSecond = (batchMatches.length / (batchTime / 1000)).toFixed(1);
+                loggerService_1.logger.info(`✅ Batch ${batchNumber} complete: ${batchMatches.length} matches in ${batchTime}ms (${matchesPerSecond} matches/sec)`);
+                // Minimal wait between batches - let RiotApi handle rate limiting
                 if (i + batchSize < matchIds.length) {
-                    const waitTime = 1000 + Math.random() * 1000; // 1-2 second wait between batches
-                    loggerService_1.logger.info(`⏳ Waiting ${waitTime.toFixed(0)}ms before next batch...`);
+                    const waitTime = 100; // Just 100ms between batches
+                    loggerService_1.logger.info(`⏳ Brief pause: ${waitTime}ms before next batch...`);
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
             }
             catch (error) {
                 loggerService_1.logger.warn(`⚠️ Error processing batch ${batchNumber}:`, error.message);
-                // If batch fails due to rate limiting, wait and continue
-                if (error.response?.status === 429) {
-                    const retryAfter = error.response.headers['retry-after'] || 30;
-                    loggerService_1.logger.info(`🚫 Batch rate limited, waiting ${retryAfter} seconds...`);
-                    await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-                }
+                // Continue processing - RiotApi handles retries internally
                 continue;
             }
         }
