@@ -788,7 +788,31 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
             {/* Outlier Games Section */}
             {data.outlierAnalysis && (
                 <OutlierGamesSection 
-                    games={data.outlierAnalysis.outlierGames}
+                    games={data.outlierAnalysis.outlierGames.map(game => ({
+                        matchId: game.matchId,
+                        championName: game.championName,
+                        gameDate: new Date(game.date),
+                        queueType: 'Ranked Solo/Duo', // Default value, should come from backend
+                        position: 'Unknown', // Default value, should come from backend
+                        kda: game.performance / 20, // Convert performance to KDA (assuming performance is 0-100)
+                        kills: 0, // Default value, should come from backend
+                        deaths: 0, // Default value, should come from backend
+                        assists: 0, // Default value, should come from backend
+                        csPerMinute: 0, // Default value, should come from backend
+                        damageShare: 0, // Default value, should come from backend
+                        visionScore: 0, // Default value, should come from backend
+                        killParticipation: 0, // Default value, should come from backend
+                        outlierScore: game.performance,
+                        outlierFlags: game.suspicionReasons.map(reason => ({
+                            type: 'PERFORMANCE',
+                            severity: 'MODERATE',
+                            description: reason
+                        })),
+                        teamMVP: false, // Default value, should come from backend
+                        perfectGame: false, // Default value, should come from backend
+                        gameCarried: false, // Default value, should come from backend
+                        matchUrl: game.matchUrl
+                    }))}
                     onGameClick={(game) => {
                         if (game.matchUrl) {
                             window.open(game.matchUrl, '_blank');
