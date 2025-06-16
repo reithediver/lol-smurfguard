@@ -1,3 +1,5 @@
+// SmurfGuard API Server - Production v2.0.1
+// Railway deployment trigger: 2025-06-16
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
