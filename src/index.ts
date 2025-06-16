@@ -464,45 +464,78 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
 // NEW: Unified Smurf Detection & Stats Endpoint
 app.get('/api/analyze/unified/:riotId', async (req, res) => {
   const { riotId } = req.params;
-  const region = (req.query.region as string) || 'na1';
-  const matchCount = parseInt(req.query.matches as string) || 200;
-  const forceRefresh = req.query.refresh === 'true';
-  
-  logger.info(`🎯 Unified analysis request for: ${riotId} (${region}, ${matchCount} matches)`);
+  const region = req.query.region as string || 'na1';
   
   try {
+    logger.info(`Starting unified analysis for ${riotId} in region ${region}`);
+    
     // Parse Riot ID
     const riotIdParts = RiotApi.parseRiotId(riotId);
     if (!riotIdParts) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_RIOT_ID',
-        message: 'Please provide a valid Riot ID in format: GameName#TAG',
-        example: 'Faker#T1'
+        message: 'Invalid Riot ID format. Please use the format: GameName#TagLine',
+        suggestions: [
+          'Check the format: GameName#TagLine',
+          'Ensure the # symbol is included',
+          'Verify there are no spaces around the #'
+        ]
       });
     }
+
+    const { gameName, tagLine } = riotIdParts;
     
-    // Get summoner data first
-    const summoner = await riotApi.getSummonerByRiotId(riotIdParts.gameName, riotIdParts.tagLine);
+    // Get summoner data
+    const summoner = await riotApi.getSummonerByRiotId(gameName, tagLine);
+    if (!summoner) {
+      return res.status(404).json({
+        success: false,
+        error: 'PLAYER_NOT_FOUND',
+        message: `Player "${riotId}" not found in region ${region}`,
+        suggestions: [
+          'Check spelling and capitalization',
+          'Verify the tagline (part after #)',
+          'Try a different region',
+          'Ensure the player has recent game activity'
+        ]
+      });
+    }
+
+    // Get match history with progress tracking
+    const matchHistory = await riotApi.getExtendedMatchHistory(summoner.puuid, 500);
     
-    // Run unified analysis
-    const unifiedAnalysis = await unifiedAnalysisService.getUnifiedAnalysis(summoner.puuid, {
-      riotId,
-      region,
-      matchCount,
-      forceRefresh
-    });
+    // Process matches in smaller batches to avoid overwhelming the API
+    const batchSize = 10;
+    const results = [];
     
-    res.json({
+    for (let i = 0; i < matchHistory.length; i += batchSize) {
+      const batch = matchHistory.slice(i, i + batchSize);
+      const batchPromises = batch.map(matchId => 
+        riotApi.getMatchDetails(matchId)
+          .catch(error => {
+            logger.error(`Error fetching match ${matchId}:`, error);
+            return null;
+          })
+      );
+      
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults.filter(Boolean));
+      
+      // Add a small delay between batches
+      if (i + batchSize < matchHistory.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    // Analyze the results
+    const analysis = await unifiedAnalysisService.analyzeMatches(results);
+    
+    return res.json({
       success: true,
-      source: 'Unified Analysis Service',
-      timestamp: new Date().toISOString(),
-      data: unifiedAnalysis,
-      performance: {
-        analysisTime: Date.now() - parseInt(req.headers['x-start-time'] as string || '0'),
-        cacheHit: unifiedAnalysis.metadata.dataFreshness !== 'FRESH',
-        suspicionScore: unifiedAnalysis.unifiedSuspicion.overallScore,
-        riskLevel: unifiedAnalysis.unifiedSuspicion.riskLevel
+      data: {
+        summoner,
+        analysis
       }
     });
     
@@ -546,6 +579,16 @@ app.get('/api/analyze/unified/:riotId', async (req, res) => {
           retryAfter: 60
         });
       }
+    }
+    
+    // Handle timeout errors
+    if (error instanceof Error && error.message.includes('timeout')) {
+      return res.status(504).json({
+        success: false,
+        error: 'REQUEST_TIMEOUT',
+        message: 'The request took too long to complete. Please try again.',
+        details: 'The analysis is taking longer than expected. This might be due to high server load or rate limiting.'
+      });
     }
     
     res.status(500).json({

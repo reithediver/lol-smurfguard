@@ -241,6 +241,14 @@ export class RiotApi {
             } catch (error: any) {
                 lastError = error;
                 
+                // Enhanced error logging
+                console.error(`❌ Request failed for ${endpoint}:`, {
+                    status: error.response?.status,
+                    message: error.message,
+                    attempt: attempt + 1,
+                    maxRetries: maxRetries + 1
+                });
+                
                 // Check if it's a rate limit error
                 if (error.response?.status === 429) {
                     const retryAfter = error.response.headers['retry-after'];
@@ -260,7 +268,14 @@ export class RiotApi {
             }
         }
         
-        throw lastError;
+        // Enhanced error throwing
+        if (lastError.response?.status === 429) {
+            throw new Error(`Rate limit exceeded after ${maxRetries + 1} attempts`);
+        } else if (lastError.code === 'ECONNABORTED') {
+            throw new Error(`Request timeout after ${maxRetries + 1} attempts`);
+        } else {
+            throw lastError;
+        }
     }
 
     private async makeRequest<T>(endpoint: string, useCache: boolean = true, persistent: boolean = true): Promise<T> {

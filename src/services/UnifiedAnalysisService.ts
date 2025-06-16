@@ -585,4 +585,63 @@ export class UnifiedAnalysisService {
         
         return Math.min(score, 100); // Cap at 100
     }
+
+    async analyzeMatches(matches: any[]): Promise<any> {
+        try {
+            logger.info(`Analyzing ${matches.length} matches`);
+            
+            // Filter out null matches (failed to fetch)
+            const validMatches = matches.filter(match => match !== null);
+            
+            if (validMatches.length === 0) {
+                throw new Error('No valid matches to analyze');
+            }
+            
+            // Calculate basic statistics
+            const stats = this.calculateBasicStats(validMatches);
+            
+            // Calculate advanced metrics
+            const metrics = this.calculateAdvancedMetrics(validMatches);
+            
+            // Calculate suspicion score
+            const suspicionScore = this.calculateSuspicionScore(stats, metrics);
+            
+            return {
+                stats,
+                metrics,
+                suspicionScore,
+                riskLevel: this.getRiskLevel(suspicionScore),
+                timestamp: new Date().toISOString()
+            };
+        } catch (error) {
+            logger.error('Error analyzing matches:', error);
+            throw error;
+        }
+    }
+
+    private calculateBasicStats(matches: any[]): any {
+        // Implementation of basic statistics calculation
+        return {
+            totalGames: matches.length,
+            // Add more basic stats as needed
+        };
+    }
+
+    private calculateAdvancedMetrics(matches: any[]): any {
+        // Implementation of advanced metrics calculation
+        return {
+            // Add advanced metrics as needed
+        };
+    }
+
+    private calculateSuspicionScore(stats: any, metrics: any): number {
+        // Implementation of suspicion score calculation
+        return 0; // Placeholder
+    }
+
+    private getRiskLevel(score: number): string {
+        if (score >= 70) return 'HIGH';
+        if (score >= 40) return 'MEDIUM';
+        return 'LOW';
+    }
 } 
