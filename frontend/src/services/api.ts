@@ -264,8 +264,9 @@ class ApiService {
       if (options.matches) params.append('matches', options.matches.toString());
       if (options.refresh) params.append('refresh', 'true');
       
-      // Updated endpoint to match backend route
-      const url = `/analysis/unified?summonerName=${encodeURIComponent(riotId)}${params.toString() ? '&' + params.toString() : ''}`;
+      // Fix: Use the correct endpoint structure that matches the backend route
+      // The backend expects /api/analyze/unified/:riotId but we're using /analysis/unified?summonerName=
+      const url = `/analyze/unified/${encodeURIComponent(riotId)}?${params.toString()}`;
       
       console.log('🎯 Calling unified analysis endpoint:', url);
       console.log('🌐 Full URL:', `${this.baseURL}${url}`);

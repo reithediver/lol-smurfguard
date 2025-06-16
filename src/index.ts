@@ -593,6 +593,71 @@ app.get('/api/analysis/capabilities', async (req, res) => {
 // Register routes
 app.use('/api/analysis', analysisRoutes);
 
+// Debug endpoint to test Riot ID parsing
+app.get('/api/debug/riot-id/:riotId', async (req, res) => {
+  try {
+    const { riotId } = req.params;
+    
+    logger.info(`🔍 Testing Riot ID parsing for: ${riotId}`);
+    
+    // Parse Riot ID
+    const riotIdParts = RiotApi.parseRiotId(riotId);
+    
+    if (!riotIdParts) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_RIOT_ID',
+        message: 'Invalid Riot ID format',
+        input: riotId
+      });
+    }
+    
+    const { gameName, tagLine } = riotIdParts;
+    
+    try {
+      // Try to get account data
+      const accountData = await riotApi.getAccountByRiotId(gameName, tagLine);
+      
+      // Try to get summoner data
+      const summonerData = await riotApi.getSummonerByRiotId(gameName, tagLine);
+      
+      res.json({
+        success: true,
+        input: riotId,
+        parsed: {
+          gameName,
+          tagLine
+        },
+        account: accountData,
+        summoner: summonerData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (apiError: any) {
+      // Return parsing success but API error
+      res.status(apiError.response?.status || 500).json({
+        success: false,
+        error: 'API_ERROR',
+        message: apiError.message,
+        input: riotId,
+        parsed: {
+          gameName,
+          tagLine
+        },
+        apiErrorCode: apiError.response?.status,
+        apiErrorData: apiError.response?.data
+      });
+    }
+  } catch (error: any) {
+    logger.error(`Error in Riot ID debug endpoint: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+    });
+  }
+});
+
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error:', error);
