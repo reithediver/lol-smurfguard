@@ -281,3 +281,13 @@
   "environment": "development",
   "version": "2.0.0"
 }
+2025-06-16T15:51:34.346Z [info]: Starting unified analysis for TestPlayer#NA1 in region na1 (5 matches) {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:51:34.346Z [info]: ✅ Unified analysis completed for TestPlayer#NA1 (0 matches processed) {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}

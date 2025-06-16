@@ -4,7 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 // SmurfGuard API Server - Production v2.0.1
-// Railway deployment trigger: 2025-06-16
+// Railway deployment trigger: 2025-06-16 - FORCE DEPLOY
+// CRITICAL FIXES: Server stability, unified endpoint, outlier analysis
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));

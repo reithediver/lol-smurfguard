@@ -1,5 +1,6 @@
 // SmurfGuard API Server - Production v2.0.1
-// Railway deployment trigger: 2025-06-16
+// Railway deployment trigger: 2025-06-16 - FORCE DEPLOY
+// CRITICAL FIXES: Server stability, unified endpoint, outlier analysis
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
