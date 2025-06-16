@@ -186,6 +186,33 @@ npm start
 
 ---
 
+## **🤖 Developer Resources**
+
+### **AI Development Guide**
+We maintain a comprehensive [AI_GUIDE.md](./AI_GUIDE.md) for AI assistants and developers working on this project. This guide includes:
+
+- **Project Structure** - Directory organization and key files
+- **API Endpoints** - Complete documentation of backend routes
+- **Riot ID Handling** - Proper parsing and API usage patterns
+- **Common Issues** - Troubleshooting and best practices
+- **Code Conventions** - Styling and architectural patterns
+
+### **Quick Reference**
+```typescript
+// Correct Riot ID handling
+const riotIdParts = RiotApi.parseRiotId(riotId);
+if (riotIdParts) {
+  const { gameName, tagLine } = riotIdParts;
+  const summoner = await riotApi.getSummonerByRiotId(gameName, tagLine);
+}
+
+// Correct API endpoint structure
+// Frontend: /analyze/unified/{riotId}
+// Backend: /api/analyze/unified/{riotId}
+```
+
+---
+
 ## **📊 API Reference**
 
 ### **Unified Analysis Endpoint**

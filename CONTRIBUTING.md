@@ -11,6 +11,7 @@
 - Maintain high code quality and performance standards
 - Follow established project patterns and best practices
 - Document significant changes and architectural decisions
+- **IMPORTANT:** Reference the [AI_GUIDE.md](./AI_GUIDE.md) file for project structure, API conventions, and best practices
 
 ### Decision-Making Authority
 - Independent decisions:
