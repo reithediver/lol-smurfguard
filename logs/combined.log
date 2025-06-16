@@ -37,3 +37,247 @@
   "environment": "development",
   "version": "2.0.0"
 }
+2025-06-16T15:43:01.196Z [info]: Starting unified analysis for Reinegade#Rei in region na1 (5 matches) {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:43:08.900Z [error]: Unhandled Rejection: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "error": "Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle",
+  "stack": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle\n    at JSON.stringify (<anonymous>)\n    at Printf.template (D:\\Passion Project v2\\dist\\utils\\loggerService.js:19:16)\n    at Printf.transform (D:\\Passion Project v2\\node_modules\\logform\\printf.js:11:26)\n    at Format.transform (D:\\Passion Project v2\\node_modules\\logform\\combine.js:20:24)\n    at DerivedLogger._transform (D:\\Passion Project v2\\node_modules\\winston\\lib\\winston\\logger.js:314:29)\n    at Transform._read (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:166:10)\n    at Transform._write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:155:83)\n    at doWrite (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:390:139)\n    at writeOrBuffer (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:381:5)\n    at Writable.write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:302:11)"
+}
+2025-06-16T15:44:52.392Z [info]: DataFetchingService initialized with config: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "useOpggMcp": false,
+  "useRiotApi": true,
+  "fallbackToMock": false
+}
+2025-06-16T15:44:52.397Z [info]: 🚀 SmurfGuard API server running on port 3000 {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "metadata": {
+    "service": "smurfguard-api",
+    "version": "2.0.0",
+    "timestamp": "2025-06-16T15:44:52.397Z"
+  }
+}
+2025-06-16T15:44:52.398Z [info]: 📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:44:52.398Z [info]: 🔗 Health Check: http://localhost:3000/api/health {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:44:52.398Z [info]: ⚡ Integration Status: http://localhost:3000/api/integration/status {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:45:13.397Z [info]: Basic analysis request for Reinegade in na1 {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:45:13.397Z [info]: Fetching fresh data for player: Reinegade {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:45:21.043Z [error]: Basic analysis error for Reinegade: Converting circular structure to JSON
+    --> starting at object with constructor 'ClientRequest'
+    |     property '_redirectable' -> object with constructor 'RedirectableRequest'
+    --- property '_currentRequest' closes the circle {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "stack": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle\n    at JSON.stringify (<anonymous>)\n    at Printf.template (D:\\Passion Project v2\\dist\\utils\\loggerService.js:19:16)\n    at Printf.transform (D:\\Passion Project v2\\node_modules\\logform\\printf.js:11:26)\n    at Format.transform (D:\\Passion Project v2\\node_modules\\logform\\combine.js:20:24)\n    at DerivedLogger._transform (D:\\Passion Project v2\\node_modules\\winston\\lib\\winston\\logger.js:314:29)\n    at Transform._read (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:166:10)\n    at Transform._write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:155:83)\n    at doWrite (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:390:139)\n    at writeOrBuffer (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:381:5)\n    at Writable.write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:302:11)"
+}
+2025-06-16T15:45:28.608Z [info]: Starting unified analysis for Reinegade#Rei in region na1 (5 matches) {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:45:36.220Z [error]: Unhandled Rejection: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "error": "Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle",
+  "stack": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle\n    at JSON.stringify (<anonymous>)\n    at Printf.template (D:\\Passion Project v2\\dist\\utils\\loggerService.js:19:16)\n    at Printf.transform (D:\\Passion Project v2\\node_modules\\logform\\printf.js:11:26)\n    at Format.transform (D:\\Passion Project v2\\node_modules\\logform\\combine.js:20:24)\n    at DerivedLogger._transform (D:\\Passion Project v2\\node_modules\\winston\\lib\\winston\\logger.js:314:29)\n    at Transform._read (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:166:10)\n    at Transform._write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:155:83)\n    at doWrite (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:390:139)\n    at writeOrBuffer (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:381:5)\n    at Writable.write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:302:11)"
+}
+2025-06-16T15:46:03.427Z [info]: DataFetchingService initialized with config: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "useOpggMcp": false,
+  "useRiotApi": true,
+  "fallbackToMock": false
+}
+2025-06-16T15:46:03.432Z [info]: 🚀 SmurfGuard API server running on port 3000 {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "metadata": {
+    "service": "smurfguard-api",
+    "version": "2.0.0",
+    "timestamp": "2025-06-16T15:46:03.432Z"
+  }
+}
+2025-06-16T15:46:03.433Z [info]: 📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:46:03.433Z [info]: 🔗 Health Check: http://localhost:3000/api/health {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:46:03.433Z [info]: ⚡ Integration Status: http://localhost:3000/api/integration/status {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:46:13.026Z [info]: Starting unified analysis for TestPlayer#NA1 in region na1 (5 matches) {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:46:20.679Z [error]: Unhandled Rejection: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "error": "Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle",
+  "stack": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle\n    at JSON.stringify (<anonymous>)\n    at Printf.template (D:\\Passion Project v2\\dist\\utils\\loggerService.js:19:16)\n    at Printf.transform (D:\\Passion Project v2\\node_modules\\logform\\printf.js:11:26)\n    at Format.transform (D:\\Passion Project v2\\node_modules\\logform\\combine.js:20:24)\n    at DerivedLogger._transform (D:\\Passion Project v2\\node_modules\\winston\\lib\\winston\\logger.js:314:29)\n    at Transform._read (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:166:10)\n    at Transform._write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:155:83)\n    at doWrite (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:390:139)\n    at writeOrBuffer (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:381:5)\n    at Writable.write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:302:11)"
+}
+2025-06-16T15:48:31.604Z [info]: DataFetchingService initialized with config: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "useOpggMcp": false,
+  "useRiotApi": true,
+  "fallbackToMock": false
+}
+2025-06-16T15:48:31.609Z [info]: 🚀 SmurfGuard API server running on port 3000 {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "metadata": {
+    "service": "smurfguard-api",
+    "version": "2.0.0",
+    "timestamp": "2025-06-16T15:48:31.609Z"
+  }
+}
+2025-06-16T15:48:31.610Z [info]: 📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:48:31.610Z [info]: 🔗 Health Check: http://localhost:3000/api/health {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:48:31.610Z [info]: ⚡ Integration Status: http://localhost:3000/api/integration/status {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:48:49.267Z [info]: Starting unified analysis for TestPlayer#NA1 in region na1 (5 matches) {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:48:56.958Z [error]: Unhandled Rejection: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "error": "Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle",
+  "stack": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle\n    at JSON.stringify (<anonymous>)\n    at Printf.template (D:\\Passion Project v2\\dist\\utils\\loggerService.js:19:16)\n    at Printf.transform (D:\\Passion Project v2\\node_modules\\logform\\printf.js:11:26)\n    at Format.transform (D:\\Passion Project v2\\node_modules\\logform\\combine.js:20:24)\n    at DerivedLogger._transform (D:\\Passion Project v2\\node_modules\\winston\\lib\\winston\\logger.js:314:29)\n    at Transform._read (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:166:10)\n    at Transform._write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:155:83)\n    at doWrite (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:390:139)\n    at writeOrBuffer (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:381:5)\n    at Writable.write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:302:11)"
+}
+2025-06-16T15:50:21.542Z [info]: DataFetchingService initialized with config: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "useOpggMcp": false,
+  "useRiotApi": true,
+  "fallbackToMock": false
+}
+2025-06-16T15:50:21.547Z [info]: 🚀 SmurfGuard API server running on port 3000 {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "metadata": {
+    "service": "smurfguard-api",
+    "version": "2.0.0",
+    "timestamp": "2025-06-16T15:50:21.547Z"
+  }
+}
+2025-06-16T15:50:21.548Z [info]: 📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:50:21.548Z [info]: 🔗 Health Check: http://localhost:3000/api/health {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:50:21.548Z [info]: ⚡ Integration Status: http://localhost:3000/api/integration/status {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:50:36.960Z [info]: Starting unified analysis for TestPlayer#NA1 in region na1 (5 matches) {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:50:44.608Z [error]: Unhandled Rejection: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "error": "Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle",
+  "stack": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'ClientRequest'\n    |     property '_redirectable' -> object with constructor 'RedirectableRequest'\n    --- property '_currentRequest' closes the circle\n    at JSON.stringify (<anonymous>)\n    at Printf.template (D:\\Passion Project v2\\dist\\utils\\loggerService.js:19:16)\n    at Printf.transform (D:\\Passion Project v2\\node_modules\\logform\\printf.js:11:26)\n    at Format.transform (D:\\Passion Project v2\\node_modules\\logform\\combine.js:20:24)\n    at DerivedLogger._transform (D:\\Passion Project v2\\node_modules\\winston\\lib\\winston\\logger.js:314:29)\n    at Transform._read (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:166:10)\n    at Transform._write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_transform.js:155:83)\n    at doWrite (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:390:139)\n    at writeOrBuffer (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:381:5)\n    at Writable.write (D:\\Passion Project v2\\node_modules\\readable-stream\\lib\\_stream_writable.js:302:11)"
+}
+2025-06-16T15:51:25.334Z [info]: DataFetchingService initialized with config: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "useOpggMcp": false,
+  "useRiotApi": true,
+  "fallbackToMock": false
+}
+2025-06-16T15:51:25.340Z [info]: 🚀 SmurfGuard API server running on port 3000 {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "metadata": {
+    "service": "smurfguard-api",
+    "version": "2.0.0",
+    "timestamp": "2025-06-16T15:51:25.340Z"
+  }
+}
+2025-06-16T15:51:25.340Z [info]: 📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:51:25.341Z [info]: 🔗 Health Check: http://localhost:3000/api/health {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:51:25.341Z [info]: ⚡ Integration Status: http://localhost:3000/api/integration/status {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}

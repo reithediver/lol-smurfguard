@@ -19,14 +19,14 @@ class UnifiedAnalysisService {
     }
     async getUnifiedAnalysis(puuid, options = {}) {
         const cacheKey = `${puuid}_${options.matchCount || 200}`;
-        // Check persistent storage first (unless force refresh)
-        if (!options.forceRefresh) {
-            const cachedAnalysis = await this.playerDataService.getAnalysis(puuid);
-            if (cachedAnalysis) {
-                loggerService_1.default.info(`🚀 Returning cached analysis for PUUID: ${puuid}`);
-                return cachedAnalysis;
-            }
-        }
+        // Skip persistent cache check for now to avoid issues
+        // if (!options.forceRefresh) {
+        //     const cachedAnalysis = await this.playerDataService.getAnalysis(puuid);
+        //     if (cachedAnalysis) {
+        //         logger.info(`🚀 Returning cached analysis for PUUID: ${puuid}`);
+        //         return cachedAnalysis;
+        //     }
+        // }
         loggerService_1.default.info(`🔍 Generating unified analysis for PUUID: ${puuid}${options.fastMode ? ' (Fast Mode)' : ''}`);
         try {
             // Get basic summoner info using persistent storage
@@ -41,13 +41,13 @@ class UnifiedAnalysisService {
                     tagLine = riotIdParts.tagLine;
                 }
             }
-            // Get summoner data using persistent storage
-            const summoner = await this.playerDataService.getSummonerByRiotId(gameName, tagLine);
+            // Get summoner data directly from RiotApi to avoid PlayerDataService issues
+            const summoner = await this.riotApi.getSummonerByRiotId(gameName, tagLine);
             // Get match history using persistent storage with optimized count for fast mode
             const matchCount = options.fastMode
                 ? Math.min(options.matchCount || 30, 50) // Fast mode: max 50 matches
                 : Math.min(options.matchCount || 200, 200);
-            const matchIds = await this.playerDataService.getMatchHistory(puuid, matchCount);
+            const matchIds = await this.riotApi.getMatchHistory(puuid, matchCount);
             if (matchIds.length === 0) {
                 throw new Error('No matches found for this player');
             }
@@ -60,7 +60,7 @@ class UnifiedAnalysisService {
                 const allMatches = [];
                 for (let i = 0; i < Math.min(matchIds.length, matchCount); i += batchSize) {
                     const batch = matchIds.slice(i, i + batchSize);
-                    const batchPromises = batch.map(matchId => this.playerDataService.getMatchDetails(matchId).catch(() => null));
+                    const batchPromises = batch.map(matchId => this.riotApi.getMatchDetails(matchId).catch(() => null));
                     const batchResults = await Promise.all(batchPromises);
                     allMatches.push(...batchResults.filter(Boolean));
                     // Short delay between batches to avoid rate limiting
@@ -72,10 +72,10 @@ class UnifiedAnalysisService {
             }
             else {
                 // Normal mode: Use existing parallel processing
-                const matchPromises = matchIds.slice(0, matchCount).map(matchId => this.playerDataService.getMatchDetails(matchId));
+                const matchPromises = matchIds.slice(0, matchCount).map(matchId => this.riotApi.getMatchDetails(matchId));
                 matches = await Promise.all(matchPromises);
             }
-            const validMatches = matches.filter(match => match && match.info);
+            const validMatches = matches.filter((match) => match !== null && match !== undefined);
             loggerService_1.default.info(`✅ Successfully processed ${validMatches.length} valid matches${options.fastMode ? ' (Fast Mode)' : ''}`);
             // Get smurf analysis and outlier detection
             const smurfAnalysis = await this.smurfDetectionService.analyzeSmurf(puuid, region);
@@ -93,13 +93,17 @@ class UnifiedAnalysisService {
                 overallStats: {
                     totalGames: validMatches.length,
                     totalWins: validMatches.filter(m => {
-                        const player = m.participants?.find((p) => p.puuid === puuid);
+                        if (!m || !m.participants)
+                            return false;
+                        const player = m.participants.find((p) => p.puuid === puuid);
                         return player?.stats?.win;
                     }).length,
                     overallWinRate: 0.5,
                     overallKDA: 2.0,
                     uniqueChampions: new Set(validMatches.map(m => {
-                        const player = m.participants?.find((p) => p.puuid === puuid);
+                        if (!m || !m.participants)
+                            return null;
+                        const player = m.participants.find((p) => p.puuid === puuid);
                         return player?.championId;
                     }).filter(Boolean)).size,
                     totalLosses: 0,
@@ -135,8 +139,8 @@ class UnifiedAnalysisService {
                     analysisVersion: '2.0.0'
                 }
             };
-            // Store in persistent cache
-            await this.playerDataService.storeAnalysis(puuid, analysis);
+            // Skip persistent cache storage for now to avoid issues
+            // await this.playerDataService.storeAnalysis(puuid, analysis);
             loggerService_1.default.info(`✅ Unified analysis completed for ${options.riotId || puuid}${options.fastMode ? ' (Fast Mode)' : ''}`);
             return analysis;
         }
