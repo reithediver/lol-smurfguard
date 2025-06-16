@@ -1,12 +1,24 @@
+import express from 'express';
 import { Router, Request, Response } from 'express';
 import { UnifiedAnalysisService } from '../services/UnifiedAnalysisService';
 import { OutlierGame } from '../services/OutlierGameDetectionService';
 import { RiotApi } from '../api/RiotApi';
 import { logger } from '../utils/loggerService';
+import { SmurfDetectionService } from '../services/SmurfDetectionService';
+import { DataFetchingService } from '../services/DataFetchingService';
+import { OutlierGameDetectionService } from '../services/OutlierGameDetectionService';
 
-const router = Router();
-const riotApi = new RiotApi(process.env.RIOT_API_KEY || '');
-const unifiedAnalysisService = new UnifiedAnalysisService(riotApi);
+const router = express.Router();
+const riotApi = new RiotApi(process.env.RIOT_API_KEY || 'demo-key');
+const smurfDetectionService = new SmurfDetectionService(riotApi);
+const dataFetchingService = new DataFetchingService();
+const outlierGameDetectionService = new OutlierGameDetectionService();
+const unifiedAnalysisService = new UnifiedAnalysisService(
+    riotApi,
+    smurfDetectionService,
+    dataFetchingService,
+    outlierGameDetectionService
+);
 
 router.get('/unified', async (req: Request, res: Response) => {
   try {

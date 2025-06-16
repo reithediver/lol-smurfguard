@@ -1,12 +1,21 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
+const express_1 = __importDefault(require("express"));
 const UnifiedAnalysisService_1 = require("../services/UnifiedAnalysisService");
 const RiotApi_1 = require("../api/RiotApi");
 const loggerService_1 = require("../utils/loggerService");
-const router = (0, express_1.Router)();
-const riotApi = new RiotApi_1.RiotApi(process.env.RIOT_API_KEY || '');
-const unifiedAnalysisService = new UnifiedAnalysisService_1.UnifiedAnalysisService(riotApi);
+const SmurfDetectionService_1 = require("../services/SmurfDetectionService");
+const DataFetchingService_1 = require("../services/DataFetchingService");
+const OutlierGameDetectionService_1 = require("../services/OutlierGameDetectionService");
+const router = express_1.default.Router();
+const riotApi = new RiotApi_1.RiotApi(process.env.RIOT_API_KEY || 'demo-key');
+const smurfDetectionService = new SmurfDetectionService_1.SmurfDetectionService(riotApi);
+const dataFetchingService = new DataFetchingService_1.DataFetchingService();
+const outlierGameDetectionService = new OutlierGameDetectionService_1.OutlierGameDetectionService();
+const unifiedAnalysisService = new UnifiedAnalysisService_1.UnifiedAnalysisService(riotApi, smurfDetectionService, dataFetchingService, outlierGameDetectionService);
 router.get('/unified', async (req, res) => {
     try {
         const { summonerName, region } = req.query;

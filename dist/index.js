@@ -13,6 +13,10 @@ const loggerService_1 = require("./utils/loggerService");
 const ChampionStatsService_1 = require("./services/ChampionStatsService");
 const UnifiedAnalysisService_1 = require("./services/UnifiedAnalysisService");
 const analysis_1 = __importDefault(require("./routes/analysis"));
+const ChampionService_1 = require("./services/ChampionService");
+const ChallengerService_1 = require("./services/ChallengerService");
+const AdvancedDataService_1 = require("./services/AdvancedDataService");
+const OutlierGameDetectionService_1 = require("./services/OutlierGameDetectionService");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 // Log startup configuration
@@ -28,10 +32,14 @@ console.log('🔗 CORS origins:', [
 ]);
 // Initialize services
 const riotApi = new RiotApi_1.RiotApi(process.env.RIOT_API_KEY || 'demo-key');
-const dataFetchingService = new DataFetchingService_1.DataFetchingService();
+const championService = new ChampionService_1.ChampionService(process.env.RIOT_API_KEY || 'demo-key');
+const challengerService = new ChallengerService_1.ChallengerService(process.env.RIOT_API_KEY || 'demo-key');
+const advancedDataService = new AdvancedDataService_1.AdvancedDataService(riotApi);
 const smurfDetectionService = new SmurfDetectionService_1.SmurfDetectionService(riotApi);
+const dataFetchingService = new DataFetchingService_1.DataFetchingService();
+const outlierGameDetectionService = new OutlierGameDetectionService_1.OutlierGameDetectionService();
+const unifiedAnalysisService = new UnifiedAnalysisService_1.UnifiedAnalysisService(riotApi, smurfDetectionService, dataFetchingService, outlierGameDetectionService);
 const championStatsService = new ChampionStatsService_1.ChampionStatsService(riotApi);
-const unifiedAnalysisService = new UnifiedAnalysisService_1.UnifiedAnalysisService(riotApi);
 // Middleware
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {

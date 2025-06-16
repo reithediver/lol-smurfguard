@@ -9,6 +9,10 @@ import { createError } from './utils/errorHandler';
 import { ChampionStatsService } from './services/ChampionStatsService';
 import { UnifiedAnalysisService } from './services/UnifiedAnalysisService';
 import analysisRoutes from './routes/analysis';
+import { ChampionService } from './services/ChampionService';
+import { ChallengerService } from './services/ChallengerService';
+import { AdvancedDataService } from './services/AdvancedDataService';
+import { OutlierGameDetectionService } from './services/OutlierGameDetectionService';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,10 +31,19 @@ console.log('🔗 CORS origins:', [
 
 // Initialize services
 const riotApi = new RiotApi(process.env.RIOT_API_KEY || 'demo-key');
-const dataFetchingService = new DataFetchingService();
+const championService = new ChampionService(process.env.RIOT_API_KEY || 'demo-key');
+const challengerService = new ChallengerService(process.env.RIOT_API_KEY || 'demo-key');
+const advancedDataService = new AdvancedDataService(riotApi);
 const smurfDetectionService = new SmurfDetectionService(riotApi);
+const dataFetchingService = new DataFetchingService();
+const outlierGameDetectionService = new OutlierGameDetectionService();
+const unifiedAnalysisService = new UnifiedAnalysisService(
+    riotApi,
+    smurfDetectionService,
+    dataFetchingService,
+    outlierGameDetectionService
+);
 const championStatsService = new ChampionStatsService(riotApi);
-const unifiedAnalysisService = new UnifiedAnalysisService(riotApi);
 
 // Middleware
 app.use(cors({
