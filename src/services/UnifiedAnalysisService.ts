@@ -2,8 +2,10 @@ import { RiotApi } from '../api/RiotApi';
 import { ChampionStatsService, ChampionStats, PlayerOverallStats } from './ChampionStatsService';
 import { SmurfDetectionService } from './SmurfDetectionService';
 import { RankBenchmarkService } from './RankBenchmarkService';
+import { OutlierGameDetectionService, OutlierAnalysisResult, OutlierGame } from './OutlierGameDetectionService';
 import { logger } from '../utils/loggerService';
 import { PlayerAnalysis } from '../models/PlayerAnalysis';
+import { MatchHistory } from '../models/MatchHistory';
 
 export interface SuspiciousIndicator {
     type: 'CHAMPION_MASTERY' | 'PERFORMANCE_OUTLIER' | 'GAP_ANALYSIS' | 'RANK_INCONSISTENCY' | 'BEHAVIORAL_PATTERN';
@@ -98,6 +100,9 @@ export interface UnifiedPlayerAnalysis {
         }>;
     };
     
+    // Enhanced outlier game analysis
+    outlierAnalysis: OutlierAnalysisResult;
+    
     // Data freshness and caching
     metadata: {
         analysisDate: Date;
@@ -112,6 +117,7 @@ export class UnifiedAnalysisService {
     private championStatsService: ChampionStatsService;
     private smurfDetectionService: SmurfDetectionService;
     private rankBenchmarkService: RankBenchmarkService;
+    private outlierGameDetectionService: OutlierGameDetectionService;
     
     // Cache for analysis results (in production, this would be Redis or similar)
     private analysisCache = new Map<string, {
@@ -124,6 +130,7 @@ export class UnifiedAnalysisService {
         this.championStatsService = new ChampionStatsService(riotApi);
         this.smurfDetectionService = new SmurfDetectionService(riotApi);
         this.rankBenchmarkService = new RankBenchmarkService();
+        this.outlierGameDetectionService = new OutlierGameDetectionService();
     }
     
     async getUnifiedAnalysis(puuid: string, options: {
@@ -172,10 +179,26 @@ export class UnifiedAnalysisService {
             
             logger.info(`🔍 Fetching ${matchCount} matches for comprehensive analysis`);
             
+            // Get match history for outlier analysis
+            const matchIds = await this.riotApi.getMatchHistory(puuid, undefined, undefined, matchCount);
+            
+            // Get detailed match data for outlier analysis
+            logger.info(`🔍 Fetching detailed match data for ${matchIds.length} matches...`);
+            const matches: MatchHistory[] = [];
+            for (const matchId of matchIds.slice(0, Math.min(100, matchIds.length))) { // Limit to 100 matches for outlier analysis
+                try {
+                    const match = await this.riotApi.getMatchDetails(matchId);
+                    matches.push(match);
+                } catch (error) {
+                    logger.warn(`Failed to get match ${matchId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+            }
+            
             // Run comprehensive analysis in parallel
-            const [comprehensiveStats, smurfAnalysis] = await Promise.all([
+            const [comprehensiveStats, smurfAnalysis, outlierAnalysis] = await Promise.all([
                 this.championStatsService.getComprehensiveStats(puuid, matchCount),
-                this.smurfDetectionService.analyzeSmurf(puuid, region)
+                this.smurfDetectionService.analyzeSmurf(puuid, region),
+                this.outlierGameDetectionService.analyzeOutlierGames(matches, puuid, 'GOLD') // Default to GOLD rank for now
             ]);
             
             // Enhance champion stats with suspicion analysis
@@ -205,6 +228,7 @@ export class UnifiedAnalysisService {
                 championAnalysis: enhancedChampions,
                 smurfAnalysis,
                 unifiedSuspicion,
+                outlierAnalysis,
                 metadata: {
                     analysisDate: new Date(),
                     matchesAnalyzed: comprehensiveStats.totalGames,

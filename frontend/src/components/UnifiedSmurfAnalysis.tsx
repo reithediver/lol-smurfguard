@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { OutlierGamesSection } from './OutlierGamesSection';
 
 // Define the unified analysis data structure to match backend
 interface SuspiciousIndicator {
@@ -121,6 +122,16 @@ interface UnifiedAnalysisData {
         analysisDate: Date;
         matchesAnalyzed: number;
         dataFreshness: 'FRESH' | 'RECENT' | 'STALE';
+    };
+    outlierAnalysis?: {
+        outlierGames: Array<{
+            matchId: string;
+            championName: string;
+            performance: number;
+            suspicionReasons: string[];
+            date: Date;
+            matchUrl?: string;
+        }>;
     };
 }
 
@@ -774,32 +785,16 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
                                  </table>
              </div>
 
-            {/* Recent Suspicious Games */}
-            {data.unifiedSuspicion.suspiciousGames.length > 0 && (
-                <>
-                    <SectionTitle>⚠️ Suspicious Recent Games</SectionTitle>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', padding: '20px' }}>
-                        {data.unifiedSuspicion.suspiciousGames.slice(0, 5).map((game, index) => (
-                            <div key={index} style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center',
-                                padding: '10px 0',
-                                borderBottom: index < 4 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
-                            }}>
-                                <div>
-                                    <div style={{ color: '#f7fafc', fontWeight: 'bold' }}>{game.championName}</div>
-                                    <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                        Performance: {game.performance}%
-                                    </div>
-                                </div>
-                                <div style={{ fontSize: '12px', color: '#a0aec0', textAlign: 'right' }}>
-                                    {game.suspicionReasons.join(', ')}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </>
+            {/* Outlier Games Section */}
+            {data.outlierAnalysis && (
+                <OutlierGamesSection 
+                    games={data.outlierAnalysis.outlierGames}
+                    onGameClick={(game) => {
+                        if (game.matchUrl) {
+                            window.open(game.matchUrl, '_blank');
+                        }
+                    }}
+                />
             )}
         </Container>
     );
