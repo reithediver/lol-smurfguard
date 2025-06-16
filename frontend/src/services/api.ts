@@ -264,7 +264,8 @@ class ApiService {
       if (options.matches) params.append('matches', options.matches.toString());
       if (options.refresh) params.append('refresh', 'true');
       
-      const url = `/analyze/unified/${encodeURIComponent(riotId)}${params.toString() ? '?' + params.toString() : ''}`;
+      // Updated endpoint to match backend route
+      const url = `/analysis/unified?summonerName=${encodeURIComponent(riotId)}${params.toString() ? '&' + params.toString() : ''}`;
       
       console.log('🎯 Calling unified analysis endpoint:', url);
       
