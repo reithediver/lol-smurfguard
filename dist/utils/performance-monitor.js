@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.performanceMiddleware = exports.performanceMonitor = void 0;
-const loggerService_1 = require("./loggerService");
+const loggerService_1 = __importDefault(require("./loggerService"));
 class PerformanceMonitor {
     constructor() {
         this.requestTimes = [];
@@ -35,10 +38,10 @@ class PerformanceMonitor {
                 exports.performanceMonitor.recordRequest(responseTime, res.statusCode >= 400);
                 // Log slow requests
                 if (responseTime > 1000) {
-                    loggerService_1.logger.warn(`Slow request detected: ${req.method} ${req.path} - ${responseTime}ms`);
+                    loggerService_1.default.warn(`Slow request detected: ${req.method} ${req.path} - ${responseTime}ms`);
                 }
                 // Log request details
-                loggerService_1.logger.info(`${req.method} ${req.path} - ${res.statusCode} - ${responseTime}ms`);
+                loggerService_1.default.info(`${req.method} ${req.path} - ${res.statusCode} - ${responseTime}ms`);
                 return originalEnd.call(this, chunk, encoding);
             };
             next();
@@ -104,7 +107,7 @@ class PerformanceMonitor {
         };
     }
     resetMetrics() {
-        loggerService_1.logger.info('Resetting performance metrics');
+        loggerService_1.default.info('Resetting performance metrics');
         this.metrics = {
             requestCount: 0,
             totalResponseTime: 0,

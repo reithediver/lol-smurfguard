@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { SmurfDetectionService } from '../../services/SmurfDetectionService';
 import { RiotApi } from '../RiotApi';
 import { createError } from '../../utils/errorHandler';
-import { logger } from '../../utils/loggerService';
+import logger from '../../utils/loggerService';
 
 const router = Router();
 const riotApi = new RiotApi(process.env.RIOT_API_KEY || '');

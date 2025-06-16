@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { logger } from './loggerService';
+import logger from './loggerService';
 
 /**
  * Storage adapter interface for both client and server environments

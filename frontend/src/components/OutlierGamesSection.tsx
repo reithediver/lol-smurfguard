@@ -179,25 +179,47 @@ interface OutlierGamesSectionProps {
 export const OutlierGamesSection: React.FC<OutlierGamesSectionProps> = ({ games, onGameClick }) => {
   const [filter, setFilter] = useState<'all' | 'mvp' | 'perfect' | 'carried'>('all');
 
+  if (!games || !Array.isArray(games) || games.length === 0) {
+    return (
+      <Container>
+        <Header>
+          <Title>🎯 Outlier Games Analysis</Title>
+        </Header>
+        <div style={{ color: '#ef4444', padding: '20px', textAlign: 'center' }}>
+          {!games ? 'No outlier games data available' : 
+           !Array.isArray(games) ? 'Invalid outlier games data format' :
+           'No outlier games found'}
+        </div>
+      </Container>
+    );
+  }
+
   const filteredGames = games.filter(game => {
+    if (!game || typeof game !== 'object') return false;
+    
     switch (filter) {
-      case 'mvp': return game.teamMVP;
-      case 'perfect': return game.perfectGame;
-      case 'carried': return game.gameCarried;
+      case 'mvp': return Boolean(game.teamMVP);
+      case 'perfect': return Boolean(game.perfectGame);
+      case 'carried': return Boolean(game.gameCarried);
       default: return true;
     }
   });
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    try {
+      return new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const getKDAString = (game: OutlierGame) => {
-    return `${game.kills}/${game.deaths}/${game.assists}`;
+    if (!game.kills && !game.deaths && !game.assists) return 'N/A';
+    return `${game.kills || 0}/${game.deaths || 0}/${game.assists || 0}`;
   };
 
   const getSeverityIcon = (severity: string) => {
@@ -248,16 +270,16 @@ export const OutlierGamesSection: React.FC<OutlierGamesSectionProps> = ({ games,
 
       <GamesList>
         {filteredGames.map((game, index) => (
-          <GameCard key={index} outlierScore={game.outlierScore}>
+          <GameCard key={game.matchId || index} outlierScore={game.outlierScore || 0}>
             <GameHeader>
               <ChampionInfo>
                 <ChampionIcon>
-                  {game.championName.substring(0, 2).toUpperCase()}
+                  {game.championName?.substring(0, 2).toUpperCase() || '??'}
                 </ChampionIcon>
                 <div>
-                  <ChampionName>{game.championName}</ChampionName>
+                  <ChampionName>{game.championName || 'Unknown Champion'}</ChampionName>
                   <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
-                    {game.queueType} • {game.position}
+                    {game.queueType || 'Unknown Queue'} • {game.position || 'Unknown Position'}
                   </div>
                 </div>
               </ChampionInfo>
@@ -268,31 +290,31 @@ export const OutlierGamesSection: React.FC<OutlierGamesSectionProps> = ({ games,
               <MetricItem>
                 <MetricLabel>KDA</MetricLabel>
                 <MetricValue color={game.kda >= 3 ? '#68d391' : '#f1f5f9'}>
-                  {getKDAString(game)} ({game.kda.toFixed(2)})
+                  {getKDAString(game)} ({game.kda?.toFixed(2) || 'N/A'})
                 </MetricValue>
               </MetricItem>
               <MetricItem>
                 <MetricLabel>CS/min</MetricLabel>
                 <MetricValue color={game.csPerMinute >= 7 ? '#68d391' : '#f1f5f9'}>
-                  {game.csPerMinute.toFixed(1)}
+                  {game.csPerMinute?.toFixed(1) || 'N/A'}
                 </MetricValue>
               </MetricItem>
               <MetricItem>
                 <MetricLabel>Damage Share</MetricLabel>
                 <MetricValue color={game.damageShare >= 30 ? '#68d391' : '#f1f5f9'}>
-                  {game.damageShare.toFixed(1)}%
+                  {game.damageShare?.toFixed(1) || 'N/A'}%
                 </MetricValue>
               </MetricItem>
               <MetricItem>
                 <MetricLabel>Vision Score</MetricLabel>
                 <MetricValue color={game.visionScore >= 25 ? '#68d391' : '#f1f5f9'}>
-                  {game.visionScore}
+                  {game.visionScore || 'N/A'}
                 </MetricValue>
               </MetricItem>
               <MetricItem>
                 <MetricLabel>Kill Participation</MetricLabel>
                 <MetricValue color={game.killParticipation >= 70 ? '#68d391' : '#f1f5f9'}>
-                  {game.killParticipation.toFixed(1)}%
+                  {game.killParticipation?.toFixed(1) || 'N/A'}%
                 </MetricValue>
               </MetricItem>
               <MetricItem>
@@ -303,18 +325,20 @@ export const OutlierGamesSection: React.FC<OutlierGamesSectionProps> = ({ games,
                   game.outlierScore >= 70 ? '#eab308' :
                   '#f1f5f9'
                 }>
-                  {game.outlierScore}
+                  {game.outlierScore || 'N/A'}
                 </MetricValue>
               </MetricItem>
             </MetricsGrid>
 
-            <FlagsList>
-              {game.outlierFlags.map((flag, flagIndex) => (
-                <FlagBadge key={flagIndex} severity={flag.severity}>
-                  {getSeverityIcon(flag.severity)} {flag.description}
-                </FlagBadge>
-              ))}
-            </FlagsList>
+            {game.outlierFlags && Array.isArray(game.outlierFlags) && game.outlierFlags.length > 0 && (
+              <FlagsList>
+                {game.outlierFlags.map((flag, flagIndex) => (
+                  <FlagBadge key={flagIndex} severity={flag.severity}>
+                    {getSeverityIcon(flag.severity)} {flag.description}
+                  </FlagBadge>
+                ))}
+              </FlagsList>
+            )}
 
             {game.matchUrl && (
               <MatchLink 

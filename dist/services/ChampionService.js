@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChampionService = void 0;
 const axios_1 = __importDefault(require("axios"));
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 const errorHandler_1 = require("../utils/errorHandler");
 const storageAdapter_1 = require("../utils/storageAdapter");
 class ChampionService {
@@ -23,7 +23,7 @@ class ChampionService {
             const cacheKey = 'champion-rotation';
             const cached = this.cache.get(cacheKey);
             if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-                loggerService_1.logger.debug('Returning cached champion rotation data');
+                loggerService_1.default.debug('Returning cached champion rotation data');
                 return cached.data;
             }
             const response = await axios_1.default.get(`https://${this.region}.api.riotgames.com/lol/platform/v3/champion-rotations`, { headers: { 'X-Riot-Token': this.apiKey } });
@@ -36,7 +36,7 @@ class ChampionService {
         }
         catch (error) {
             const axiosError = error;
-            loggerService_1.logger.error('Failed to get champion rotation:', axiosError.response?.status, axiosError.response?.statusText);
+            loggerService_1.default.error('Failed to get champion rotation:', axiosError.response?.status, axiosError.response?.statusText);
             throw (0, errorHandler_1.createError)(axiosError.response?.status || 500, 'Failed to get champion rotation');
         }
     }
@@ -85,7 +85,7 @@ class ChampionService {
             };
         }
         catch (error) {
-            loggerService_1.logger.error('Error tracking rotation changes:', error);
+            loggerService_1.default.error('Error tracking rotation changes:', error);
             // Reset stored data
             storageAdapter_1.storage.setItem('previous-champion-rotation', JSON.stringify({
                 rotation: currentRotation,

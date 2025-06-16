@@ -1,8 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlayerDataService = void 0;
 const StorageService_1 = require("./StorageService");
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 // Namespaces for different types of player data
 var PlayerDataNamespace;
 (function (PlayerDataNamespace) {
@@ -41,12 +44,12 @@ class PlayerDataService {
         if (!forceRefresh) {
             const cached = await this.storageService.get(PlayerDataNamespace.SUMMONER, key);
             if (cached) {
-                loggerService_1.logger.info(`Retrieved summoner data for ${gameName}#${tagLine} from cache`);
+                loggerService_1.default.info(`Retrieved summoner data for ${gameName}#${tagLine} from cache`);
                 return cached;
             }
         }
         // Get from API
-        loggerService_1.logger.info(`Fetching summoner data for ${gameName}#${tagLine} from API`);
+        loggerService_1.default.info(`Fetching summoner data for ${gameName}#${tagLine} from API`);
         const summoner = await this.riotApi.getSummonerByRiotId(gameName, tagLine);
         // Store in cache
         await this.storageService.set(PlayerDataNamespace.SUMMONER, key, summoner, TTL.SUMMONER);
@@ -64,12 +67,12 @@ class PlayerDataService {
         if (!forceRefresh) {
             const cached = await this.storageService.get(PlayerDataNamespace.MATCH_HISTORY, key);
             if (cached) {
-                loggerService_1.logger.info(`Retrieved match history for ${puuid} from cache`);
+                loggerService_1.default.info(`Retrieved match history for ${puuid} from cache`);
                 return cached;
             }
         }
         // Get from API
-        loggerService_1.logger.info(`Fetching match history for ${puuid} from API`);
+        loggerService_1.default.info(`Fetching match history for ${puuid} from API`);
         const matchHistory = await this.riotApi.getMatchHistory(puuid, count);
         // Store in cache
         await this.storageService.set(PlayerDataNamespace.MATCH_HISTORY, key, matchHistory, TTL.MATCH_HISTORY);
@@ -85,12 +88,12 @@ class PlayerDataService {
         if (!forceRefresh) {
             const cached = await this.storageService.get(PlayerDataNamespace.MATCH_DETAILS, matchId);
             if (cached) {
-                loggerService_1.logger.info(`Retrieved match details for ${matchId} from cache`);
+                loggerService_1.default.info(`Retrieved match details for ${matchId} from cache`);
                 return cached;
             }
         }
         // Get from API
-        loggerService_1.logger.info(`Fetching match details for ${matchId} from API`);
+        loggerService_1.default.info(`Fetching match details for ${matchId} from API`);
         const matchDetails = await this.riotApi.getMatchDetails(matchId);
         // Store in cache
         await this.storageService.set(PlayerDataNamespace.MATCH_DETAILS, matchId, matchDetails, TTL.MATCH_DETAILS);
@@ -103,7 +106,7 @@ class PlayerDataService {
      */
     async storeAnalysis(puuid, analysis) {
         await this.storageService.set(PlayerDataNamespace.ANALYSIS, puuid, analysis, TTL.ANALYSIS);
-        loggerService_1.logger.info(`Stored analysis for ${puuid}`);
+        loggerService_1.default.info(`Stored analysis for ${puuid}`);
     }
     /**
      * Get analysis results for a player if available
@@ -124,7 +127,7 @@ class PlayerDataService {
     async clearExpired() {
         // The StorageService automatically cleans expired items when reading
         // This method is for manual cleanup
-        loggerService_1.logger.info('Manual cleanup of expired player data initiated');
+        loggerService_1.default.info('Manual cleanup of expired player data initiated');
         // We could implement additional cleanup logic here if needed
     }
 }

@@ -124,14 +124,47 @@ interface UnifiedAnalysisData {
         dataFreshness: 'FRESH' | 'RECENT' | 'STALE';
     };
     outlierAnalysis?: {
+        totalGamesAnalyzed: number;
         outlierGames: Array<{
             matchId: string;
             championName: string;
-            performance: number;
-            suspicionReasons: string[];
-            date: Date;
+            gameDate: Date;
+            queueType: string;
+            position: string;
+            kda: number;
+            kills: number;
+            deaths: number;
+            assists: number;
+            csPerMinute: number;
+            damageShare: number;
+            visionScore: number;
+            killParticipation: number;
+            outlierScore: number;
+            outlierFlags: Array<{
+                type: string;
+                severity: 'CRITICAL' | 'HIGH' | 'MODERATE' | 'LOW';
+                description: string;
+                evidence?: string[];
+            }>;
+            teamMVP: boolean;
+            perfectGame: boolean;
+            gameCarried: boolean;
             matchUrl?: string;
         }>;
+        outlierRate: number;
+        averageOutlierScore: number;
+        topOutlierFlags: Array<{
+            type: string;
+            severity: 'CRITICAL' | 'HIGH' | 'MODERATE' | 'LOW';
+            description: string;
+            evidence?: string[];
+        }>;
+        suspicionSummary: {
+            consistentlyHighPerformance: boolean;
+            improvesTooQuickly: boolean;
+            expertOnNewChampions: boolean;
+            mvpFrequency: number;
+        };
     };
 }
 
@@ -786,31 +819,27 @@ const UnifiedSmurfAnalysis: React.FC<UnifiedSmurfAnalysisProps> = ({ data }) => 
              </div>
 
             {/* Outlier Games Section */}
-            {data.outlierAnalysis && (
+            {data.outlierAnalysis && data.outlierAnalysis.outlierGames && Array.isArray(data.outlierAnalysis.outlierGames) && (
                 <OutlierGamesSection 
                     games={data.outlierAnalysis.outlierGames.map(game => ({
                         matchId: game.matchId,
                         championName: game.championName,
-                        gameDate: new Date(game.date),
-                        queueType: 'Ranked Solo/Duo', // Default value, should come from backend
-                        position: 'Unknown', // Default value, should come from backend
-                        kda: game.performance / 20, // Convert performance to KDA (assuming performance is 0-100)
-                        kills: 0, // Default value, should come from backend
-                        deaths: 0, // Default value, should come from backend
-                        assists: 0, // Default value, should come from backend
-                        csPerMinute: 0, // Default value, should come from backend
-                        damageShare: 0, // Default value, should come from backend
-                        visionScore: 0, // Default value, should come from backend
-                        killParticipation: 0, // Default value, should come from backend
-                        outlierScore: game.performance,
-                        outlierFlags: game.suspicionReasons.map(reason => ({
-                            type: 'PERFORMANCE',
-                            severity: 'MODERATE',
-                            description: reason
-                        })),
-                        teamMVP: false, // Default value, should come from backend
-                        perfectGame: false, // Default value, should come from backend
-                        gameCarried: false, // Default value, should come from backend
+                        gameDate: new Date(game.gameDate),
+                        queueType: game.queueType || 'Unknown',
+                        position: game.position || 'Unknown',
+                        kda: game.kda,
+                        kills: game.kills,
+                        deaths: game.deaths,
+                        assists: game.assists,
+                        csPerMinute: game.csPerMinute,
+                        damageShare: game.damageShare,
+                        visionScore: game.visionScore,
+                        killParticipation: game.killParticipation,
+                        outlierScore: game.outlierScore,
+                        outlierFlags: game.outlierFlags || [],
+                        teamMVP: game.teamMVP || false,
+                        perfectGame: game.perfectGame || false,
+                        gameCarried: game.gameCarried || false,
                         matchUrl: game.matchUrl
                     }))}
                     onGameClick={(game) => {

@@ -1,5 +1,5 @@
 import { RiotApi } from '../api/RiotApi';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 import { createError } from '../utils/errorHandler';
 import axios, { AxiosError } from 'axios';
 

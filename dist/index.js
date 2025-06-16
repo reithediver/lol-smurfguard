@@ -9,10 +9,9 @@ const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const RiotApi_1 = require("./api/RiotApi");
 const DataFetchingService_1 = require("./services/DataFetchingService");
 const SmurfDetectionService_1 = require("./services/SmurfDetectionService");
-const loggerService_1 = require("./utils/loggerService");
+const loggerService_1 = __importDefault(require("./utils/loggerService"));
 const ChampionStatsService_1 = require("./services/ChampionStatsService");
 const UnifiedAnalysisService_1 = require("./services/UnifiedAnalysisService");
-const analysis_1 = __importDefault(require("./routes/analysis"));
 const ChampionService_1 = require("./services/ChampionService");
 const ChallengerService_1 = require("./services/ChallengerService");
 const AdvancedDataService_1 = require("./services/AdvancedDataService");
@@ -116,7 +115,7 @@ app.get('/api/integration/status', async (req, res) => {
         });
     }
     catch (error) {
-        loggerService_1.logger.error('Error getting integration status:', error);
+        loggerService_1.default.error('Error getting integration status:', error);
         res.status(500).json({
             success: false,
             error: {
@@ -131,7 +130,7 @@ app.get('/api/analyze/opgg-enhanced/:summonerName', async (req, res) => {
     try {
         const { summonerName } = req.params;
         const region = req.query.region || 'na1';
-        loggerService_1.logger.info(`Enhanced OP.GG analysis request for ${summonerName} in ${region}`);
+        loggerService_1.default.info(`Enhanced OP.GG analysis request for ${summonerName} in ${region}`);
         const analysis = await dataFetchingService.getEnhancedPlayerAnalysis(summonerName, region);
         res.json({
             success: true,
@@ -144,7 +143,7 @@ app.get('/api/analyze/opgg-enhanced/:summonerName', async (req, res) => {
         });
     }
     catch (error) {
-        loggerService_1.logger.error(`Enhanced analysis error for ${req.params.summonerName}:`, error);
+        loggerService_1.default.error(`Enhanced analysis error for ${req.params.summonerName}:`, error);
         res.status(500).json({
             success: false,
             error: {
@@ -160,7 +159,7 @@ app.get('/api/analyze/basic/:summonerName', async (req, res) => {
     try {
         const { summonerName } = req.params;
         const region = req.query.region || 'na1';
-        loggerService_1.logger.info(`Basic analysis request for ${summonerName} in ${region}`);
+        loggerService_1.default.info(`Basic analysis request for ${summonerName} in ${region}`);
         // Use basic Riot API analysis
         const analysis = await dataFetchingService.fetchPlayerAnalysis(summonerName);
         res.json({
@@ -173,7 +172,7 @@ app.get('/api/analyze/basic/:summonerName', async (req, res) => {
         });
     }
     catch (error) {
-        loggerService_1.logger.error(`Basic analysis error for ${req.params.summonerName}:`, error);
+        loggerService_1.default.error(`Basic analysis error for ${req.params.summonerName}:`, error);
         res.status(403).json({
             success: false,
             error: 'API_ACCESS_FORBIDDEN',
@@ -192,13 +191,13 @@ app.get('/api/analyze/comprehensive/:identifier', async (req, res) => {
     try {
         const { identifier } = req.params;
         const region = req.query.region || 'na1';
-        loggerService_1.logger.info(`Comprehensive analysis request for ${identifier} in ${region}`);
+        loggerService_1.default.info(`Comprehensive analysis request for ${identifier} in ${region}`);
         // Check if identifier is a Riot ID (contains #) or legacy summoner name
         const riotIdParts = RiotApi_1.RiotApi.parseRiotId(identifier);
         let analysis;
         if (riotIdParts) {
             // Modern Riot ID format (gameName#tagLine)
-            loggerService_1.logger.info(`Using modern Riot ID format: ${riotIdParts.gameName}#${riotIdParts.tagLine}`);
+            loggerService_1.default.info(`Using modern Riot ID format: ${riotIdParts.gameName}#${riotIdParts.tagLine}`);
             try {
                 // Try to get summoner data using Riot ID
                 const summonerData = await riotApi.getSummonerByRiotId(riotIdParts.gameName, riotIdParts.tagLine);
@@ -219,13 +218,13 @@ app.get('/api/analyze/comprehensive/:identifier', async (req, res) => {
                 });
             }
             catch (riotIdError) {
-                loggerService_1.logger.warn('Riot ID analysis failed, trying fallback methods:', riotIdError);
+                loggerService_1.default.warn('Riot ID analysis failed, trying fallback methods:', riotIdError);
                 throw riotIdError;
             }
         }
         else {
             // Legacy summoner name format
-            loggerService_1.logger.info(`Using legacy summoner name format: ${identifier}`);
+            loggerService_1.default.info(`Using legacy summoner name format: ${identifier}`);
             try {
                 const enhancedAnalysis = await dataFetchingService.getEnhancedPlayerAnalysis(identifier, region);
                 res.json({
@@ -239,7 +238,7 @@ app.get('/api/analyze/comprehensive/:identifier', async (req, res) => {
                 });
             }
             catch (enhancedError) {
-                loggerService_1.logger.warn('Enhanced analysis failed, falling back to basic:', enhancedError);
+                loggerService_1.default.warn('Enhanced analysis failed, falling back to basic:', enhancedError);
                 const basicAnalysis = await dataFetchingService.fetchPlayerAnalysis(identifier);
                 res.json({
                     success: true,
@@ -255,7 +254,7 @@ app.get('/api/analyze/comprehensive/:identifier', async (req, res) => {
         }
     }
     catch (error) {
-        loggerService_1.logger.error(`Comprehensive analysis error for ${req.params.identifier}:`, error);
+        loggerService_1.default.error(`Comprehensive analysis error for ${req.params.identifier}:`, error);
         // Type guard for axios errors
         const isAxiosError = (err) => {
             return Boolean(err && typeof err === 'object' && err !== null && 'response' in err);
@@ -301,7 +300,7 @@ app.get('/api/analyze/riot-id/:gameName/:tagLine', async (req, res) => {
     try {
         const { gameName, tagLine } = req.params;
         const region = req.query.region || 'na1';
-        loggerService_1.logger.info(`Riot ID analysis request for ${gameName}#${tagLine} in ${region}`);
+        loggerService_1.default.info(`Riot ID analysis request for ${gameName}#${tagLine} in ${region}`);
         // Get summoner data using Riot ID
         const summonerData = await riotApi.getSummonerByRiotId(gameName, tagLine);
         // Perform comprehensive smurf analysis
@@ -321,7 +320,7 @@ app.get('/api/analyze/riot-id/:gameName/:tagLine', async (req, res) => {
         });
     }
     catch (error) {
-        loggerService_1.logger.error(`Riot ID analysis error for ${req.params.gameName}#${req.params.tagLine}:`, error);
+        loggerService_1.default.error(`Riot ID analysis error for ${req.params.gameName}#${req.params.tagLine}:`, error);
         if (error && typeof error === 'object' && 'response' in error) {
             const apiError = error;
             if (apiError.response?.status === 404) {
@@ -352,7 +351,7 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
     const { riotId } = req.params;
     const region = req.query.region || 'na1';
     const matchCount = parseInt(req.query.matches) || 100;
-    loggerService_1.logger.info(`🔍 Comprehensive stats request for: ${riotId} (${region})`);
+    loggerService_1.default.info(`🔍 Comprehensive stats request for: ${riotId} (${region})`);
     try {
         // Parse Riot ID
         const riotIdParts = RiotApi_1.RiotApi.parseRiotId(riotId);
@@ -392,7 +391,7 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
         });
     }
     catch (error) {
-        loggerService_1.logger.error('Error in comprehensive stats endpoint:', error);
+        loggerService_1.default.error('Error in comprehensive stats endpoint:', error);
         // Type guard for axios-like error
         const isAxiosError = (err) => {
             return typeof err === 'object' && err !== null && 'response' in err;
@@ -423,44 +422,120 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
 app.get('/api/analyze/unified/:riotId', async (req, res) => {
     const { riotId } = req.params;
     const region = req.query.region || 'na1';
-    const matchCount = parseInt(req.query.matches) || 200;
-    const forceRefresh = req.query.refresh === 'true';
-    loggerService_1.logger.info(`🎯 Unified analysis request for: ${riotId} (${region}, ${matchCount} matches)`);
+    const matchCount = Math.min(parseInt(req.query.matches) || 50, 100); // Reduced default and max
+    // Set timeout for the entire request
+    const timeout = setTimeout(() => {
+        if (!res.headersSent) {
+            res.status(504).json({
+                success: false,
+                error: 'REQUEST_TIMEOUT',
+                message: 'Analysis request timed out. Please try again with fewer matches.',
+                details: 'Consider reducing the number of matches to analyze for faster results.'
+            });
+        }
+    }, 40000); // Reduced to 40 seconds
     try {
+        loggerService_1.default.info(`Starting unified analysis for ${riotId} in region ${region} (${matchCount} matches)`);
         // Parse Riot ID
         const riotIdParts = RiotApi_1.RiotApi.parseRiotId(riotId);
         if (!riotIdParts) {
+            clearTimeout(timeout);
             return res.status(400).json({
                 success: false,
                 error: 'INVALID_RIOT_ID',
-                message: 'Please provide a valid Riot ID in format: GameName#TAG',
-                example: 'Faker#T1'
+                message: 'Invalid Riot ID format. Please use the format: GameName#TagLine',
+                suggestions: [
+                    'Check the format: GameName#TagLine',
+                    'Ensure the # symbol is included',
+                    'Verify there are no spaces around the #'
+                ]
             });
         }
-        // Get summoner data first
-        const summoner = await riotApi.getSummonerByRiotId(riotIdParts.gameName, riotIdParts.tagLine);
-        // Run unified analysis
-        const unifiedAnalysis = await unifiedAnalysisService.getUnifiedAnalysis(summoner.puuid, {
-            riotId,
+        const { gameName, tagLine } = riotIdParts;
+        // Get summoner data
+        const summoner = await riotApi.getSummonerByRiotId(gameName, tagLine);
+        if (!summoner) {
+            clearTimeout(timeout);
+            return res.status(404).json({
+                success: false,
+                error: 'PLAYER_NOT_FOUND',
+                message: `Player "${riotId}" not found in region ${region}`,
+                suggestions: [
+                    'Check spelling and capitalization',
+                    'Verify the tagline (part after #)',
+                    'Try a different region',
+                    'Ensure the player has recent game activity'
+                ]
+            });
+        }
+        // Use the UnifiedAnalysisService with optimized settings
+        const analysis = await unifiedAnalysisService.getUnifiedAnalysis(summoner.puuid, {
             region,
+            riotId,
             matchCount,
-            forceRefresh
+            forceRefresh: req.query.refresh === 'true',
+            fastMode: true // Enable fast mode for quicker analysis
         });
-        res.json({
-            success: true,
-            source: 'Unified Analysis Service',
-            timestamp: new Date().toISOString(),
-            data: unifiedAnalysis,
-            performance: {
-                analysisTime: Date.now() - parseInt(req.headers['x-start-time'] || '0'),
-                cacheHit: unifiedAnalysis.metadata.dataFreshness !== 'FRESH',
-                suspicionScore: unifiedAnalysis.unifiedSuspicion.overallScore,
-                riskLevel: unifiedAnalysis.unifiedSuspicion.riskLevel
+        // Transform the analysis to match frontend interface
+        const transformedAnalysis = {
+            summoner: {
+                id: summoner.id,
+                accountId: summoner.accountId,
+                puuid: summoner.puuid,
+                name: summoner.name,
+                profileIconId: summoner.profileIconId,
+                revisionDate: summoner.revisionDate,
+                summonerLevel: summoner.summonerLevel,
+                gameName: summoner.gameName || gameName,
+                tagLine: summoner.tagLine || tagLine
+            },
+            smurfAnalysis: analysis.smurfAnalysis,
+            outlierGames: analysis.outlierAnalysis?.outlierGames?.map(game => ({
+                gameId: game.matchId,
+                gameDate: game.gameDate,
+                champion: game.championName,
+                queueType: game.queueType || 'Unknown',
+                position: game.position || 'Unknown',
+                kills: game.kills || 0,
+                deaths: game.deaths || 0,
+                assists: game.assists || 0,
+                kda: game.kda || 0,
+                csPerMin: game.csPerMinute || 0,
+                goldPerMin: game.goldPerMinute || 0,
+                damagePerMin: game.damagePerMinute || 0,
+                damageShare: game.damageShare || 0,
+                outlierScore: game.outlierScore || 0,
+                isOutlier: game.outlierScore >= 60,
+                outlierFlags: game.outlierFlags || [],
+                matchUrl: game.matchUrl || `https://www.op.gg/summoners/${region}/${encodeURIComponent(gameName)}-${encodeURIComponent(tagLine)}/matches/${game.matchId}`,
+                isMvp: game.teamMVP || false,
+                isPerfectGame: game.perfectGame || false,
+                isCarriedGame: game.gameCarried || false
+            })) || [],
+            championStats: analysis.championAnalysis,
+            performanceMetrics: analysis.overallStats,
+            unifiedSuspicion: analysis.unifiedSuspicion,
+            metadata: {
+                ...analysis.metadata,
+                optimizedForSpeed: true,
+                matchesRequested: matchCount,
+                matchesAnalyzed: analysis.metadata.matchesAnalyzed
             }
+        };
+        clearTimeout(timeout);
+        loggerService_1.default.info(`✅ Unified analysis completed for ${riotId} (${analysis.metadata.matchesAnalyzed} matches processed)`);
+        return res.json({
+            success: true,
+            data: transformedAnalysis
         });
     }
     catch (error) {
-        loggerService_1.logger.error(`Error in unified analysis for ${riotId}:`, error);
+        clearTimeout(timeout);
+        loggerService_1.default.error(`Error in unified analysis for ${riotId}:`, error);
+        // Don't send response if headers already sent (timeout occurred)
+        if (res.headersSent) {
+            return;
+        }
         // Type guard for axios-like error
         const isAxiosError = (err) => {
             return typeof err === 'object' && err !== null && 'response' in err;
@@ -495,6 +570,15 @@ app.get('/api/analyze/unified/:riotId', async (req, res) => {
                     retryAfter: 60
                 });
             }
+        }
+        // Handle timeout errors
+        if (error instanceof Error && error.message.includes('timeout')) {
+            return res.status(504).json({
+                success: false,
+                error: 'REQUEST_TIMEOUT',
+                message: 'The request took too long to complete. Please try again.',
+                details: 'The analysis is taking longer than expected. This might be due to high server load or rate limiting.'
+            });
         }
         res.status(500).json({
             success: false,
@@ -539,7 +623,7 @@ app.get('/api/analysis/capabilities', async (req, res) => {
         });
     }
     catch (error) {
-        loggerService_1.logger.error('Error getting analysis capabilities:', error);
+        loggerService_1.default.error('Error getting analysis capabilities:', error);
         res.status(500).json({
             success: false,
             error: {
@@ -550,12 +634,12 @@ app.get('/api/analysis/capabilities', async (req, res) => {
     }
 });
 // Register routes
-app.use('/api/analysis', analysis_1.default);
+// app.use('/api/analysis', analysisRoutes); // Commented out to avoid conflicts with new unified endpoint
 // Debug endpoint to test Riot ID parsing
 app.get('/api/debug/riot-id/:riotId', async (req, res) => {
     try {
         const { riotId } = req.params;
-        loggerService_1.logger.info(`🔍 Testing Riot ID parsing for: ${riotId}`);
+        loggerService_1.default.info(`🔍 Testing Riot ID parsing for: ${riotId}`);
         // Parse Riot ID
         const riotIdParts = RiotApi_1.RiotApi.parseRiotId(riotId);
         if (!riotIdParts) {
@@ -601,7 +685,7 @@ app.get('/api/debug/riot-id/:riotId', async (req, res) => {
         }
     }
     catch (error) {
-        loggerService_1.logger.error(`Error in Riot ID debug endpoint: ${error.message}`);
+        loggerService_1.default.error(`Error in Riot ID debug endpoint: ${error.message}`);
         res.status(500).json({
             success: false,
             error: 'SERVER_ERROR',
@@ -640,7 +724,7 @@ app.get('/api/debug/status', async (req, res) => {
                 ]
             },
             loggers: {
-                winston: !!loggerService_1.logger,
+                winston: !!loggerService_1.default,
                 logtail: !!process.env.LOGTAIL_SOURCE_TOKEN,
                 github: !!(process.env.GITHUB_TOKEN && process.env.GITHUB_REPO)
             }
@@ -651,7 +735,7 @@ app.get('/api/debug/status', async (req, res) => {
         });
     }
     catch (error) {
-        loggerService_1.logger.error(`Error in debug status endpoint: ${error.message}`);
+        loggerService_1.default.error(`Error in debug status endpoint: ${error.message}`);
         res.status(500).json({
             success: false,
             error: 'SERVER_ERROR',
@@ -672,47 +756,52 @@ app.post('/api/logs', async (req, res) => {
             const { level, message, context, stack } = log;
             switch (level) {
                 case 'debug':
-                    loggerService_1.logger.debug(message, { context, stack, source: 'frontend', metadata });
+                    loggerService_1.default.debug(message, { context, stack, source: 'frontend', metadata });
                     break;
                 case 'info':
-                    loggerService_1.logger.info(message, { context, stack, source: 'frontend', metadata });
+                    loggerService_1.default.info(message, { context, stack, source: 'frontend', metadata });
                     break;
                 case 'warn':
-                    loggerService_1.logger.warn(message, { context, stack, source: 'frontend', metadata });
+                    loggerService_1.default.warn(message, { context, stack, source: 'frontend', metadata });
                     break;
                 case 'error':
-                    loggerService_1.logger.error(message, { context, stack, source: 'frontend', metadata });
-                    // For critical frontend errors, create GitHub issue if configured
-                    if (process.env.GITHUB_TOKEN && process.env.GITHUB_REPO) {
-                        const errorContext = {
-                            ...context,
-                            metadata,
-                            source: 'frontend'
-                        };
-                        (0, loggerService_1.logCriticalError)(new Error(message), errorContext).catch(err => {
-                            loggerService_1.logger.error('Failed to create GitHub issue for frontend error', err);
-                        });
-                    }
+                    loggerService_1.default.error('Frontend Error:', {
+                        message,
+                        context,
+                        stack,
+                        source: 'frontend',
+                        metadata
+                    });
                     break;
             }
         });
         res.status(200).json({ success: true });
     }
     catch (error) {
-        loggerService_1.logger.error('Error processing frontend logs', error);
+        loggerService_1.default.error('Error processing frontend logs', error);
         res.status(500).json({ error: 'Failed to process logs' });
     }
 });
 // Global error handler
-app.use((error, req, res, next) => {
-    loggerService_1.logger.error('Unhandled error:', error);
+app.use((err, req, res, next) => {
+    const message = err.message || 'Internal Server Error';
+    const errorContext = {
+        path: req.path,
+        method: req.method,
+        query: req.query,
+        body: req.body,
+        headers: req.headers,
+        timestamp: new Date().toISOString()
+    };
+    loggerService_1.default.error('Unhandled Error:', {
+        error: message,
+        stack: err.stack,
+        ...errorContext
+    });
     res.status(500).json({
-        success: false,
-        error: {
-            type: 'INTERNAL_SERVER_ERROR',
-            message: 'An unexpected error occurred',
-            timestamp: new Date().toISOString()
-        }
+        status: 'error',
+        code: 500,
+        message
     });
 });
 // 404 handler
@@ -736,18 +825,33 @@ app.use('*', (req, res) => {
 });
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-    loggerService_1.logger.info('Received SIGTERM, shutting down gracefully...');
+    loggerService_1.default.info('Received SIGTERM, shutting down gracefully...');
     await dataFetchingService.cleanup();
     process.exit(0);
 });
 process.on('SIGINT', async () => {
-    loggerService_1.logger.info('Received SIGINT, shutting down gracefully...');
+    loggerService_1.default.info('Received SIGINT, shutting down gracefully...');
     await dataFetchingService.cleanup();
     process.exit(0);
 });
+process.on('uncaughtException', (err) => {
+    loggerService_1.default.error('Uncaught Exception:', { error: err.message, stack: err.stack });
+    process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+    loggerService_1.default.error('Unhandled Rejection:', { error: reason.message, stack: reason.stack });
+    process.exit(1);
+});
 app.listen(PORT, () => {
-    loggerService_1.logger.info(`🚀 SmurfGuard API server running on port ${PORT}`);
-    loggerService_1.logger.info(`📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection`);
-    loggerService_1.logger.info(`🔗 Health Check: http://localhost:${PORT}/api/health`);
-    loggerService_1.logger.info(`⚡ Integration Status: http://localhost:${PORT}/api/integration/status`);
+    loggerService_1.default.info(`🚀 SmurfGuard API server running on port ${PORT}`, {
+        metadata: {
+            service: 'smurfguard-api',
+            environment: process.env.NODE_ENV,
+            version: process.env.npm_package_version,
+            timestamp: new Date().toISOString()
+        }
+    });
+    loggerService_1.default.info(`📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection`);
+    loggerService_1.default.info(`🔗 Health Check: http://localhost:${PORT}/api/health`);
+    loggerService_1.default.info(`⚡ Integration Status: http://localhost:${PORT}/api/integration/status`);
 });

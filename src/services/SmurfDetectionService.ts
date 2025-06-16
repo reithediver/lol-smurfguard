@@ -2,7 +2,7 @@ import { RiotApi } from '../api/RiotApi';
 import { PlayerAnalysis, PlaytimeGapAnalysis, ChampionPerformanceAnalysis } from '../models/PlayerAnalysis';
 import { MatchHistory, MatchParticipant } from '../models/MatchHistory';
 import { ChampionStats } from '../models/ChampionStats';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 import { createError } from '../utils/errorHandler';
 
 // Champion ID to name mapping (subset for common champions)

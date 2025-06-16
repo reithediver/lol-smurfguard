@@ -131,12 +131,16 @@ UnifiedSmurfAnalysis
 - **10 algorithmic metrics** calculated in real-time
 - **Sub-3 second** response times
 - **30-minute caching** for optimal performance
+- **Persistent storage** for reduced API calls
+- **Progress tracking** during analysis
 
 ### **User Experience**
 - **Single search interface** - No confusing navigation
 - **18 comprehensive columns** - All data visible
 - **Horizontal scroll** - Optimized for data density
 - **Color-coded indicators** - Instant visual feedback
+- **Loading progress bar** - Real-time status updates
+- **Cached results** - Faster repeat searches
 
 ---
 
@@ -164,6 +168,11 @@ UnifiedSmurfAnalysis
 - **Backend**: [Railway Auto-Scaling](https://smurfgaurd-production.up.railway.app)
 - **Monitoring**: Real-time health checks and performance metrics
 - **Uptime**: 99.9% availability with automatic failover
+- **Storage**: Persistent caching for optimized performance
+- **Logging**: Comprehensive error tracking and debugging
+
+### **Current Status**
+> **Note**: As of March 16, 2024, the application is experiencing 499 (Client Closed Request) errors in production. We are actively investigating and working on a resolution. Please check back for updates.
 
 ### **Development Setup**
 ```bash
@@ -171,15 +180,16 @@ UnifiedSmurfAnalysis
 git clone https://github.com/reithediver/lol-smurfguard.git
 cd lol-smurfguard
 
+# Install dependencies
+npm install
+
 # Backend setup
 cd src
-npm install
 npm run build
 npm start
 
 # Frontend setup  
 cd ../frontend
-npm install
 npm run build
 npm start
 ```

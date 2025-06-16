@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChallengerService = void 0;
 const axios_1 = __importDefault(require("axios"));
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 const errorHandler_1 = require("../utils/errorHandler");
 const storageAdapter_1 = require("../utils/storageAdapter");
 class ChallengerService {
@@ -24,7 +24,7 @@ class ChallengerService {
             const cacheKey = `challenger-league-${queue}`;
             const cached = this.cache.get(cacheKey);
             if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-                loggerService_1.logger.debug('Returning cached challenger league data');
+                loggerService_1.default.debug('Returning cached challenger league data');
                 return cached.data;
             }
             const response = await axios_1.default.get(`https://${this.region}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/${queue}`, { headers: { 'X-Riot-Token': this.apiKey } });
@@ -37,7 +37,7 @@ class ChallengerService {
         }
         catch (error) {
             const axiosError = error;
-            loggerService_1.logger.error('Failed to get challenger league:', axiosError.response?.status, axiosError.response?.statusText);
+            loggerService_1.default.error('Failed to get challenger league:', axiosError.response?.status, axiosError.response?.statusText);
             throw (0, errorHandler_1.createError)(axiosError.response?.status || 500, 'Failed to get challenger league');
         }
     }
@@ -128,7 +128,7 @@ class ChallengerService {
             };
         }
         catch (error) {
-            loggerService_1.logger.error('Error tracking challenger movement:', error);
+            loggerService_1.default.error('Error tracking challenger movement:', error);
             // Reset stored data
             storageAdapter_1.storage.setItem('previous-challenger-data', JSON.stringify({
                 challengers: currentChallengers,

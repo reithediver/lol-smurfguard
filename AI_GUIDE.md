@@ -73,6 +73,9 @@ if (riotIdParts) {
 - Backend caches API responses and analysis results
 - Default analysis processes 500+ matches for comprehensive results
 - API rate limits are handled automatically with retries
+- Persistent storage system for optimized performance
+- Progress tracking during long operations
+- Comprehensive logging system for debugging
 
 ## Deployment
 
@@ -112,9 +115,33 @@ if (riotIdParts) {
 - Fixed API endpoint URL structure
 - Enhanced timeout handling and added retry mechanisms
 - Added debug endpoints for troubleshooting
+- Implemented persistent storage system
+- Added comprehensive logging system
+- Optimized Git workflow with proper .gitignore
+- Enhanced error handling and user feedback
+
+## Known Issues
+
+### Current Deployment Issues (2024-03-16)
+- **499 Error**: The application is currently experiencing 499 (Client Closed Request) errors in production
+- **Status**: Investigation in progress
+- **Affected Areas**:
+  - Match history fetching
+  - Batch processing of match details
+  - Rate limiting implementation
+- **Temporary Workarounds**: None currently available
+- **Next Steps**:
+  1. Investigate client-side timeout settings
+  2. Review server-side request handling
+  3. Consider implementing request queuing
+  4. Evaluate alternative API call strategies
 
 ## Future Work
 
 - Enhance error handling with more specific messages
 - Improve caching strategies for faster analysis
-- Expand outlier detection algorithms 
+- Expand outlier detection algorithms
+- Implement advanced data visualization
+- Add more detailed performance metrics
+- Enhance the progress tracking system
+- Resolve 499 error issues in production 

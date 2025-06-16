@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SmurfDetectionService = void 0;
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 const errorHandler_1 = require("../utils/errorHandler");
 // Champion ID to name mapping (subset for common champions)
 const CHAMPION_NAMES = {
@@ -74,7 +77,7 @@ class SmurfDetectionService {
             return analysis;
         }
         catch (error) {
-            loggerService_1.logger.error('Error analyzing player:', error);
+            loggerService_1.default.error('Error analyzing player:', error);
             // Handle specific Riot API errors
             if (error.response?.status === 403) {
                 throw (0, errorHandler_1.createError)(403, `API access forbidden for "${summonerName}". The Development API key cannot access famous players. Try a different summoner name.`);
@@ -99,44 +102,44 @@ class SmurfDetectionService {
     // New method for analyzing by PUUID (modern Riot ID workflow)
     async analyzeSmurf(puuid, region = 'na1') {
         try {
-            loggerService_1.logger.info(`🚀 Starting smurf analysis for PUUID: ${puuid} in region: ${region}`);
+            loggerService_1.default.info(`🚀 Starting smurf analysis for PUUID: ${puuid} in region: ${region}`);
             // Get summoner data using PUUID
-            loggerService_1.logger.info('📡 Fetching summoner data by PUUID...');
+            loggerService_1.default.info('📡 Fetching summoner data by PUUID...');
             const summoner = await this.riotApi.getSummonerByPuuid(puuid);
-            loggerService_1.logger.info(`✅ Summoner data retrieved: ${summoner.name} (Level ${summoner.summonerLevel})`);
+            loggerService_1.default.info(`✅ Summoner data retrieved: ${summoner.name} (Level ${summoner.summonerLevel})`);
             // Get match history
-            loggerService_1.logger.info('📡 Fetching match history...');
+            loggerService_1.default.info('📡 Fetching match history...');
             const matchHistory = await this.riotApi.getMatchHistory(puuid);
-            loggerService_1.logger.info(`✅ Match history retrieved: ${matchHistory.length} matches`);
+            loggerService_1.default.info(`✅ Match history retrieved: ${matchHistory.length} matches`);
             const matchDetails = await Promise.all(matchHistory.slice(0, 10).map(matchId => {
-                loggerService_1.logger.info(`📡 Fetching match details for: ${matchId}`);
+                loggerService_1.default.info(`📡 Fetching match details for: ${matchId}`);
                 return this.riotApi.getMatchDetails(matchId);
             }));
-            loggerService_1.logger.info(`✅ Match details retrieved: ${matchDetails.length} detailed matches`);
+            loggerService_1.default.info(`✅ Match details retrieved: ${matchDetails.length} detailed matches`);
             // Get additional data
-            loggerService_1.logger.info('📡 Fetching league entries...');
+            loggerService_1.default.info('📡 Fetching league entries...');
             const leagueEntries = await this.riotApi.getLeagueEntries(puuid);
-            loggerService_1.logger.info(`✅ League entries retrieved: ${JSON.stringify(leagueEntries)}`);
-            loggerService_1.logger.info('📡 Fetching champion mastery...');
+            loggerService_1.default.info(`✅ League entries retrieved: ${JSON.stringify(leagueEntries)}`);
+            loggerService_1.default.info('📡 Fetching champion mastery...');
             const championMastery = await this.riotApi.getChampionMastery(puuid);
-            loggerService_1.logger.info(`✅ Champion mastery retrieved: ${championMastery.length} champions`);
-            loggerService_1.logger.info('🔍 Starting detailed analysis...');
+            loggerService_1.default.info(`✅ Champion mastery retrieved: ${championMastery.length} champions`);
+            loggerService_1.default.info('🔍 Starting detailed analysis...');
             // Analyze playtime gaps
-            loggerService_1.logger.info('📊 Analyzing playtime gaps...');
+            loggerService_1.default.info('📊 Analyzing playtime gaps...');
             const playtimeGaps = await this.analyzePlaytimeGaps(matchDetails);
-            loggerService_1.logger.info(`✅ Playtime gaps analysis: ${playtimeGaps.suspiciousGaps.length} gaps found, score: ${playtimeGaps.totalGapScore}`);
+            loggerService_1.default.info(`✅ Playtime gaps analysis: ${playtimeGaps.suspiciousGaps.length} gaps found, score: ${playtimeGaps.totalGapScore}`);
             // Analyze champion performance
-            loggerService_1.logger.info('📊 Analyzing champion performance...');
+            loggerService_1.default.info('📊 Analyzing champion performance...');
             const championPerformance = await this.analyzeChampionPerformance(matchDetails, puuid);
-            loggerService_1.logger.info(`✅ Champion performance analysis: ${championPerformance.firstTimeChampions.length} champions, score: ${championPerformance.overallPerformanceScore}`);
+            loggerService_1.default.info(`✅ Champion performance analysis: ${championPerformance.firstTimeChampions.length} champions, score: ${championPerformance.overallPerformanceScore}`);
             // Analyze summoner spells
-            loggerService_1.logger.info('📊 Analyzing summoner spell usage...');
+            loggerService_1.default.info('📊 Analyzing summoner spell usage...');
             const summonerSpellUsage = await this.analyzeSummonerSpells(matchDetails, puuid);
-            loggerService_1.logger.info(`✅ Summoner spell analysis: ${summonerSpellUsage.spellPlacementChanges.length} changes, score: ${summonerSpellUsage.patternChangeScore}`);
+            loggerService_1.default.info(`✅ Summoner spell analysis: ${summonerSpellUsage.spellPlacementChanges.length} changes, score: ${summonerSpellUsage.patternChangeScore}`);
             // Analyze player associations
-            loggerService_1.logger.info('📊 Analyzing player associations...');
+            loggerService_1.default.info('📊 Analyzing player associations...');
             const playerAssociations = await this.analyzePlayerAssociations(matchDetails, puuid);
-            loggerService_1.logger.info(`✅ Player associations analysis: ${playerAssociations.highEloAssociations.length} associations, score: ${playerAssociations.associationScore}`);
+            loggerService_1.default.info(`✅ Player associations analysis: ${playerAssociations.highEloAssociations.length} associations, score: ${playerAssociations.associationScore}`);
             const analysis = {
                 summonerId: summoner.id,
                 accountId: summoner.accountId || 'N/A',
@@ -157,12 +160,12 @@ class SmurfDetectionService {
                 region: region
             };
             analysis.smurfProbability = this.calculateSmurfProbability(analysis.analysisFactors);
-            loggerService_1.logger.info(`🎯 Final analysis complete - Smurf probability: ${analysis.smurfProbability}%`);
-            loggerService_1.logger.info(`📋 Final analysis factors:`, JSON.stringify(analysis.analysisFactors, null, 2));
+            loggerService_1.default.info(`🎯 Final analysis complete - Smurf probability: ${analysis.smurfProbability}%`);
+            loggerService_1.default.info(`📋 Final analysis factors:`, JSON.stringify(analysis.analysisFactors, null, 2));
             return analysis;
         }
         catch (error) {
-            loggerService_1.logger.error('Error analyzing smurf by PUUID:', error);
+            loggerService_1.default.error('Error analyzing smurf by PUUID:', error);
             // Handle specific Riot API errors
             if (error.response?.status === 403) {
                 throw (0, errorHandler_1.createError)(403, `API access forbidden for PUUID. The API key may have restrictions.`);
@@ -211,7 +214,7 @@ class SmurfDetectionService {
         matches.forEach(match => {
             // Add null checks for match data structure
             if (!match || !match.participants || !Array.isArray(match.participants)) {
-                loggerService_1.logger.warn('Invalid match data structure:', match);
+                loggerService_1.default.warn('Invalid match data structure:', match);
                 return;
             }
             const player = match.participants.find(p => p.puuid === targetPuuid);
@@ -300,7 +303,7 @@ class SmurfDetectionService {
             const currentMatch = sortedMatches[i];
             // Add null checks for match data structure
             if (!currentMatch || !currentMatch.participants || !Array.isArray(currentMatch.participants)) {
-                loggerService_1.logger.warn('Invalid match data structure in summoner spell analysis:', currentMatch);
+                loggerService_1.default.warn('Invalid match data structure in summoner spell analysis:', currentMatch);
                 continue;
             }
             const currentPlayer = currentMatch.participants.find(p => p.puuid === targetPuuid);
@@ -367,7 +370,7 @@ class SmurfDetectionService {
         for (const match of matches) {
             // Add null checks for match data structure
             if (!match || !match.participants || !Array.isArray(match.participants)) {
-                loggerService_1.logger.warn('Invalid match data structure in player associations analysis:', match);
+                loggerService_1.default.warn('Invalid match data structure in player associations analysis:', match);
                 continue;
             }
             const targetPlayer = match.participants.find(p => p.puuid === targetPuuid);

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LimitedAccessService = void 0;
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 const errorHandler_1 = require("../utils/errorHandler");
 const axios_1 = __importDefault(require("axios"));
 class LimitedAccessService {
@@ -90,7 +90,7 @@ class LimitedAccessService {
         }
         catch (error) {
             const axiosError = error;
-            loggerService_1.logger.error('Failed to get challenger players:', axiosError.response?.status, axiosError.response?.statusText);
+            loggerService_1.default.error('Failed to get challenger players:', axiosError.response?.status, axiosError.response?.statusText);
             throw (0, errorHandler_1.createError)(axiosError.response?.status || 500, 'Failed to get challenger players');
         }
     }
@@ -106,7 +106,7 @@ class LimitedAccessService {
         }
         catch (error) {
             const axiosError = error;
-            loggerService_1.logger.error('Failed to get champion rotation:', axiosError.response?.status, axiosError.response?.statusText);
+            loggerService_1.default.error('Failed to get champion rotation:', axiosError.response?.status, axiosError.response?.statusText);
             throw (0, errorHandler_1.createError)(axiosError.response?.status || 500, 'Failed to get champion rotation');
         }
     }
@@ -122,7 +122,7 @@ class LimitedAccessService {
         }
         catch (error) {
             const axiosError = error;
-            loggerService_1.logger.error('Failed to get platform status:', axiosError.response?.status, axiosError.response?.statusText);
+            loggerService_1.default.error('Failed to get platform status:', axiosError.response?.status, axiosError.response?.statusText);
             throw (0, errorHandler_1.createError)(axiosError.response?.status || 500, 'Failed to get platform status');
         }
     }

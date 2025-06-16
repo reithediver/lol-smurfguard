@@ -1,10 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const SmurfDetectionService_1 = require("../../services/SmurfDetectionService");
 const RiotApi_1 = require("../RiotApi");
 const errorHandler_1 = require("../../utils/errorHandler");
-const loggerService_1 = require("../../utils/loggerService");
+const loggerService_1 = __importDefault(require("../../utils/loggerService"));
 const router = (0, express_1.Router)();
 const riotApi = new RiotApi_1.RiotApi(process.env.RIOT_API_KEY || '');
 const smurfDetectionService = new SmurfDetectionService_1.SmurfDetectionService(riotApi);
@@ -19,7 +22,7 @@ router.get('/:summonerName', async (req, res, next) => {
         if (!summonerName) {
             throw (0, errorHandler_1.createError)(400, 'Summoner name is required');
         }
-        loggerService_1.logger.info(`Analyzing player: ${summonerName}`);
+        loggerService_1.default.info(`Analyzing player: ${summonerName}`);
         const analysis = await smurfDetectionService.analyzePlayer(summonerName);
         res.json({
             status: 'success',

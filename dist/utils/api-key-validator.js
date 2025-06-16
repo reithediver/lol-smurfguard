@@ -1,15 +1,18 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiKeyValidator = void 0;
 const RiotApi_1 = require("../api/RiotApi");
-const loggerService_1 = require("./loggerService");
+const loggerService_1 = __importDefault(require("./loggerService"));
 class ApiKeyValidator {
     constructor(apiKey) {
         this.testRegions = ['na1', 'euw1', 'kr', 'jp1'];
         this.riotApi = new RiotApi_1.RiotApi(apiKey, 'na1');
     }
     async validateApiKey() {
-        loggerService_1.logger.info('🔍 Starting comprehensive API key validation...');
+        loggerService_1.default.info('🔍 Starting comprehensive API key validation...');
         const result = {
             isValid: false,
             keyType: 'unknown',
@@ -44,109 +47,109 @@ class ApiKeyValidator {
             this.determineKeyType(result);
             // Generate recommendations
             this.generateRecommendations(result);
-            loggerService_1.logger.info(`✅ API key validation completed. Key type: ${result.keyType}`);
+            loggerService_1.default.info(`✅ API key validation completed. Key type: ${result.keyType}`);
         }
         catch (error) {
-            loggerService_1.logger.error('❌ API key validation failed:', error);
+            loggerService_1.default.error('❌ API key validation failed:', error);
             result.errors.push(`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         return result;
     }
     async testBasicConnectivity(result) {
         try {
-            loggerService_1.logger.info('Testing basic API connectivity...');
+            loggerService_1.default.info('Testing basic API connectivity...');
             // Test with a simple platform status call
             const platform = await this.riotApi.request('/lol/status/v4/platform-data');
             if (platform) {
                 result.isValid = true;
                 result.permissions.platformData = true;
-                loggerService_1.logger.info('✅ Basic connectivity successful');
+                loggerService_1.default.info('✅ Basic connectivity successful');
             }
         }
         catch (error) {
-            loggerService_1.logger.error('❌ Basic connectivity failed:', error);
+            loggerService_1.default.error('❌ Basic connectivity failed:', error);
             result.errors.push('Failed basic connectivity test');
             throw error;
         }
     }
     async testPermissions(result) {
-        loggerService_1.logger.info('Testing API permissions...');
+        loggerService_1.default.info('Testing API permissions...');
         // Test summoner data access
         try {
             await this.riotApi.request('/lol/summoner/v4/summoners/by-name/test');
             result.permissions.summonerData = true;
-            loggerService_1.logger.info('✅ Summoner data access confirmed');
+            loggerService_1.default.info('✅ Summoner data access confirmed');
         }
         catch (error) {
             if (error.status === 404) {
                 result.permissions.summonerData = true; // 404 means we can access the endpoint
-                loggerService_1.logger.info('✅ Summoner data access confirmed (test summoner not found - expected)');
+                loggerService_1.default.info('✅ Summoner data access confirmed (test summoner not found - expected)');
             }
             else if (error.status === 403) {
                 result.permissions.summonerData = false;
                 result.warnings.push('No access to summoner data endpoints');
-                loggerService_1.logger.warn('⚠️ No access to summoner data endpoints');
+                loggerService_1.default.warn('⚠️ No access to summoner data endpoints');
             }
         }
         // Test match data access
         try {
             await this.riotApi.request('/lol/match/v5/matches/test');
             result.permissions.matchData = true;
-            loggerService_1.logger.info('✅ Match data access confirmed');
+            loggerService_1.default.info('✅ Match data access confirmed');
         }
         catch (error) {
             if (error.status === 404) {
                 result.permissions.matchData = true; // 404 means we can access the endpoint
-                loggerService_1.logger.info('✅ Match data access confirmed (test match not found - expected)');
+                loggerService_1.default.info('✅ Match data access confirmed (test match not found - expected)');
             }
             else if (error.status === 403) {
                 result.permissions.matchData = false;
                 result.warnings.push('No access to match data endpoints');
-                loggerService_1.logger.warn('⚠️ No access to match data endpoints');
+                loggerService_1.default.warn('⚠️ No access to match data endpoints');
             }
         }
         // Test challenger data access
         try {
             await this.riotApi.request('/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5');
             result.permissions.challengerData = true;
-            loggerService_1.logger.info('✅ Challenger data access confirmed');
+            loggerService_1.default.info('✅ Challenger data access confirmed');
         }
         catch (error) {
             if (error.status === 403) {
                 result.permissions.challengerData = false;
                 result.warnings.push('No access to challenger league endpoints');
-                loggerService_1.logger.warn('⚠️ No access to challenger league endpoints');
+                loggerService_1.default.warn('⚠️ No access to challenger league endpoints');
             }
         }
         // Test champion rotation access
         try {
             await this.riotApi.request('/lol/platform/v3/champion-rotations');
             result.permissions.championRotation = true;
-            loggerService_1.logger.info('✅ Champion rotation access confirmed');
+            loggerService_1.default.info('✅ Champion rotation access confirmed');
         }
         catch (error) {
             if (error.status === 403) {
                 result.permissions.championRotation = false;
                 result.warnings.push('No access to champion rotation endpoints');
-                loggerService_1.logger.warn('⚠️ No access to champion rotation endpoints');
+                loggerService_1.default.warn('⚠️ No access to champion rotation endpoints');
             }
         }
         // Test spectator data access
         try {
             await this.riotApi.request('/lol/spectator/v4/featured-games');
             result.permissions.spectatorData = true;
-            loggerService_1.logger.info('✅ Spectator data access confirmed');
+            loggerService_1.default.info('✅ Spectator data access confirmed');
         }
         catch (error) {
             if (error.status === 403) {
                 result.permissions.spectatorData = false;
                 result.warnings.push('No access to spectator endpoints');
-                loggerService_1.logger.warn('⚠️ No access to spectator endpoints');
+                loggerService_1.default.warn('⚠️ No access to spectator endpoints');
             }
         }
     }
     async detectRateLimits(result) {
-        loggerService_1.logger.info('Detecting rate limits...');
+        loggerService_1.default.info('Detecting rate limits...');
         // Make a test request and check response headers
         try {
             const response = await this.riotApi.requestWithHeaders('/lol/status/v4/platform-data');
@@ -167,23 +170,23 @@ class ApiKeyValidator {
                     result.rateLimit.applicationLimit = parseInt(appLimit);
                 }
             }
-            loggerService_1.logger.info(`📊 Rate limits detected - Personal: ${result.rateLimit.personalLimit}/s, App: ${result.rateLimit.applicationLimit}/s`);
+            loggerService_1.default.info(`📊 Rate limits detected - Personal: ${result.rateLimit.personalLimit}/s, App: ${result.rateLimit.applicationLimit}/s`);
         }
         catch (error) {
-            loggerService_1.logger.warn('Could not detect rate limits from response headers');
+            loggerService_1.default.warn('Could not detect rate limits from response headers');
         }
     }
     async testRegionalAccess(result) {
-        loggerService_1.logger.info('Testing regional access...');
+        loggerService_1.default.info('Testing regional access...');
         for (const region of this.testRegions) {
             try {
                 const regionalApi = new RiotApi_1.RiotApi(this.riotApi.apiKey, region);
                 await regionalApi.request('/lol/status/v4/platform-data');
                 result.regions.push(region);
-                loggerService_1.logger.info(`✅ Access confirmed for region: ${region}`);
+                loggerService_1.default.info(`✅ Access confirmed for region: ${region}`);
             }
             catch (error) {
-                loggerService_1.logger.warn(`❌ No access to region: ${region}`);
+                loggerService_1.default.warn(`❌ No access to region: ${region}`);
             }
         }
     }

@@ -1,6 +1,6 @@
 import { RiotApi } from '../api/RiotApi';
 import { AdvancedSmurfAnalysis, HistoricalAnalysis, AdvancedPerformanceMetrics, SuspiciousPatterns, ChampionExpertiseFlag } from '../models/AdvancedPlayerAnalysis';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 
 export class AdvancedDataService {
   private riotApi: RiotApi;

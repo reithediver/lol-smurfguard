@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 
 /**
  * Interface for cached data with expiration

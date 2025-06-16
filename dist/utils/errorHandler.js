@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorHandler = exports.createError = exports.AppError = void 0;
-const loggerService_1 = require("./loggerService");
+const loggerService_1 = __importDefault(require("./loggerService"));
 class AppError extends Error {
     constructor(message, statusCode) {
         super(message);
@@ -17,7 +20,7 @@ const createError = (statusCode, message) => {
 };
 exports.createError = createError;
 const errorHandler = (err, req, res, next) => {
-    loggerService_1.logger.error('Error:', err);
+    loggerService_1.default.error('Error:', err);
     if (err instanceof AppError) {
         return res.status(err.statusCode).json({
             status: 'error',

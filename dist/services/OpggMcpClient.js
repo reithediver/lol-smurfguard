@@ -1,9 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OpggMcpClient = void 0;
 const index_js_1 = require("@modelcontextprotocol/sdk/client/index.js");
 const sse_js_1 = require("@modelcontextprotocol/sdk/client/sse.js");
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 class OpggMcpClient {
     constructor() {
         this.isConnected = false;
@@ -31,13 +34,13 @@ class OpggMcpClient {
             }
             await this.client.connect(this.transport);
             this.isConnected = true;
-            loggerService_1.logger.info('Successfully connected to OP.GG MCP server');
+            loggerService_1.default.info('Successfully connected to OP.GG MCP server');
             // List available tools
             const tools = await this.client.listTools();
-            loggerService_1.logger.info(`Available OP.GG MCP tools: ${tools.tools.map(t => t.name).join(', ')}`);
+            loggerService_1.default.info(`Available OP.GG MCP tools: ${tools.tools.map(t => t.name).join(', ')}`);
         }
         catch (error) {
-            loggerService_1.logger.error('Failed to connect to OP.GG MCP server:', error);
+            loggerService_1.default.error('Failed to connect to OP.GG MCP server:', error);
             throw new Error(`OP.GG MCP connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
@@ -49,11 +52,11 @@ class OpggMcpClient {
             if (this.isConnected) {
                 await this.client.close();
                 this.isConnected = false;
-                loggerService_1.logger.info('Disconnected from OP.GG MCP server');
+                loggerService_1.default.info('Disconnected from OP.GG MCP server');
             }
         }
         catch (error) {
-            loggerService_1.logger.error('Error disconnecting from OP.GG MCP server:', error);
+            loggerService_1.default.error('Error disconnecting from OP.GG MCP server:', error);
         }
     }
     /**
@@ -65,7 +68,7 @@ class OpggMcpClient {
             const cacheKey = `opgg_analysis_${summonerName}_${region}`;
             const cachedData = this.getFromCache(cacheKey);
             if (cachedData) {
-                loggerService_1.logger.info(`Cache hit for OP.GG analysis: ${summonerName}`);
+                loggerService_1.default.info(`Cache hit for OP.GG analysis: ${summonerName}`);
                 return cachedData;
             }
             // Ensure connection
@@ -90,13 +93,13 @@ class OpggMcpClient {
             const enhancedAnalysis = this.transformMcpDataToEnhancedAnalysis(summonerResponse, matchHistoryResponse, championStatsResponse, summonerName, region);
             // Cache the result
             this.addToCache(cacheKey, enhancedAnalysis);
-            loggerService_1.logger.info(`Successfully fetched OP.GG MCP analysis for ${summonerName}`);
+            loggerService_1.default.info(`Successfully fetched OP.GG MCP analysis for ${summonerName}`);
             return enhancedAnalysis;
         }
         catch (error) {
-            loggerService_1.logger.error(`Error fetching OP.GG MCP analysis for ${summonerName}:`, error);
+            loggerService_1.default.error(`Error fetching OP.GG MCP analysis for ${summonerName}:`, error);
             // Fallback to mock data if MCP fails
-            loggerService_1.logger.warn(`Falling back to mock data for ${summonerName} due to MCP error`);
+            loggerService_1.default.warn(`Falling back to mock data for ${summonerName} due to MCP error`);
             return this.generateMockAnalysis(summonerName, region);
         }
     }
@@ -105,16 +108,16 @@ class OpggMcpClient {
      */
     async callTool(toolName, args) {
         try {
-            loggerService_1.logger.info(`Calling OP.GG MCP tool: ${toolName} with args:`, args);
+            loggerService_1.default.info(`Calling OP.GG MCP tool: ${toolName} with args:`, args);
             const result = await this.client.callTool({
                 name: toolName,
                 arguments: args
             });
-            loggerService_1.logger.info(`OP.GG MCP tool ${toolName} response received`);
+            loggerService_1.default.info(`OP.GG MCP tool ${toolName} response received`);
             return result;
         }
         catch (error) {
-            loggerService_1.logger.error(`Error calling OP.GG MCP tool ${toolName}:`, error);
+            loggerService_1.default.error(`Error calling OP.GG MCP tool ${toolName}:`, error);
             throw error;
         }
     }
@@ -276,7 +279,7 @@ class OpggMcpClient {
             };
         }
         catch (error) {
-            loggerService_1.logger.error('Error transforming MCP data:', error);
+            loggerService_1.default.error('Error transforming MCP data:', error);
             return this.generateMockAnalysis(summonerName, region);
         }
     }
@@ -299,7 +302,7 @@ class OpggMcpClient {
             return {};
         }
         catch (error) {
-            loggerService_1.logger.error('Error parsing MCP response:', error);
+            loggerService_1.default.error('Error parsing MCP response:', error);
             return {};
         }
     }
@@ -489,7 +492,7 @@ class OpggMcpClient {
             };
         }
         catch (error) {
-            loggerService_1.logger.error('Error checking OP.GG MCP status:', error);
+            loggerService_1.default.error('Error checking OP.GG MCP status:', error);
             return {
                 connected: false,
                 serverUrl: this.MCP_SERVER_URL,

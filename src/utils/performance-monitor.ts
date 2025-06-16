@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { logger } from './loggerService';
+import logger from './loggerService';
 
 interface PerformanceMetrics {
   requestCount: number;

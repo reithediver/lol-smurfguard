@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OpggDataAdapter = void 0;
 const axios_1 = __importDefault(require("axios"));
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 const errorHandler_1 = require("../utils/errorHandler");
 class OpggDataAdapter {
     constructor() {
@@ -27,18 +27,18 @@ class OpggDataAdapter {
     setupInterceptors() {
         // Request interceptor for logging
         this.apiClient.interceptors.request.use((config) => {
-            loggerService_1.logger.info(`OP.GG API Request: ${config.method?.toUpperCase()} ${config.url}`);
+            loggerService_1.default.info(`OP.GG API Request: ${config.method?.toUpperCase()} ${config.url}`);
             return config;
         }, (error) => {
-            loggerService_1.logger.error('OP.GG API Request Error:', error);
+            loggerService_1.default.error('OP.GG API Request Error:', error);
             return Promise.reject(error);
         });
         // Response interceptor for error handling
         this.apiClient.interceptors.response.use((response) => {
-            loggerService_1.logger.info(`OP.GG API Response: ${response.status} ${response.config.url}`);
+            loggerService_1.default.info(`OP.GG API Response: ${response.status} ${response.config.url}`);
             return response;
         }, (error) => {
-            loggerService_1.logger.error('OP.GG API Response Error:', error.response?.data || error.message);
+            loggerService_1.default.error('OP.GG API Response Error:', error.response?.data || error.message);
             return Promise.reject(error);
         });
     }
@@ -47,17 +47,17 @@ class OpggDataAdapter {
      */
     async getEnhancedPlayerAnalysis(summonerName, region = 'na1') {
         try {
-            loggerService_1.logger.info(`Fetching enhanced analysis for ${summonerName} in ${region}`);
+            loggerService_1.default.info(`Fetching enhanced analysis for ${summonerName} in ${region}`);
             // Check cache first
             const cacheKey = `analysis_${summonerName}_${region}`;
             const cachedData = this.getFromCache(cacheKey);
             if (cachedData) {
-                loggerService_1.logger.info(`Cache hit for enhanced analysis: ${summonerName}`);
+                loggerService_1.default.info(`Cache hit for enhanced analysis: ${summonerName}`);
                 return cachedData;
             }
             // Use mock data if OP.GG API is not available
             if (this.USE_MOCK_DATA) {
-                loggerService_1.logger.info(`Using mock OP.GG data for ${summonerName} (OP.GG MCP API not available)`);
+                loggerService_1.default.info(`Using mock OP.GG data for ${summonerName} (OP.GG MCP API not available)`);
                 const mockAnalysis = this.generateMockEnhancedAnalysis(summonerName, region);
                 this.addToCache(cacheKey, mockAnalysis);
                 return mockAnalysis;
@@ -73,13 +73,13 @@ class OpggDataAdapter {
             const enhancedAnalysis = this.transformToEnhancedPlayerAnalysis(summonerData, matchHistory, championAnalysis, positionData, summonerName, region);
             // Cache the result
             this.addToCache(cacheKey, enhancedAnalysis);
-            loggerService_1.logger.info(`Successfully created enhanced analysis for ${summonerName}`);
+            loggerService_1.default.info(`Successfully created enhanced analysis for ${summonerName}`);
             return enhancedAnalysis;
         }
         catch (error) {
-            loggerService_1.logger.error(`Error creating enhanced analysis for ${summonerName}:`, error);
+            loggerService_1.default.error(`Error creating enhanced analysis for ${summonerName}:`, error);
             // Fallback to mock data if real API fails
-            loggerService_1.logger.info(`Falling back to mock data for ${summonerName}`);
+            loggerService_1.default.info(`Falling back to mock data for ${summonerName}`);
             const cacheKey = `analysis_${summonerName}_${region}`;
             const mockAnalysis = this.generateMockEnhancedAnalysis(summonerName, region);
             this.addToCache(cacheKey, mockAnalysis);
@@ -436,10 +436,10 @@ class OpggDataAdapter {
             // Clear cache for this summoner to force fresh data
             const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes(summonerName) && key.includes(region));
             keysToDelete.forEach(key => this.cache.delete(key));
-            loggerService_1.logger.info(`Refreshed and cleared cache for ${summonerName} in ${region}`);
+            loggerService_1.default.info(`Refreshed and cleared cache for ${summonerName} in ${region}`);
         }
         catch (error) {
-            loggerService_1.logger.error(`Error refreshing summoner data for ${summonerName}:`, error);
+            loggerService_1.default.error(`Error refreshing summoner data for ${summonerName}:`, error);
             throw (0, errorHandler_1.createError)(500, 'Failed to refresh summoner data');
         }
     }
@@ -468,7 +468,7 @@ class OpggDataAdapter {
     }
     clearCache() {
         this.cache.clear();
-        loggerService_1.logger.info('OP.GG adapter cache cleared');
+        loggerService_1.default.info('OP.GG adapter cache cleared');
     }
     getCacheStats() {
         return {

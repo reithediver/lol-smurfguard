@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OutlierGameDetectionService = void 0;
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 class OutlierGameDetectionService {
     constructor() {
         // Rank-based thresholds for outlier detection
@@ -18,7 +21,7 @@ class OutlierGameDetectionService {
         };
     }
     async analyzeOutlierGames(matches, puuid, estimatedRank = 'GOLD') {
-        loggerService_1.logger.info(`🔍 Analyzing ${matches.length} matches for outlier performance...`);
+        loggerService_1.default.info(`🔍 Analyzing ${matches.length} matches for outlier performance...`);
         const outlierGames = [];
         const processedMatches = matches.filter(match => match.participants.some(p => p.puuid === puuid));
         for (const match of processedMatches) {
@@ -34,8 +37,8 @@ class OutlierGameDetectionService {
         // Sort by outlier score (highest first)
         outlierGames.sort((a, b) => b.outlierScore - a.outlierScore);
         const result = this.generateOutlierSummary(outlierGames, processedMatches.length);
-        loggerService_1.logger.info(`✅ Outlier analysis complete: ${outlierGames.length}/${processedMatches.length} games flagged as outliers`);
-        loggerService_1.logger.info(`📊 Average outlier score: ${result.averageOutlierScore.toFixed(1)} | Outlier rate: ${(result.outlierRate * 100).toFixed(1)}%`);
+        loggerService_1.default.info(`✅ Outlier analysis complete: ${outlierGames.length}/${processedMatches.length} games flagged as outliers`);
+        loggerService_1.default.info(`📊 Average outlier score: ${result.averageOutlierScore.toFixed(1)} | Outlier rate: ${(result.outlierRate * 100).toFixed(1)}%`);
         return result;
     }
     async analyzeGameForOutliers(match, player, estimatedRank) {

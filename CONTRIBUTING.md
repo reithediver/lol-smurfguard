@@ -12,6 +12,9 @@
 - Follow established project patterns and best practices
 - Document significant changes and architectural decisions
 - **IMPORTANT:** Reference the [AI_GUIDE.md](./AI_GUIDE.md) file for project structure, API conventions, and best practices
+- Ensure proper Git workflow with .gitignore
+- Implement comprehensive logging for debugging
+- Add progress tracking for long operations
 
 ### Decision-Making Authority
 - Independent decisions:
@@ -21,11 +24,15 @@
   - Documentation updates
   - Frontend UI/UX improvements
   - Pushing to main for frontend testing
+  - Git workflow optimizations
+  - Logging system enhancements
 - Collaborative decisions (require user input):
   - Major architectural changes
   - New feature specifications
   - API design changes
   - Database schema modifications
+  - Storage system changes
+  - Performance monitoring setup
 - Escalation required:
   - Security-related changes
   - Production deployment

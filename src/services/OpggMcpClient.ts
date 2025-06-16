@@ -1,7 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { EnhancedPlayerAnalysis } from '../models/EnhancedPlayerData';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 
 interface OpggMcpResponse {
   content: Array<{

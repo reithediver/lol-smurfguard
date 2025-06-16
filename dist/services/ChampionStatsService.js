@@ -1,44 +1,47 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChampionStatsService = void 0;
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 class ChampionStatsService {
     constructor(riotApi) {
         this.riotApi = riotApi;
     }
     async getComprehensiveStats(puuid, matchCount = 500) {
-        loggerService_1.logger.info(`🔍 Generating comprehensive stats for PUUID: ${puuid.slice(0, 8)}...`);
-        loggerService_1.logger.info(`🚀 Production API Key Detected - Processing ${matchCount} matches with enhanced throughput`);
+        loggerService_1.default.info(`🔍 Generating comprehensive stats for PUUID: ${puuid.slice(0, 8)}...`);
+        loggerService_1.default.info(`🚀 Production API Key Detected - Processing ${matchCount} matches with enhanced throughput`);
         const startTime = Date.now();
         try {
             // Get extended match history with production-level efficiency
-            loggerService_1.logger.info(`📥 Fetching ${matchCount} match IDs...`);
+            loggerService_1.default.info(`📥 Fetching ${matchCount} match IDs...`);
             const matchIds = await this.riotApi.getExtendedMatchHistory(puuid, matchCount);
-            loggerService_1.logger.info(`📊 Retrieved ${matchIds.length} match IDs in ${Date.now() - startTime}ms`);
+            loggerService_1.default.info(`📊 Retrieved ${matchIds.length} match IDs in ${Date.now() - startTime}ms`);
             // Fetch match details with optimized batching for production limits
-            loggerService_1.logger.info(`⚡ Processing matches with production-grade parallel processing...`);
+            loggerService_1.default.info(`⚡ Processing matches with production-grade parallel processing...`);
             const matchProcessingStart = Date.now();
             const matches = await this.fetchMatchesInBatches(matchIds, puuid);
             const matchProcessingTime = Date.now() - matchProcessingStart;
-            loggerService_1.logger.info(`✅ Processed ${matches.length} detailed matches in ${matchProcessingTime}ms`);
-            loggerService_1.logger.info(`📈 Processing Rate: ${(matches.length / (matchProcessingTime / 1000)).toFixed(1)} matches/second`);
+            loggerService_1.default.info(`✅ Processed ${matches.length} detailed matches in ${matchProcessingTime}ms`);
+            loggerService_1.default.info(`📈 Processing Rate: ${(matches.length / (matchProcessingTime / 1000)).toFixed(1)} matches/second`);
             // Generate comprehensive statistics
-            loggerService_1.logger.info(`🔬 Calculating comprehensive statistics...`);
+            loggerService_1.default.info(`🔬 Calculating comprehensive statistics...`);
             const statsCalculationStart = Date.now();
             const overallStats = this.calculateOverallStats(matches, puuid);
             const championStats = this.calculateChampionStats(matches, puuid);
             const totalTime = Date.now() - startTime;
             const cacheHitRate = this.estimateCacheHitRate(matchIds.length, matches.length);
-            loggerService_1.logger.info(`🎯 Stats calculation complete in ${Date.now() - statsCalculationStart}ms`);
-            loggerService_1.logger.info(`✨ Total analysis time: ${totalTime}ms | Cache efficiency: ${cacheHitRate.toFixed(1)}%`);
-            loggerService_1.logger.info(`📊 Analysis Summary: ${matches.length} matches, ${championStats.length} champions, ${overallStats.uniqueChampions} unique champions`);
+            loggerService_1.default.info(`🎯 Stats calculation complete in ${Date.now() - statsCalculationStart}ms`);
+            loggerService_1.default.info(`✨ Total analysis time: ${totalTime}ms | Cache efficiency: ${cacheHitRate.toFixed(1)}%`);
+            loggerService_1.default.info(`📊 Analysis Summary: ${matches.length} matches, ${championStats.length} champions, ${overallStats.uniqueChampions} unique champions`);
             return {
                 ...overallStats,
                 mostPlayedChampions: championStats.slice(0, 10) // Top 10 champions
             };
         }
         catch (error) {
-            loggerService_1.logger.error('Error generating comprehensive stats:', error);
+            loggerService_1.default.error('Error generating comprehensive stats:', error);
             throw error;
         }
     }
@@ -52,13 +55,13 @@ class ChampionStatsService {
         const matches = [];
         const batchSize = 50; // Increased from 5 to 50 - we have 2000 req/10s capacity for match API
         const concurrentRequests = 20; // Process multiple matches simultaneously
-        loggerService_1.logger.info(`🚀 Processing ${matchIds.length} matches in batches of ${batchSize} with ${concurrentRequests} concurrent requests...`);
-        loggerService_1.logger.info(`📊 Production Rate Limits: Match API 2000 req/10s | Utilizing ${(concurrentRequests / 200 * 100).toFixed(1)}% capacity`);
+        loggerService_1.default.info(`🚀 Processing ${matchIds.length} matches in batches of ${batchSize} with ${concurrentRequests} concurrent requests...`);
+        loggerService_1.default.info(`📊 Production Rate Limits: Match API 2000 req/10s | Utilizing ${(concurrentRequests / 200 * 100).toFixed(1)}% capacity`);
         for (let i = 0; i < matchIds.length; i += batchSize) {
             const batch = matchIds.slice(i, i + batchSize);
             const batchNumber = Math.floor(i / batchSize) + 1;
             const totalBatches = Math.ceil(matchIds.length / batchSize);
-            loggerService_1.logger.info(`📊 Processing batch ${batchNumber}/${totalBatches} (${batch.length} matches)`);
+            loggerService_1.default.info(`📊 Processing batch ${batchNumber}/${totalBatches} (${batch.length} matches)`);
             const batchStartTime = Date.now();
             try {
                 // Process matches in parallel chunks for maximum throughput
@@ -77,7 +80,7 @@ class ChampionStatsService {
                             return null;
                         }
                         catch (error) {
-                            loggerService_1.logger.warn(`⚠️ Failed to fetch match ${matchId}: ${error.message}`);
+                            loggerService_1.default.warn(`⚠️ Failed to fetch match ${matchId}: ${error.message}`);
                             // The RiotApi class now handles rate limiting internally
                             // Just return null for failed matches
                             return null;
@@ -87,26 +90,26 @@ class ChampionStatsService {
                     const chunkResults = await Promise.all(chunkPromises);
                     const validMatches = chunkResults.filter((match) => match !== null);
                     batchMatches.push(...validMatches);
-                    loggerService_1.logger.info(`✅ Chunk complete: ${validMatches.length}/${chunk.length} matches processed`);
+                    loggerService_1.default.info(`✅ Chunk complete: ${validMatches.length}/${chunk.length} matches processed`);
                 }
                 matches.push(...batchMatches);
                 const batchTime = Date.now() - batchStartTime;
                 const matchesPerSecond = (batchMatches.length / (batchTime / 1000)).toFixed(1);
-                loggerService_1.logger.info(`✅ Batch ${batchNumber} complete: ${batchMatches.length} matches in ${batchTime}ms (${matchesPerSecond} matches/sec)`);
+                loggerService_1.default.info(`✅ Batch ${batchNumber} complete: ${batchMatches.length} matches in ${batchTime}ms (${matchesPerSecond} matches/sec)`);
                 // Minimal wait between batches - let RiotApi handle rate limiting
                 if (i + batchSize < matchIds.length) {
                     const waitTime = 100; // Just 100ms between batches
-                    loggerService_1.logger.info(`⏳ Brief pause: ${waitTime}ms before next batch...`);
+                    loggerService_1.default.info(`⏳ Brief pause: ${waitTime}ms before next batch...`);
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
             }
             catch (error) {
-                loggerService_1.logger.warn(`⚠️ Error processing batch ${batchNumber}:`, error.message);
+                loggerService_1.default.warn(`⚠️ Error processing batch ${batchNumber}:`, error.message);
                 // Continue processing - RiotApi handles retries internally
                 continue;
             }
         }
-        loggerService_1.logger.info(`🎯 Match processing complete: ${matches.length}/${matchIds.length} matches successfully processed`);
+        loggerService_1.default.info(`🎯 Match processing complete: ${matches.length}/${matchIds.length} matches successfully processed`);
         return matches;
     }
     calculateOverallStats(matches, puuid) {

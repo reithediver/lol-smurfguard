@@ -1,5 +1,5 @@
 import { MatchHistory, MatchParticipant } from '../models/MatchHistory';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 
 export interface OutlierGame {
     matchId: string;

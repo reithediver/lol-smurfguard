@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdvancedDataService = void 0;
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 class AdvancedDataService {
     constructor(riotApi) {
         this.ANALYSIS_TIMESPAN_MONTHS = 60; // 5 years of data
@@ -26,14 +29,14 @@ class AdvancedDataService {
         this.riotApi = riotApi;
     }
     async analyzePlayerComprehensively(summonerName, region = this.DEFAULT_REGION) {
-        loggerService_1.logger.info(`🔍 Starting ultra-comprehensive analysis for: ${summonerName} in region: ${region}`);
+        loggerService_1.default.info(`🔍 Starting ultra-comprehensive analysis for: ${summonerName} in region: ${region}`);
         try {
             const summoner = await this.riotApi.getSummonerByName(summonerName);
             const extensiveMatchHistory = await this.getExtensiveMatchHistory(summoner.puuid);
             if (extensiveMatchHistory.length < this.MIN_GAMES_FOR_ANALYSIS) {
                 throw new Error(`Insufficient match history for comprehensive analysis. Found ${extensiveMatchHistory.length} games, need minimum ${this.MIN_GAMES_FOR_ANALYSIS}.`);
             }
-            loggerService_1.logger.info(`📊 Analyzing ${extensiveMatchHistory.length} games over ${this.ANALYSIS_TIMESPAN_MONTHS} months...`);
+            loggerService_1.default.info(`📊 Analyzing ${extensiveMatchHistory.length} games over ${this.ANALYSIS_TIMESPAN_MONTHS} months...`);
             const historicalAnalysis = await this.analyzeHistoricalPatterns(summoner, extensiveMatchHistory);
             const performanceMetrics = await this.calculateAdvancedMetrics(extensiveMatchHistory);
             const suspiciousPatterns = await this.detectSuspiciousPatterns(summoner, extensiveMatchHistory, performanceMetrics);
@@ -59,12 +62,12 @@ class AdvancedDataService {
             };
         }
         catch (error) {
-            loggerService_1.logger.error(`Error in comprehensive analysis for ${summonerName}:`, error);
+            loggerService_1.default.error(`Error in comprehensive analysis for ${summonerName}:`, error);
             throw error;
         }
     }
     async getExtensiveMatchHistory(puuid) {
-        loggerService_1.logger.info('📚 Collecting ultra-extensive match history (up to 5 years)...');
+        loggerService_1.default.info('📚 Collecting ultra-extensive match history (up to 5 years)...');
         const allMatches = [];
         const startTime = Date.now() - (this.ANALYSIS_TIMESPAN_MONTHS * 30 * 24 * 60 * 60 * 1000);
         try {
@@ -87,7 +90,7 @@ class AdvancedDataService {
                         await new Promise(resolve => setTimeout(resolve, 25));
                     }
                     catch (error) {
-                        loggerService_1.logger.warn(`Failed to get match details for ${matchId}:`, error);
+                        loggerService_1.default.warn(`Failed to get match details for ${matchId}:`, error);
                     }
                 }
                 start += count;
@@ -98,19 +101,19 @@ class AdvancedDataService {
                 }
                 // Progress logging for large datasets
                 if (allMatches.length % 500 === 0) {
-                    loggerService_1.logger.info(`📊 Collected ${allMatches.length} matches so far...`);
+                    loggerService_1.default.info(`📊 Collected ${allMatches.length} matches so far...`);
                 }
             }
-            loggerService_1.logger.info(`📊 Collected ${allMatches.length} matches for ultra-comprehensive analysis`);
+            loggerService_1.default.info(`📊 Collected ${allMatches.length} matches for ultra-comprehensive analysis`);
             return allMatches;
         }
         catch (error) {
-            loggerService_1.logger.error('Error collecting ultra-extensive match history:', error);
+            loggerService_1.default.error('Error collecting ultra-extensive match history:', error);
             return [];
         }
     }
     async analyzeHistoricalPatterns(summoner, matches) {
-        loggerService_1.logger.info('🕰️ Analyzing historical patterns...');
+        loggerService_1.default.info('🕰️ Analyzing historical patterns...');
         // Calculate account age
         const accountCreation = new Date(summoner.revisionDate); // Approximation
         const accountAge = Math.floor((Date.now() - accountCreation.getTime()) / (24 * 60 * 60 * 1000));
@@ -202,7 +205,7 @@ class AdvancedDataService {
         return 'Inconsistent';
     }
     analyzePlaytimePatterns(matches) {
-        loggerService_1.logger.info('⏰ Analyzing playtime patterns and gaps...');
+        loggerService_1.default.info('⏰ Analyzing playtime patterns and gaps...');
         // Sort matches by date
         const sortedMatches = matches.sort((a, b) => a.info.gameCreation - b.info.gameCreation);
         // Calculate daily/weekly patterns
@@ -234,7 +237,7 @@ class AdvancedDataService {
         };
     }
     detectPlaytimeGaps(sortedMatches) {
-        loggerService_1.logger.info('🕳️ Detecting comprehensive playtime gaps (weeks to years)...');
+        loggerService_1.default.info('🕳️ Detecting comprehensive playtime gaps (weeks to years)...');
         const gaps = [];
         for (let i = 1; i < sortedMatches.length; i++) {
             const currentGame = new Date(sortedMatches[i].info.gameCreation);
@@ -282,7 +285,7 @@ class AdvancedDataService {
             const bSuspicion = b.accountSwitchProbability + (b.suspicionLevel === 'extreme' ? 1 : 0);
             return bSuspicion - aSuspicion;
         });
-        loggerService_1.logger.info(`🕳️ Detected ${gaps.length} significant gaps, ${gaps.filter(g => g.suspicionLevel === 'extreme' || g.accountSwitchProbability > 0.7).length} highly suspicious`);
+        loggerService_1.default.info(`🕳️ Detected ${gaps.length} significant gaps, ${gaps.filter(g => g.suspicionLevel === 'extreme' || g.accountSwitchProbability > 0.7).length} highly suspicious`);
         return gaps;
     }
     categorizeGap(gapDays) {
@@ -438,7 +441,7 @@ class AdvancedDataService {
         return redFlags;
     }
     async calculateAdvancedMetrics(matches) {
-        loggerService_1.logger.info('📊 Calculating ultra-advanced performance metrics with comprehensive data points...');
+        loggerService_1.default.info('📊 Calculating ultra-advanced performance metrics with comprehensive data points...');
         const championMetrics = {};
         const gameMetrics = [];
         matches.forEach((match, index) => {
@@ -726,7 +729,7 @@ class AdvancedDataService {
         return Math.random() * 60 + 30;
     }
     async detectSuspiciousPatterns(summoner, matches, performanceMetrics) {
-        loggerService_1.logger.info('🚩 Detecting suspicious patterns...');
+        loggerService_1.default.info('🚩 Detecting suspicious patterns...');
         // Analyze account behavior
         const accountBehavior = {
             rapidRankClimb: this.detectRapidRankClimb(matches),
@@ -950,7 +953,7 @@ class AdvancedDataService {
         return 0.5;
     }
     analyzeSkillProgression(matches) {
-        loggerService_1.logger.info('📈 Analyzing skill progression patterns...');
+        loggerService_1.default.info('📈 Analyzing skill progression patterns...');
         if (matches.length < 10) {
             return {
                 improvementRate: 0,

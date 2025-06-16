@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import { UnifiedAnalysisService } from '../services/UnifiedAnalysisService';
 import { OutlierGame } from '../services/OutlierGameDetectionService';
 import { RiotApi } from '../api/RiotApi';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 import { SmurfDetectionService } from '../services/SmurfDetectionService';
 import { DataFetchingService } from '../services/DataFetchingService';
 import { OutlierGameDetectionService } from '../services/OutlierGameDetectionService';
@@ -59,10 +59,26 @@ router.get('/unified', async (req: Request, res: Response) => {
     const transformedAnalysis = {
       ...analysis,
       outlierAnalysis: analysis.outlierAnalysis ? {
-        outlierGames: analysis.outlierAnalysis.outlierGames.map((game: OutlierGame) => ({
+        outlierGames: analysis.outlierAnalysis.outlierGames.map(game => ({
           ...game,
           gameDate: new Date(game.gameDate),
-          matchUrl: `https://www.op.gg/matches/${(region as string).toLowerCase()}/${game.matchId}`
+          matchUrl: `https://www.op.gg/matches/${(region as string).toLowerCase()}/${game.matchId}`,
+          // Ensure all required fields are present
+          queueType: game.queueType || 'Unknown',
+          position: game.position || 'Unknown',
+          kda: game.kda || 0,
+          kills: game.kills || 0,
+          deaths: game.deaths || 0,
+          assists: game.assists || 0,
+          csPerMinute: game.csPerMinute || 0,
+          damageShare: game.damageShare || 0,
+          visionScore: game.visionScore || 0,
+          killParticipation: game.killParticipation || 0,
+          outlierScore: game.outlierScore || 0,
+          outlierFlags: game.outlierFlags || [],
+          teamMVP: game.teamMVP || false,
+          perfectGame: game.perfectGame || false,
+          gameCarried: game.gameCarried || false
         }))
       } : undefined
     };

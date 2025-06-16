@@ -261,7 +261,9 @@ class ApiService {
     try {
       const params = new URLSearchParams();
       if (options.region) params.append('region', options.region);
-      if (options.matches) params.append('matches', options.matches.toString());
+      // Optimize match count for better performance
+      const matchCount = Math.min(options.matches || 50, 100); // Reduced default and max
+      params.append('matches', matchCount.toString());
       if (options.refresh) params.append('refresh', 'true');
       
       // Fix: Use the correct endpoint structure that matches the backend route
@@ -270,24 +272,26 @@ class ApiService {
       
       console.log('🎯 Calling unified analysis endpoint:', url);
       console.log('🌐 Full URL:', `${this.baseURL}${url}`);
+      console.log('📊 Optimized for speed with', matchCount, 'matches');
       
-      // Create a timeout promise that rejects after 45 seconds
+      // Create a timeout promise that rejects after 35 seconds (less than backend timeout)
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
-          reject(new Error('Analysis request timed out after 45 seconds'));
-        }, 45000);
+          reject(new Error('Analysis request timed out after 35 seconds'));
+        }, 35000);
       });
       
       try {
         // Race between the actual request and the timeout
         const response = await Promise.race([
           this.api.get(url, {
-            timeout: 60000, // Increase timeout to 60 seconds
+            timeout: 40000, // Reduced timeout to 40 seconds
           }),
           timeoutPromise
         ]) as any;
         
         console.log('✅ Unified analysis response received:', response.status);
+        console.log('📈 Analysis completed for', response.data?.data?.metadata?.matchesAnalyzed || 'unknown', 'matches');
         return response.data;
       } catch (networkError: any) {
         console.error('❌ Network error in unified analysis:', networkError);
@@ -311,13 +315,23 @@ class ApiService {
           };
         }
         
+        // If it's a 504 error, suggest reducing matches
+        if (networkError.response?.status === 504) {
+          throw {
+            type: 'TIMEOUT_ERROR',
+            message: 'Analysis timed out. Try reducing the number of matches to analyze.',
+            code: 504,
+            suggestion: 'Use fewer matches (20-30) for faster results'
+          };
+        }
+        
         // Retry once with a direct fetch to bypass any axios issues
         console.log('🔄 Retrying with direct fetch...');
         const directUrl = `${this.baseURL}${url}`;
         
         // Add a timeout to the fetch request as well
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
         
         try {
           const directResponse = await fetch(directUrl, { 

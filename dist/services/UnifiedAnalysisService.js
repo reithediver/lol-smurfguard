@@ -1,8 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UnifiedAnalysisService = void 0;
 const RiotApi_1 = require("../api/RiotApi");
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 const PlayerDataService_1 = require("./PlayerDataService");
 class UnifiedAnalysisService {
     constructor(riotApi, smurfDetectionService, dataFetchingService, outlierGameDetectionService) {
@@ -20,11 +23,11 @@ class UnifiedAnalysisService {
         if (!options.forceRefresh) {
             const cachedAnalysis = await this.playerDataService.getAnalysis(puuid);
             if (cachedAnalysis) {
-                loggerService_1.logger.info(`🚀 Returning cached analysis for PUUID: ${puuid}`);
+                loggerService_1.default.info(`🚀 Returning cached analysis for PUUID: ${puuid}`);
                 return cachedAnalysis;
             }
         }
-        loggerService_1.logger.info(`🔍 Generating unified analysis for PUUID: ${puuid}`);
+        loggerService_1.default.info(`🔍 Generating unified analysis for PUUID: ${puuid}${options.fastMode ? ' (Fast Mode)' : ''}`);
         try {
             // Get basic summoner info using persistent storage
             const region = options.region || 'na1';
@@ -40,18 +43,40 @@ class UnifiedAnalysisService {
             }
             // Get summoner data using persistent storage
             const summoner = await this.playerDataService.getSummonerByRiotId(gameName, tagLine);
-            // Get match history using persistent storage
-            const matchCount = Math.min(options.matchCount || 200, 200);
+            // Get match history using persistent storage with optimized count for fast mode
+            const matchCount = options.fastMode
+                ? Math.min(options.matchCount || 30, 50) // Fast mode: max 50 matches
+                : Math.min(options.matchCount || 200, 200);
             const matchIds = await this.playerDataService.getMatchHistory(puuid, matchCount);
             if (matchIds.length === 0) {
                 throw new Error('No matches found for this player');
             }
-            loggerService_1.logger.info(`📊 Processing ${matchIds.length} matches for analysis`);
-            // Get match details using persistent storage (with parallel processing)
-            const matchPromises = matchIds.slice(0, matchCount).map(matchId => this.playerDataService.getMatchDetails(matchId));
-            const matches = await Promise.all(matchPromises);
+            loggerService_1.default.info(`📊 Processing ${matchIds.length} matches for analysis${options.fastMode ? ' (Fast Mode)' : ''}`);
+            // Get match details with rate limiting optimization for fast mode
+            let matches;
+            if (options.fastMode) {
+                // Fast mode: Process in smaller batches with shorter delays
+                const batchSize = 5;
+                const allMatches = [];
+                for (let i = 0; i < Math.min(matchIds.length, matchCount); i += batchSize) {
+                    const batch = matchIds.slice(i, i + batchSize);
+                    const batchPromises = batch.map(matchId => this.playerDataService.getMatchDetails(matchId).catch(() => null));
+                    const batchResults = await Promise.all(batchPromises);
+                    allMatches.push(...batchResults.filter(Boolean));
+                    // Short delay between batches to avoid rate limiting
+                    if (i + batchSize < Math.min(matchIds.length, matchCount)) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                }
+                matches = allMatches;
+            }
+            else {
+                // Normal mode: Use existing parallel processing
+                const matchPromises = matchIds.slice(0, matchCount).map(matchId => this.playerDataService.getMatchDetails(matchId));
+                matches = await Promise.all(matchPromises);
+            }
             const validMatches = matches.filter(match => match && match.info);
-            loggerService_1.logger.info(`✅ Successfully processed ${validMatches.length} valid matches`);
+            loggerService_1.default.info(`✅ Successfully processed ${validMatches.length} valid matches${options.fastMode ? ' (Fast Mode)' : ''}`);
             // Get smurf analysis and outlier detection
             const smurfAnalysis = await this.smurfDetectionService.analyzeSmurf(puuid, region);
             const outlierAnalysis = await this.outlierGameDetectionService.analyzeOutlierGames(validMatches, puuid, 'GOLD');
@@ -95,7 +120,7 @@ class UnifiedAnalysisService {
                 smurfAnalysis,
                 unifiedSuspicion: {
                     overallScore: this.calculateOverallRiskScore(smurfAnalysis, outlierAnalysis),
-                    confidenceLevel: 75,
+                    confidenceLevel: options.fastMode ? 65 : 75, // Lower confidence in fast mode
                     riskLevel: this.calculateOverallRiskScore(smurfAnalysis, outlierAnalysis) > 70 ? 'HIGH' :
                         this.calculateOverallRiskScore(smurfAnalysis, outlierAnalysis) > 40 ? 'MEDIUM' : 'LOW',
                     primaryIndicators: this.generateSuspiciousIndicators(smurfAnalysis, outlierAnalysis),
@@ -106,17 +131,17 @@ class UnifiedAnalysisService {
                     analysisDate: new Date(),
                     matchesAnalyzed: validMatches.length,
                     dataFreshness: 'FRESH',
-                    cacheExpiry: new Date(Date.now() + 30 * 60 * 1000),
+                    cacheExpiry: new Date(Date.now() + (options.fastMode ? 15 : 30) * 60 * 1000), // Shorter cache in fast mode
                     analysisVersion: '2.0.0'
                 }
             };
             // Store in persistent cache
             await this.playerDataService.storeAnalysis(puuid, analysis);
-            loggerService_1.logger.info(`✅ Unified analysis completed for ${options.riotId || puuid}`);
+            loggerService_1.default.info(`✅ Unified analysis completed for ${options.riotId || puuid}${options.fastMode ? ' (Fast Mode)' : ''}`);
             return analysis;
         }
         catch (error) {
-            loggerService_1.logger.error(`❌ Failed to generate unified analysis for ${puuid}:`, error);
+            loggerService_1.default.error(`❌ Failed to generate unified analysis for ${puuid}:`, error);
             throw error;
         }
     }
@@ -299,7 +324,7 @@ class UnifiedAnalysisService {
         const keysToDelete = Array.from(this.analysisCache.keys())
             .filter(key => key.startsWith(puuid));
         keysToDelete.forEach(key => this.analysisCache.delete(key));
-        loggerService_1.logger.info(`🗑️ Cleared cache for player: ${puuid}`);
+        loggerService_1.default.info(`🗑️ Cleared cache for player: ${puuid}`);
     }
     // Get cache statistics
     getCacheStats() {
@@ -363,6 +388,57 @@ class UnifiedAnalysisService {
             score += 20;
         }
         return Math.min(score, 100); // Cap at 100
+    }
+    async analyzeMatches(matches) {
+        try {
+            loggerService_1.default.info(`Analyzing ${matches.length} matches`);
+            // Filter out null matches (failed to fetch)
+            const validMatches = matches.filter(match => match !== null);
+            if (validMatches.length === 0) {
+                throw new Error('No valid matches to analyze');
+            }
+            // Calculate basic statistics
+            const stats = this.calculateBasicStats(validMatches);
+            // Calculate advanced metrics
+            const metrics = this.calculateAdvancedMetrics(validMatches);
+            // Calculate suspicion score
+            const suspicionScore = this.calculateSuspicionScore(stats, metrics);
+            return {
+                stats,
+                metrics,
+                suspicionScore,
+                riskLevel: this.getRiskLevel(suspicionScore),
+                timestamp: new Date().toISOString()
+            };
+        }
+        catch (error) {
+            loggerService_1.default.error('Error analyzing matches:', error);
+            throw error;
+        }
+    }
+    calculateBasicStats(matches) {
+        // Implementation of basic statistics calculation
+        return {
+            totalGames: matches.length,
+            // Add more basic stats as needed
+        };
+    }
+    calculateAdvancedMetrics(matches) {
+        // Implementation of advanced metrics calculation
+        return {
+        // Add advanced metrics as needed
+        };
+    }
+    calculateSuspicionScore(stats, metrics) {
+        // Implementation of suspicion score calculation
+        return 0; // Placeholder
+    }
+    getRiskLevel(score) {
+        if (score >= 70)
+            return 'HIGH';
+        if (score >= 40)
+            return 'MEDIUM';
+        return 'LOW';
     }
 }
 exports.UnifiedAnalysisService = UnifiedAnalysisService;

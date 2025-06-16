@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { RiotApi } from './api/RiotApi';
 import { DataFetchingService } from './services/DataFetchingService';
 import { SmurfDetectionService } from './services/SmurfDetectionService';
-import { logger, logCriticalError } from './utils/loggerService';
+import logger from './utils/loggerService';
 import { createError } from './utils/errorHandler';
 import { ChampionStatsService } from './services/ChampionStatsService';
 import { UnifiedAnalysisService } from './services/UnifiedAnalysisService';
@@ -465,13 +465,27 @@ app.get('/api/player/comprehensive/:riotId', async (req, res) => {
 app.get('/api/analyze/unified/:riotId', async (req, res) => {
   const { riotId } = req.params;
   const region = req.query.region as string || 'na1';
+  const matchCount = Math.min(parseInt(req.query.matches as string) || 50, 100); // Reduced default and max
   
+  // Set timeout for the entire request
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(504).json({
+        success: false,
+        error: 'REQUEST_TIMEOUT',
+        message: 'Analysis request timed out. Please try again with fewer matches.',
+        details: 'Consider reducing the number of matches to analyze for faster results.'
+      });
+    }
+  }, 40000); // Reduced to 40 seconds
+
   try {
-    logger.info(`Starting unified analysis for ${riotId} in region ${region}`);
+    logger.info(`Starting unified analysis for ${riotId} in region ${region} (${matchCount} matches)`);
     
     // Parse Riot ID
     const riotIdParts = RiotApi.parseRiotId(riotId);
     if (!riotIdParts) {
+      clearTimeout(timeout);
       return res.status(400).json({
         success: false,
         error: 'INVALID_RIOT_ID',
@@ -489,6 +503,7 @@ app.get('/api/analyze/unified/:riotId', async (req, res) => {
     // Get summoner data
     const summoner = await riotApi.getSummonerByRiotId(gameName, tagLine);
     if (!summoner) {
+      clearTimeout(timeout);
       return res.status(404).json({
         success: false,
         error: 'PLAYER_NOT_FOUND',
@@ -502,45 +517,78 @@ app.get('/api/analyze/unified/:riotId', async (req, res) => {
       });
     }
 
-    // Get match history with progress tracking
-    const matchHistory = await riotApi.getExtendedMatchHistory(summoner.puuid, 500);
-    
-    // Process matches in smaller batches to avoid overwhelming the API
-    const batchSize = 10;
-    const results = [];
-    
-    for (let i = 0; i < matchHistory.length; i += batchSize) {
-      const batch = matchHistory.slice(i, i + batchSize);
-      const batchPromises = batch.map(matchId => 
-        riotApi.getMatchDetails(matchId)
-          .catch(error => {
-            logger.error(`Error fetching match ${matchId}:`, error);
-            return null;
-          })
-      );
-      
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults.filter(Boolean));
-      
-      // Add a small delay between batches
-      if (i + batchSize < matchHistory.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
+    // Use the UnifiedAnalysisService with optimized settings
+    const analysis = await unifiedAnalysisService.getUnifiedAnalysis(summoner.puuid, {
+      region,
+      riotId,
+      matchCount,
+      forceRefresh: req.query.refresh === 'true',
+      fastMode: true // Enable fast mode for quicker analysis
+    });
 
-    // Analyze the results
-    const analysis = await unifiedAnalysisService.analyzeMatches(results);
+    // Transform the analysis to match frontend interface
+    const transformedAnalysis = {
+      summoner: {
+        id: summoner.id,
+        accountId: summoner.accountId,
+        puuid: summoner.puuid,
+        name: summoner.name,
+        profileIconId: summoner.profileIconId,
+        revisionDate: summoner.revisionDate,
+        summonerLevel: summoner.summonerLevel,
+        gameName: summoner.gameName || gameName,
+        tagLine: summoner.tagLine || tagLine
+      },
+      smurfAnalysis: analysis.smurfAnalysis,
+      outlierGames: analysis.outlierAnalysis?.outlierGames?.map(game => ({
+        gameId: game.matchId,
+        gameDate: game.gameDate,
+        champion: game.championName,
+        queueType: game.queueType || 'Unknown',
+        position: game.position || 'Unknown',
+        kills: game.kills || 0,
+        deaths: game.deaths || 0,
+        assists: game.assists || 0,
+        kda: game.kda || 0,
+        csPerMin: game.csPerMinute || 0,
+        goldPerMin: game.goldPerMinute || 0,
+        damagePerMin: game.damagePerMinute || 0,
+        damageShare: game.damageShare || 0,
+        outlierScore: game.outlierScore || 0,
+        isOutlier: game.outlierScore >= 60,
+        outlierFlags: game.outlierFlags || [],
+        matchUrl: game.matchUrl || `https://www.op.gg/summoners/${region}/${encodeURIComponent(gameName)}-${encodeURIComponent(tagLine)}/matches/${game.matchId}`,
+        isMvp: game.teamMVP || false,
+        isPerfectGame: game.perfectGame || false,
+        isCarriedGame: game.gameCarried || false
+      })) || [],
+      championStats: analysis.championAnalysis,
+      performanceMetrics: analysis.overallStats,
+      unifiedSuspicion: analysis.unifiedSuspicion,
+      metadata: {
+        ...analysis.metadata,
+        optimizedForSpeed: true,
+        matchesRequested: matchCount,
+        matchesAnalyzed: analysis.metadata.matchesAnalyzed
+      }
+    };
+
+    clearTimeout(timeout);
     
+    logger.info(`✅ Unified analysis completed for ${riotId} (${analysis.metadata.matchesAnalyzed} matches processed)`);
     return res.json({
       success: true,
-      data: {
-        summoner,
-        analysis
-      }
+      data: transformedAnalysis
     });
     
   } catch (error: unknown) {
+    clearTimeout(timeout);
     logger.error(`Error in unified analysis for ${riotId}:`, error);
+    
+    // Don't send response if headers already sent (timeout occurred)
+    if (res.headersSent) {
+      return;
+    }
     
     // Type guard for axios-like error
     const isAxiosError = (err: unknown): err is { response?: { status?: number } } => {
@@ -647,7 +695,7 @@ app.get('/api/analysis/capabilities', async (req, res) => {
 });
 
 // Register routes
-app.use('/api/analysis', analysisRoutes);
+// app.use('/api/analysis', analysisRoutes); // Commented out to avoid conflicts with new unified endpoint
 
 // Debug endpoint to test Riot ID parsing
 app.get('/api/debug/riot-id/:riotId', async (req, res) => {
@@ -789,20 +837,13 @@ app.post('/api/logs', async (req, res) => {
           logger.warn(message, { context, stack, source: 'frontend', metadata });
           break;
         case 'error':
-          logger.error(message, { context, stack, source: 'frontend', metadata });
-          
-          // For critical frontend errors, create GitHub issue if configured
-          if (process.env.GITHUB_TOKEN && process.env.GITHUB_REPO) {
-            const errorContext = {
-              ...context,
-              metadata,
-              source: 'frontend'
-            };
-            
-            logCriticalError(new Error(message), errorContext).catch(err => {
-              logger.error('Failed to create GitHub issue for frontend error', err);
-            });
-          }
+          logger.error('Frontend Error:', {
+            message,
+            context,
+            stack,
+            source: 'frontend',
+            metadata
+          });
           break;
       }
     });
@@ -815,16 +856,27 @@ app.post('/api/logs', async (req, res) => {
 });
 
 // Global error handler
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error('Unhandled error:', error);
-  
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const message = err.message || 'Internal Server Error';
+  const errorContext = {
+    path: req.path,
+    method: req.method,
+    query: req.query,
+    body: req.body,
+    headers: req.headers,
+    timestamp: new Date().toISOString()
+  };
+
+  logger.error('Unhandled Error:', {
+    error: message,
+    stack: err.stack,
+    ...errorContext
+  });
+
   res.status(500).json({
-    success: false,
-    error: {
-      type: 'INTERNAL_SERVER_ERROR',
-      message: 'An unexpected error occurred',
-      timestamp: new Date().toISOString()
-    }
+    status: 'error',
+    code: 500,
+    message
   });
 });
 
@@ -861,8 +913,25 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+process.on('uncaughtException', (err: Error) => {
+  logger.error('Uncaught Exception:', { error: err.message, stack: err.stack });
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: Error) => {
+  logger.error('Unhandled Rejection:', { error: reason.message, stack: reason.stack });
+  process.exit(1);
+});
+
 app.listen(PORT, () => {
-  logger.info(`🚀 SmurfGuard API server running on port ${PORT}`);
+  logger.info(`🚀 SmurfGuard API server running on port ${PORT}`, {
+    metadata: {
+      service: 'smurfguard-api',
+      environment: process.env.NODE_ENV,
+      version: process.env.npm_package_version,
+      timestamp: new Date().toISOString()
+    }
+  });
   logger.info(`📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection`);
   logger.info(`🔗 Health Check: http://localhost:${PORT}/api/health`);
   logger.info(`⚡ Integration Status: http://localhost:${PORT}/api/integration/status`);

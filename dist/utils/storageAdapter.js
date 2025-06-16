@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.storage = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const loggerService_1 = require("./loggerService");
+const loggerService_1 = __importDefault(require("./loggerService"));
 /**
  * Server-side file-based storage implementation
  */
@@ -31,7 +31,7 @@ class FileStorageAdapter {
             this.initialized = true;
         }
         catch (error) {
-            loggerService_1.logger.error('Error loading storage from disk:', error);
+            loggerService_1.default.error('Error loading storage from disk:', error);
             this.data = {};
             this.initialized = true;
         }
@@ -42,7 +42,7 @@ class FileStorageAdapter {
             fs_1.default.writeFileSync(filePath, JSON.stringify(this.data, null, 2), 'utf-8');
         }
         catch (error) {
-            loggerService_1.logger.error('Error saving storage to disk:', error);
+            loggerService_1.default.error('Error saving storage to disk:', error);
         }
     }
     getItem(key) {

@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { EnhancedPlayerAnalysis, EnhancedGameMetrics, ChampionMasteryData, RankProgression } from '../models/EnhancedPlayerData';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 import { createError } from '../utils/errorHandler';
 
 // OP.GG MCP API Response Interfaces

@@ -32,11 +32,14 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataFetchingService = void 0;
 const RiotApi_1 = require("../api/RiotApi");
 const OpggMcpClient_1 = require("./OpggMcpClient");
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 const errorHandler_1 = require("../utils/errorHandler");
 class DataFetchingService {
     constructor() {
@@ -51,17 +54,17 @@ class DataFetchingService {
             useRiotApi: true,
             fallbackToMock: false // Disable mock data to get real error messages
         };
-        loggerService_1.logger.info('DataFetchingService initialized with config:', this.config);
+        loggerService_1.default.info('DataFetchingService initialized with config:', this.config);
     }
     async fetchPlayerAnalysis(summonerName) {
         try {
             // Check cache first
             const cachedData = this.getFromCache(summonerName);
             if (cachedData) {
-                loggerService_1.logger.info(`Cache hit for player: ${summonerName}`);
+                loggerService_1.default.info(`Cache hit for player: ${summonerName}`);
                 return cachedData;
             }
-            loggerService_1.logger.info(`Fetching fresh data for player: ${summonerName}`);
+            loggerService_1.default.info(`Fetching fresh data for player: ${summonerName}`);
             const summoner = await this.riotApi.getSummonerByName(summonerName);
             const matchHistory = await this.riotApi.getMatchHistory(summoner.puuid);
             const matchDetails = await Promise.all(matchHistory.map(matchId => this.riotApi.getMatchDetails(matchId)));
@@ -98,7 +101,7 @@ class DataFetchingService {
             return analysis;
         }
         catch (error) {
-            loggerService_1.logger.error('Error fetching player analysis:', error);
+            loggerService_1.default.error('Error fetching player analysis:', error);
             throw (0, errorHandler_1.createError)(500, 'Failed to fetch player analysis');
         }
     }
@@ -146,30 +149,30 @@ class DataFetchingService {
      * Get enhanced player analysis using the best available data source
      */
     async getEnhancedPlayerAnalysis(summonerName, region = 'na1') {
-        loggerService_1.logger.info(`Fetching enhanced analysis for ${summonerName} in ${region}`);
+        loggerService_1.default.info(`Fetching enhanced analysis for ${summonerName} in ${region}`);
         // Try OP.GG MCP first if enabled
         if (this.config.useOpggMcp) {
             try {
-                loggerService_1.logger.info('Attempting OP.GG MCP analysis...');
+                loggerService_1.default.info('Attempting OP.GG MCP analysis...');
                 const opggResult = await this.opggMcpClient.getEnhancedPlayerAnalysis(summonerName, region);
-                loggerService_1.logger.info('✅ OP.GG MCP analysis successful');
+                loggerService_1.default.info('✅ OP.GG MCP analysis successful');
                 return opggResult;
             }
             catch (error) {
-                loggerService_1.logger.warn('⚠️ OP.GG MCP analysis failed:', error);
+                loggerService_1.default.warn('⚠️ OP.GG MCP analysis failed:', error);
                 // Continue to fallback options
             }
         }
         // Fallback to Riot API + enhanced processing
         if (this.config.useRiotApi) {
             try {
-                loggerService_1.logger.info('Attempting Riot API + enhanced analysis...');
+                loggerService_1.default.info('Attempting Riot API + enhanced analysis...');
                 const riotResult = await this.getRiotApiEnhancedAnalysis(summonerName, region);
-                loggerService_1.logger.info('✅ Riot API enhanced analysis successful');
+                loggerService_1.default.info('✅ Riot API enhanced analysis successful');
                 return riotResult;
             }
             catch (error) {
-                loggerService_1.logger.warn('⚠️ Riot API enhanced analysis failed:', error);
+                loggerService_1.default.warn('⚠️ Riot API enhanced analysis failed:', error);
             }
         }
         throw new Error('All data sources failed');
@@ -178,7 +181,7 @@ class DataFetchingService {
      * Enhanced analysis using Riot API data
      */
     async getRiotApiEnhancedAnalysis(summonerName, region) {
-        loggerService_1.logger.info('Creating enhanced analysis from Riot API data...');
+        loggerService_1.default.info('Creating enhanced analysis from Riot API data...');
         try {
             // Parse Riot ID if provided in format GameName#TAG
             const riotIdParts = RiotApi_1.RiotApi.parseRiotId(summonerName);
@@ -337,7 +340,7 @@ class DataFetchingService {
             return enhancedAnalysis;
         }
         catch (error) {
-            loggerService_1.logger.error('Riot API enhanced analysis failed:', error);
+            loggerService_1.default.error('Riot API enhanced analysis failed:', error);
             throw error;
         }
     }
@@ -356,7 +359,7 @@ class DataFetchingService {
                 };
             }
             catch (error) {
-                loggerService_1.logger.error('Error checking OP.GG MCP status:', error);
+                loggerService_1.default.error('Error checking OP.GG MCP status:', error);
             }
         }
         return {
@@ -385,7 +388,7 @@ class DataFetchingService {
             return this.config.fallbackToMock;
         }
         catch (error) {
-            loggerService_1.logger.error('Health check failed:', error);
+            loggerService_1.default.error('Health check failed:', error);
             return false;
         }
     }
@@ -395,10 +398,10 @@ class DataFetchingService {
     async cleanup() {
         try {
             await this.opggMcpClient.disconnect();
-            loggerService_1.logger.info('DataFetchingService cleanup completed');
+            loggerService_1.default.info('DataFetchingService cleanup completed');
         }
         catch (error) {
-            loggerService_1.logger.error('Error during cleanup:', error);
+            loggerService_1.default.error('Error during cleanup:', error);
         }
     }
 }

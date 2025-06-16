@@ -1,5 +1,5 @@
 import { StorageService } from './StorageService';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 import { RiotApi } from '../api/RiotApi';
 
 // Namespaces for different types of player data

@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.healthChecker = void 0;
 const axios_1 = __importDefault(require("axios"));
-const loggerService_1 = require("./loggerService");
+const loggerService_1 = __importDefault(require("./loggerService"));
 class HealthChecker {
     constructor() {
         this.startTime = Date.now();
@@ -30,7 +30,7 @@ class HealthChecker {
             if (process.env.NODE_ENV === 'production') {
                 return true;
             }
-            loggerService_1.logger.warn('API health check failed, but not failing deployment:', error);
+            loggerService_1.default.warn('API health check failed, but not failing deployment:', error);
             return true; // Don't fail deployment for API connectivity issues
         }
     }
@@ -41,7 +41,7 @@ class HealthChecker {
             return true; // Always healthy for now since we don't use persistent DB
         }
         catch (error) {
-            loggerService_1.logger.error('Database health check failed:', error);
+            loggerService_1.default.error('Database health check failed:', error);
             return false;
         }
     }
@@ -50,7 +50,7 @@ class HealthChecker {
             // Test Riot API connectivity with a lightweight endpoint
             const apiKey = process.env.RIOT_API_KEY;
             if (!apiKey || apiKey.includes('PLACEHOLDER')) {
-                loggerService_1.logger.warn('Riot API key not configured or is placeholder');
+                loggerService_1.default.warn('Riot API key not configured or is placeholder');
                 return true; // Don't fail health check for missing/placeholder keys
             }
             // Use platform status endpoint which is more reliable for health checks
@@ -61,16 +61,16 @@ class HealthChecker {
             const status = error.response?.status;
             // These responses indicate the API is reachable but has usage restrictions
             if (status === 401 || status === 403 || status === 429) {
-                loggerService_1.logger.warn(`Riot API returned ${status} - API reachable but has restrictions (Development key)`);
+                loggerService_1.default.warn(`Riot API returned ${status} - API reachable but has restrictions (Development key)`);
                 return true; // Don't fail health check for API key limitations
             }
             // Only fail for actual connectivity/network issues
             if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.code === 'ECONNRESET') {
-                loggerService_1.logger.error('Riot API connectivity failed:', error.message);
+                loggerService_1.default.error('Riot API connectivity failed:', error.message);
                 return false;
             }
             // For any other errors, assume API is reachable but has limitations
-            loggerService_1.logger.warn('Riot API health check had issues but not failing deployment:', error.message);
+            loggerService_1.default.warn('Riot API health check had issues but not failing deployment:', error.message);
             return true;
         }
     }
@@ -81,7 +81,7 @@ class HealthChecker {
             return true;
         }
         catch (error) {
-            loggerService_1.logger.error('Cache health check failed:', error);
+            loggerService_1.default.error('Cache health check failed:', error);
             return false;
         }
     }
@@ -89,7 +89,7 @@ class HealthChecker {
         const timestamp = new Date().toISOString();
         const uptime = Date.now() - this.startTime;
         const memoryUsage = process.memoryUsage();
-        loggerService_1.logger.info('Performing health check...');
+        loggerService_1.default.info('Performing health check...');
         const [api, database, riotApi, cache] = await Promise.all([
             this.checkApi(),
             this.checkDatabase(),
@@ -108,7 +108,7 @@ class HealthChecker {
             uptime,
             memoryUsage
         };
-        loggerService_1.logger.info('Health check completed:', result);
+        loggerService_1.default.info('Health check completed:', result);
         return result;
     }
 }

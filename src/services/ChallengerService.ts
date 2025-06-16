@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 import { createError } from '../utils/errorHandler';
 import { storage } from '../utils/storageAdapter';
 

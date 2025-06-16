@@ -1,26 +1,35 @@
 import winston from 'winston';
 import { Logtail } from '@logtail/node';
 import { LogtailTransport } from '@logtail/winston';
+import { format } from 'winston';
+
+const { combine, timestamp, printf, colorize } = format;
 
 // Initialize Logtail if source token is provided
 const logtail = process.env.LOGTAIL_SOURCE_TOKEN 
   ? new Logtail(process.env.LOGTAIL_SOURCE_TOKEN)
   : null;
 
-// Create a custom format that includes additional metadata
-const customFormat = winston.format.printf((info) => {
-  const { level, message, timestamp, ...metadata } = info;
-  const metaString = Object.keys(metadata).length ? JSON.stringify(metadata, null, 2) : '';
-  return `${timestamp} [${level.toUpperCase()}]: ${message} ${metaString}`;
+// Custom format to handle circular references
+const customFormat = printf(({ level, message, timestamp, ...metadata }) => {
+  const metaString = Object.keys(metadata).length 
+    ? JSON.stringify(metadata, (key, value) => {
+        // Handle circular references
+        if (key === 'req' || key === 'res' || key === 'socket') {
+          return '[Circular]';
+        }
+        return value;
+      }, 2) 
+    : '';
+  return `${timestamp} [${level}]: ${message} ${metaString}`;
 });
 
 // Configure logger
-export const logger = winston.createLogger({
+const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.metadata(),
-    winston.format.json()
+  format: combine(
+    timestamp(),
+    customFormat
   ),
   defaultMeta: { 
     service: 'smurfguard-api',
@@ -30,9 +39,9 @@ export const logger = winston.createLogger({
   transports: [
     // Console transport for local development
     new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp(),
+      format: combine(
+        colorize(),
+        timestamp(),
         customFormat
       )
     }),

@@ -1,5 +1,5 @@
 import { RiotApi } from '../api/RiotApi';
-import { logger } from './loggerService';
+import logger from './loggerService';
 
 export interface ApiKeyValidationResult {
   isValid: boolean;

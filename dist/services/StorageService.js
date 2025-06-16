@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StorageService = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const loggerService_1 = require("../utils/loggerService");
+const loggerService_1 = __importDefault(require("../utils/loggerService"));
 /**
  * Service for handling persistent storage of data
  * Implements a tiered approach with memory and file-based caching
@@ -26,11 +26,11 @@ class StorageService {
         try {
             if (!fs_1.default.existsSync(this.baseDir)) {
                 fs_1.default.mkdirSync(this.baseDir, { recursive: true });
-                loggerService_1.logger.info(`Storage directory created at: ${this.baseDir}`);
+                loggerService_1.default.info(`Storage directory created at: ${this.baseDir}`);
             }
         }
         catch (error) {
-            loggerService_1.logger.error('Failed to initialize storage directory:', error);
+            loggerService_1.default.error('Failed to initialize storage directory:', error);
         }
     }
     /**
@@ -52,7 +52,7 @@ class StorageService {
             return JSON.parse(fileContent);
         }
         catch (error) {
-            loggerService_1.logger.error(`Error reading from storage (${namespace}):`, error);
+            loggerService_1.default.error(`Error reading from storage (${namespace}):`, error);
             return {};
         }
     }
@@ -65,7 +65,7 @@ class StorageService {
             fs_1.default.writeFileSync(filePath, JSON.stringify(data, null, 2));
         }
         catch (error) {
-            loggerService_1.logger.error(`Error writing to storage (${namespace}):`, error);
+            loggerService_1.default.error(`Error writing to storage (${namespace}):`, error);
         }
     }
     /**
@@ -115,7 +115,7 @@ class StorageService {
             }
         }
         catch (error) {
-            loggerService_1.logger.error(`Error cleaning file storage (${namespace}):`, error);
+            loggerService_1.default.error(`Error cleaning file storage (${namespace}):`, error);
         }
     }
     /**

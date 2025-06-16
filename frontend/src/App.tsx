@@ -253,7 +253,7 @@ You can find your Riot ID in your League client profile.`);
         const startTime = Date.now();
         result = await apiService.getUnifiedAnalysis(playerName, { 
           region: 'na1', 
-          matches: 500 // 500+ games for comprehensive analysis
+          matches: 50 // Reduced from 500 to 50 for faster analysis
         });
         const duration = Date.now() - startTime;
         

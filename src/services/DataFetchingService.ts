@@ -2,7 +2,7 @@ import { RiotApi } from '../api/RiotApi';
 import { OpggMcpClient } from './OpggMcpClient';
 import { EnhancedPlayerAnalysis } from '../models/EnhancedPlayerData';
 import { PlayerAnalysis } from '../models/PlayerAnalysis';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 import { createError } from '../utils/errorHandler';
 
 interface CacheEntry {

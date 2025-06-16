@@ -1,6 +1,6 @@
 import { RiotApi } from '../api/RiotApi';
 import { MatchHistory, MatchParticipant } from '../models/MatchHistory';
-import { logger } from '../utils/loggerService';
+import logger from '../utils/loggerService';
 
 export interface ChampionStats {
     championId: number;
