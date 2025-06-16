@@ -48,29 +48,64 @@ class UnifiedAnalysisService {
             else {
                 throw new Error('Riot ID is required for unified analysis');
             }
-            // Get extensive match history (500+ matches minimum for deep analysis)
-            const matchCount = options.matchCount || 500; // Default to 500+ matches for comprehensive analysis
+            // Limit match count to reduce timeouts
+            const matchCount = Math.min(options.matchCount || 200, 200); // Reduced from 500 to 200 max
             loggerService_1.logger.info(`🔍 Fetching ${matchCount} matches for comprehensive analysis`);
-            // Get match history for outlier analysis
-            const matchIds = await this.riotApi.getMatchHistory(puuid, undefined, undefined, matchCount);
-            // Get detailed match data for outlier analysis
-            loggerService_1.logger.info(`🔍 Fetching detailed match data for ${matchIds.length} matches...`);
-            const matches = [];
-            for (const matchId of matchIds.slice(0, Math.min(100, matchIds.length))) { // Limit to 100 matches for outlier analysis
-                try {
-                    const match = await this.riotApi.getMatchDetails(matchId);
-                    matches.push(match);
-                }
-                catch (error) {
-                    loggerService_1.logger.warn(`Failed to get match ${matchId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                }
+            // Set a timeout for the entire analysis process
+            const analysisTimeout = 40000; // 40 seconds
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error('Analysis timed out after 40 seconds'));
+                }, analysisTimeout);
+            });
+            // Get match history for outlier analysis with timeout
+            let matchIds;
+            try {
+                // Race between match fetching and timeout
+                matchIds = await Promise.race([
+                    this.riotApi.getExtendedMatchHistory(puuid, matchCount),
+                    timeoutPromise
+                ]);
+                loggerService_1.logger.info(`✅ Successfully fetched ${matchIds.length} match IDs`);
             }
-            // Run comprehensive analysis in parallel
-            const [comprehensiveStats, smurfAnalysis, outlierAnalysis] = await Promise.all([
-                this.championStatsService.getComprehensiveStats(puuid, matchCount),
-                this.smurfDetectionService.analyzeSmurf(puuid, region),
-                this.outlierGameDetectionService.analyzeOutlierGames(matches, puuid, 'GOLD') // Default to GOLD rank for now
-            ]);
+            catch (error) {
+                loggerService_1.logger.error('⏱️ Match history fetching timed out or failed:', error);
+                // If we time out, try with a smaller sample
+                const reducedCount = Math.min(matchCount, 50);
+                loggerService_1.logger.info(`🔄 Retrying with reduced match count: ${reducedCount}`);
+                matchIds = await this.riotApi.getMatchHistory(puuid, undefined, undefined, reducedCount);
+            }
+            // Limit the number of matches we process in detail to avoid timeouts
+            const processLimit = Math.min(matchIds.length, 50);
+            loggerService_1.logger.info(`📊 Processing ${processLimit} matches in detail`);
+            const matchDetailsPromises = matchIds.slice(0, processLimit).map(matchId => this.riotApi.getMatchDetails(matchId)
+                .catch(error => {
+                loggerService_1.logger.warn(`Failed to get details for match ${matchId}:`, error);
+                return null;
+            }));
+            // Process match details with a timeout
+            let matches;
+            try {
+                matches = await Promise.race([
+                    Promise.all(matchDetailsPromises),
+                    new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Match details processing timed out')), 30000);
+                    })
+                ]);
+            }
+            catch (error) {
+                loggerService_1.logger.error('⏱️ Match details processing timed out:', error);
+                // If we time out, use whatever matches we've processed so far
+                matches = await Promise.all(matchDetailsPromises.map(p => p.catch(() => null)));
+            }
+            // Filter out null matches
+            const validMatches = matches.filter(match => match !== null);
+            loggerService_1.logger.info(`✅ Successfully processed ${validMatches.length} matches`);
+            // Continue with the analysis using the matches we have
+            const comprehensiveStats = await this.championStatsService.getComprehensiveStats(puuid, matchCount);
+            // Get smurf analysis and outlier detection
+            const smurfAnalysis = await this.smurfDetectionService.analyzeSmurf(puuid, region);
+            const outlierAnalysis = await this.outlierGameDetectionService.analyzeOutlierGames(validMatches, puuid, 'GOLD');
             // Enhance champion stats with suspicion analysis
             const enhancedChampions = await this.analyzeChampionSuspicion(comprehensiveStats.mostPlayedChampions, smurfAnalysis);
             // Calculate unified suspicion score
