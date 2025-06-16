@@ -1,1 +1,39 @@
 {"level":"error","message":"Error analyzing player: Player not found","metadata":{"environment":"test","service":"smurfguard-api","stack":"Error: Player not found\n    at Object.<anonymous> (D:\\Passion Project v2\\src\\tests\\SmurfDetectionService.test.ts:323:55)\n    at Promise.then.completed (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (D:\\Passion Project v2\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (D:\\Passion Project v2\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (D:\\Passion Project v2\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2025-06-16T14:35:08.167Z","version":"2.0.0"}}
+2025-06-16T15:25:03.860Z [info]: DataFetchingService initialized with config: {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "useOpggMcp": false,
+  "useRiotApi": true,
+  "fallbackToMock": false
+}
+2025-06-16T15:25:03.862Z [info]: Storage directory created at: storage/players {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:25:03.867Z [info]: 🚀 SmurfGuard API server running on port 3000 {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0",
+  "metadata": {
+    "service": "smurfguard-api",
+    "version": "2.0.0",
+    "timestamp": "2025-06-16T15:25:03.867Z"
+  }
+}
+2025-06-16T15:25:03.867Z [info]: 📊 Features: OP.GG MCP Integration, Enhanced Analysis, Real-time Detection {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:25:03.867Z [info]: 🔗 Health Check: http://localhost:3000/api/health {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
+2025-06-16T15:25:03.867Z [info]: ⚡ Integration Status: http://localhost:3000/api/integration/status {
+  "service": "smurfguard-api",
+  "environment": "development",
+  "version": "2.0.0"
+}
