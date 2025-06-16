@@ -547,7 +547,12 @@ class ApiService {
     return { isValid: true };
   }
 
-
+  /**
+   * Get the base URL for API requests
+   */
+  getBaseUrl(): string {
+    return this.baseURL;
+  }
 }
 
 // Export singleton instance

@@ -3,6 +3,7 @@ import UnifiedSmurfAnalysis from './components/UnifiedSmurfAnalysis';
 import { apiService } from './services/api';
 import styled from 'styled-components';
 import ProgressBar from './components/ProgressBar';
+import logService from './services/logService';
 import './App.css';
 
 const AppContainer = styled.div`
@@ -192,9 +193,11 @@ function App() {
   const handleAnalyze = async () => {
     try {
       console.log('🚀 handleAnalyze started');
+      logService.info('Analysis started', { playerName });
       
       if (!playerName.trim()) {
         console.log('❌ Empty player name');
+        logService.warn('Empty player name submitted');
         setError('Please enter a Riot ID');
         return;
       }
@@ -202,6 +205,7 @@ function App() {
       // Check if it's a Riot ID format
       if (!playerName.includes('#')) {
         console.log('❌ Invalid Riot ID format');
+        logService.warn('Invalid Riot ID format', { playerName });
         setError(`Please enter a valid Riot ID in the format: GameName#TAG
 
 Examples:
@@ -219,6 +223,7 @@ You can find your Riot ID in your League client profile.`);
       setAnalysisData(null);
       
       console.log(`🔍 Searching for player: ${playerName}`);
+      logService.info('Searching for player', { playerName });
       setLoadingStatus('Fetching summoner information...');
       
       let result;
@@ -245,29 +250,52 @@ You can find your Riot ID in your League client profile.`);
           }
         }, 4000);
         
+        const startTime = Date.now();
         result = await apiService.getUnifiedAnalysis(playerName, { 
           region: 'na1', 
           matches: 500 // 500+ games for comprehensive analysis
         });
+        const duration = Date.now() - startTime;
         
         clearInterval(statusInterval);
         console.log('🎯 Unified analysis completed, result:', result);
+        logService.info('Analysis completed', { 
+          playerName, 
+          duration: `${duration}ms`,
+          resultStatus: result?.success ? 'success' : 'failure'
+        });
         
         if (result && result.success && result.data) {
           console.log(`✅ Unified analysis data received for: ${playerName}`);
           setUnifiedData(result.data);
           return; // Exit early
         } else {
+          logService.warn('Analysis returned unsuccessful result', { 
+            playerName,
+            error: result?.error
+          });
           throw new Error(result?.error?.message || 'Unified analysis failed');
         }
-      } catch (analysisError) {
+      } catch (analysisError: any) {
         console.error('❌ Analysis request failed:', analysisError);
+        logService.error('Analysis request failed', { 
+          playerName,
+          error: analysisError?.message,
+          stack: analysisError?.stack,
+          response: analysisError?.response?.data
+        });
         throw analysisError;
       }
       
     } catch (error: any) {
       console.error('❌ Analysis failed with error:', error);
       console.error('❌ Error stack:', error.stack);
+      logService.error('Analysis failed', { 
+        playerName,
+        errorMessage: error?.message,
+        errorStack: error?.stack,
+        errorType: error?.type
+      });
       
       try {
         // Handle specific error types based on error object properties
@@ -323,13 +351,7 @@ Technical details: ${error.stack || 'No stack trace available'}`);
         // Last resort error handling
       }
     } finally {
-      try {
-        console.log('🏁 Setting loading to false');
-        setLoading(false);
-        console.log('✅ handleAnalyze completed');
-      } catch (finallyError) {
-        console.error('❌ Error in finally block:', finallyError);
-      }
+      setLoading(false);
     }
   };
 

@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { RiotApi } from './api/RiotApi';
 import { DataFetchingService } from './services/DataFetchingService';
 import { SmurfDetectionService } from './services/SmurfDetectionService';
-import { logger } from './utils/loggerService';
+import { logger, logCriticalError } from './utils/loggerService';
 import { createError } from './utils/errorHandler';
 import { ChampionStatsService } from './services/ChampionStatsService';
 import { UnifiedAnalysisService } from './services/UnifiedAnalysisService';
@@ -655,6 +655,106 @@ app.get('/api/debug/riot-id/:riotId', async (req, res) => {
       message: error.message,
       stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
     });
+  }
+});
+
+// Debug endpoint to check API status and configuration
+app.get('/api/debug/status', async (req, res) => {
+  try {
+    const status = {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      version: '2.0.0',
+      apiKey: process.env.RIOT_API_KEY ? 'Configured' : 'Missing',
+      apiKeyLength: process.env.RIOT_API_KEY?.length || 0,
+      apiKeyPrefix: process.env.RIOT_API_KEY?.substring(0, 4) || 'N/A',
+      memoryUsage: process.memoryUsage(),
+      uptime: process.uptime(),
+      endpoints: {
+        '/api/analyze/unified/:riotId': 'Main unified analysis endpoint',
+        '/api/analyze/comprehensive/:identifier': 'Comprehensive analysis endpoint',
+        '/api/analyze/riot-id/:gameName/:tagLine': 'Dedicated Riot ID endpoint',
+        '/api/debug/riot-id/:riotId': 'Debug endpoint for testing Riot ID parsing',
+        '/api/debug/status': 'This endpoint (API status and configuration)'
+      },
+      cors: {
+        enabled: true,
+        allowedOrigins: [
+          'http://localhost:3000',
+          'https://lol-smurfguard.vercel.app',
+          /^https:\/\/lol-smurfguard-.*\.vercel\.app$/.toString(),
+          'https://smurfgaurd-production.up.railway.app',
+          /^https:\/\/.*-reis-projects-.*\.vercel\.app$/.toString()
+        ]
+      },
+      loggers: {
+        winston: !!logger,
+        logtail: !!process.env.LOGTAIL_SOURCE_TOKEN,
+        github: !!(process.env.GITHUB_TOKEN && process.env.GITHUB_REPO)
+      }
+    };
+
+    res.json({
+      success: true,
+      status
+    });
+  } catch (error: any) {
+    logger.error(`Error in debug status endpoint: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+    });
+  }
+});
+
+// Add logs endpoint to receive frontend logs
+app.post('/api/logs', async (req, res) => {
+  try {
+    const { logs, metadata } = req.body;
+    
+    if (!logs || !Array.isArray(logs)) {
+      return res.status(400).json({ error: 'Invalid log format' });
+    }
+    
+    // Log each entry to the server logger
+    logs.forEach((log: any) => {
+      const { level, message, context, stack } = log;
+      
+      switch (level) {
+        case 'debug':
+          logger.debug(message, { context, stack, source: 'frontend', metadata });
+          break;
+        case 'info':
+          logger.info(message, { context, stack, source: 'frontend', metadata });
+          break;
+        case 'warn':
+          logger.warn(message, { context, stack, source: 'frontend', metadata });
+          break;
+        case 'error':
+          logger.error(message, { context, stack, source: 'frontend', metadata });
+          
+          // For critical frontend errors, create GitHub issue if configured
+          if (process.env.GITHUB_TOKEN && process.env.GITHUB_REPO) {
+            const errorContext = {
+              ...context,
+              metadata,
+              source: 'frontend'
+            };
+            
+            logCriticalError(new Error(message), errorContext).catch(err => {
+              logger.error('Failed to create GitHub issue for frontend error', err);
+            });
+          }
+          break;
+      }
+    });
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error('Error processing frontend logs', error);
+    res.status(500).json({ error: 'Failed to process logs' });
   }
 });
 
