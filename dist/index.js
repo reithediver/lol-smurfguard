@@ -12,6 +12,7 @@ const SmurfDetectionService_1 = require("./services/SmurfDetectionService");
 const loggerService_1 = require("./utils/loggerService");
 const ChampionStatsService_1 = require("./services/ChampionStatsService");
 const UnifiedAnalysisService_1 = require("./services/UnifiedAnalysisService");
+const analysis_1 = __importDefault(require("./routes/analysis"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 // Log startup configuration
@@ -539,6 +540,8 @@ app.get('/api/analysis/capabilities', async (req, res) => {
         });
     }
 });
+// Register routes
+app.use('/api/analysis', analysis_1.default);
 // Global error handler
 app.use((error, req, res, next) => {
     loggerService_1.logger.error('Unhandled error:', error);

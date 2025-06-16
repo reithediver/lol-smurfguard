@@ -5,6 +5,7 @@ const RiotApi_1 = require("../api/RiotApi");
 const ChampionStatsService_1 = require("./ChampionStatsService");
 const SmurfDetectionService_1 = require("./SmurfDetectionService");
 const RankBenchmarkService_1 = require("./RankBenchmarkService");
+const OutlierGameDetectionService_1 = require("./OutlierGameDetectionService");
 const loggerService_1 = require("../utils/loggerService");
 class UnifiedAnalysisService {
     constructor(riotApi) {
@@ -14,6 +15,7 @@ class UnifiedAnalysisService {
         this.championStatsService = new ChampionStatsService_1.ChampionStatsService(riotApi);
         this.smurfDetectionService = new SmurfDetectionService_1.SmurfDetectionService(riotApi);
         this.rankBenchmarkService = new RankBenchmarkService_1.RankBenchmarkService();
+        this.outlierGameDetectionService = new OutlierGameDetectionService_1.OutlierGameDetectionService();
     }
     async getUnifiedAnalysis(puuid, options = {}) {
         const cacheKey = `${puuid}_${options.matchCount || 200}`;
@@ -49,10 +51,25 @@ class UnifiedAnalysisService {
             // Get extensive match history (500+ matches minimum for deep analysis)
             const matchCount = options.matchCount || 500; // Default to 500+ matches for comprehensive analysis
             loggerService_1.logger.info(`🔍 Fetching ${matchCount} matches for comprehensive analysis`);
+            // Get match history for outlier analysis
+            const matchIds = await this.riotApi.getMatchHistory(puuid, undefined, undefined, matchCount);
+            // Get detailed match data for outlier analysis
+            loggerService_1.logger.info(`🔍 Fetching detailed match data for ${matchIds.length} matches...`);
+            const matches = [];
+            for (const matchId of matchIds.slice(0, Math.min(100, matchIds.length))) { // Limit to 100 matches for outlier analysis
+                try {
+                    const match = await this.riotApi.getMatchDetails(matchId);
+                    matches.push(match);
+                }
+                catch (error) {
+                    loggerService_1.logger.warn(`Failed to get match ${matchId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+            }
             // Run comprehensive analysis in parallel
-            const [comprehensiveStats, smurfAnalysis] = await Promise.all([
+            const [comprehensiveStats, smurfAnalysis, outlierAnalysis] = await Promise.all([
                 this.championStatsService.getComprehensiveStats(puuid, matchCount),
-                this.smurfDetectionService.analyzeSmurf(puuid, region)
+                this.smurfDetectionService.analyzeSmurf(puuid, region),
+                this.outlierGameDetectionService.analyzeOutlierGames(matches, puuid, 'GOLD') // Default to GOLD rank for now
             ]);
             // Enhance champion stats with suspicion analysis
             const enhancedChampions = await this.analyzeChampionSuspicion(comprehensiveStats.mostPlayedChampions, smurfAnalysis);
@@ -72,6 +89,7 @@ class UnifiedAnalysisService {
                 championAnalysis: enhancedChampions,
                 smurfAnalysis,
                 unifiedSuspicion,
+                outlierAnalysis,
                 metadata: {
                     analysisDate: new Date(),
                     matchesAnalyzed: comprehensiveStats.totalGames,

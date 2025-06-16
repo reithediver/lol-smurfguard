@@ -8,6 +8,7 @@ import { logger } from './utils/loggerService';
 import { createError } from './utils/errorHandler';
 import { ChampionStatsService } from './services/ChampionStatsService';
 import { UnifiedAnalysisService } from './services/UnifiedAnalysisService';
+import analysisRoutes from './routes/analysis';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -587,6 +588,9 @@ app.get('/api/analysis/capabilities', async (req, res) => {
     });
   }
 });
+
+// Register routes
+app.use('/api/analysis', analysisRoutes);
 
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
