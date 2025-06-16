@@ -268,9 +268,40 @@ class ApiService {
       const url = `/analysis/unified?summonerName=${encodeURIComponent(riotId)}${params.toString() ? '&' + params.toString() : ''}`;
       
       console.log('🎯 Calling unified analysis endpoint:', url);
+      console.log('🌐 Full URL:', `${this.baseURL}${url}`);
       
-      const response = await this.api.get(url);
-      return response.data;
+      try {
+        const response = await this.api.get(url, {
+          timeout: 60000, // Increase timeout to 60 seconds
+        });
+        console.log('✅ Unified analysis response received:', response.status);
+        return response.data;
+      } catch (networkError: any) {
+        console.error('❌ Network error in unified analysis:', networkError);
+        console.error('❌ Network error details:', {
+          message: networkError.message,
+          code: networkError.code,
+          config: networkError.config,
+          response: networkError.response ? {
+            status: networkError.response.status,
+            statusText: networkError.response.statusText,
+            data: networkError.response.data
+          } : null
+        });
+        
+        // Retry once with a direct fetch to bypass any axios issues
+        console.log('🔄 Retrying with direct fetch...');
+        const directUrl = `${this.baseURL}${url}`;
+        const directResponse = await fetch(directUrl);
+        
+        if (!directResponse.ok) {
+          throw new Error(`Direct fetch failed with status: ${directResponse.status}`);
+        }
+        
+        const data = await directResponse.json();
+        console.log('✅ Direct fetch successful');
+        return data;
+      }
     } catch (error) {
       console.error('❌ Unified analysis error:', error);
       throw this.handleApiError(error);

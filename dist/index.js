@@ -40,7 +40,8 @@ app.use((0, cors_1.default)({
             'http://localhost:3000',
             'https://lol-smurfguard.vercel.app',
             /^https:\/\/lol-smurfguard-.*\.vercel\.app$/, // Preview deployments
-            'https://smurfgaurd-production.up.railway.app'
+            'https://smurfgaurd-production.up.railway.app',
+            /^https:\/\/.*-reis-projects-.*\.vercel\.app$/ // All Vercel preview deployments
         ];
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) {

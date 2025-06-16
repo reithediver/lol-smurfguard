@@ -417,31 +417,15 @@ Technical details: ${error.stack || 'No stack trace available'}`);
         
         {loading && (
           <LoadingMessage>
-            <div style={{ fontSize: '18px', marginBottom: '10px' }}>
-              🔍 Analyzing 500+ games with 10 algorithmic metrics...
+            <div style={{ marginBottom: '20px' }}>
+              <span style={{ fontSize: '24px', marginRight: '10px' }}>⏳</span>
+              Analyzing {playerName}...
             </div>
-            <div style={{ fontSize: '14px', marginBottom: '15px', color: '#94a3b8' }}>
-              Processing matches in batches to respect API rate limits
+            <div style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '600px', margin: '0 auto' }}>
+              This comprehensive analysis may take 20-30 seconds as we process 500+ matches and compare against rank benchmarks.
             </div>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              gap: '15px',
-              fontSize: '12px',
-              color: '#64748b',
-              marginBottom: '15px'
-            }}>
-              <div>⏳ Fetching match history</div>
-              <div>📊 Processing match details</div>
-              <div>🧮 Calculating algorithms</div>
-            </div>
-            <div style={{ 
-              fontSize: '12px',
-              color: '#475569',
-              fontStyle: 'italic'
-            }}>
-              This comprehensive analysis may take 2-3 minutes due to API rate limiting
+            <div style={{ marginTop: '20px', fontSize: '0.9rem', color: '#64748b' }}>
+              Fetching match history, calculating statistics, and detecting outlier performances...
             </div>
           </LoadingMessage>
         )}
